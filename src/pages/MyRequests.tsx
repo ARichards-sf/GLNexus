@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TicketCheck, Search, Clock, Plus } from "lucide-react";
+import { TicketCheck, Search, Clock, Plus, MessageCircle } from "lucide-react";
 import { useMyServiceRequests } from "@/hooks/useServiceRequests";
+import { useUnreadRequests } from "@/hooks/useUnreadRequests";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 
 const statusStyles: Record<string, string> = {
@@ -19,6 +20,8 @@ export default function MyRequests() {
   const [search, setSearch] = useState("");
   const [assistOpen, setAssistOpen] = useState(false);
   const navigate = useNavigate();
+  const requestIds = requests.map((r) => r.id);
+  const { data: unreadSet = new Set<string>() } = useUnreadRequests(requestIds);
 
   const filtered = requests.filter((r) => {
     if (!search.trim()) return true;
