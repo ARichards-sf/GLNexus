@@ -2,12 +2,13 @@ import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  LayoutDashboard, Users, CalendarDays, FileText, Settings, TrendingUp, LogOut,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut,
 } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/households", label: "Households", icon: Users },
+  { to: "/contacts", label: "Contacts", icon: UserRound },
   { to: "#", label: "Calendar", icon: CalendarDays },
   { to: "#", label: "Reports", icon: FileText },
   { to: "#", label: "Performance", icon: TrendingUp },
