@@ -9,6 +9,7 @@ export interface HouseholdRow {
   risk_tolerance: string;
   investment_objective: string | null;
   status: string;
+  wealth_tier: string | null;
   next_action: string | null;
   next_action_date: string | null;
   annual_review_date: string | null;

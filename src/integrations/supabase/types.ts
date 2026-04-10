@@ -172,6 +172,7 @@ export type Database = {
           status: string
           total_aum: number
           updated_at: string
+          wealth_tier: string | null
         }
         Insert: {
           advisor_id: string
@@ -186,6 +187,7 @@ export type Database = {
           status?: string
           total_aum?: number
           updated_at?: string
+          wealth_tier?: string | null
         }
         Update: {
           advisor_id?: string
@@ -200,6 +202,7 @@ export type Database = {
           status?: string
           total_aum?: number
           updated_at?: string
+          wealth_tier?: string | null
         }
         Relationships: []
       }
