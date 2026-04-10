@@ -39,6 +39,9 @@ const App = () => (
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/contacts/:id" element={<ContactProfile />} />
               <Route path="/performance" element={<Performance />} />
+              <Route path="/calendar" element={<ComingSoon />} />
+              <Route path="/reports" element={<ComingSoon />} />
+              <Route path="/settings" element={<ComingSoon />} />
               <Route path="/admin/advisors" element={<AdminRoute><AdminAdvisors /></AdminRoute>} />
               <Route path="/admin/advisors/:id" element={<AdminRoute><AdvisorDetail /></AdminRoute>} />
             </Route>
