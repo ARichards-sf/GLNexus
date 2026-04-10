@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_snapshots: {
+        Row: {
+          account_id: string
+          advisor_id: string
+          balance: number
+          created_at: string
+          id: string
+          snapshot_date: string
+        }
+        Insert: {
+          account_id: string
+          advisor_id: string
+          balance?: number
+          created_at?: string
+          id?: string
+          snapshot_date?: string
+        }
+        Update: {
+          account_id?: string
+          advisor_id?: string
+          balance?: number
+          created_at?: string
+          id?: string
+          snapshot_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_snapshots_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "contact_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_notes: {
         Row: {
           advisor_id: string
@@ -178,6 +213,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "household_members_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      household_snapshots: {
+        Row: {
+          advisor_id: string
+          created_at: string
+          household_id: string
+          id: string
+          snapshot_date: string
+          total_aum: number
+        }
+        Insert: {
+          advisor_id: string
+          created_at?: string
+          household_id: string
+          id?: string
+          snapshot_date?: string
+          total_aum?: number
+        }
+        Update: {
+          advisor_id?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          snapshot_date?: string
+          total_aum?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_snapshots_household_id_fkey"
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "households"
