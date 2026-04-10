@@ -42,6 +42,7 @@ export default function Dashboard() {
   const { impersonatedUser } = useImpersonation();
   const { data: households = [], isLoading } = useHouseholds();
   const { data: recentNotes = [] } = useAllComplianceNotes();
+  const { data: upcomingEvents = [] } = useUpcomingEvents(5);
   const generateSnapshot = useGenerateSnapshot();
 
   const totalAUM = households.reduce((sum, h) => sum + Number(h.total_aum), 0);
