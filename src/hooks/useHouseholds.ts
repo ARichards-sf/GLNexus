@@ -35,6 +35,7 @@ export interface NoteRow {
   type: string;
   summary: string;
   advisor_name: string | null;
+  created_at: string;
 }
 
 function useTargetAdvisorId() {
