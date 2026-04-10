@@ -55,7 +55,7 @@ export default function CreateContactDialog({ open, onOpenChange }: Props) {
         date_of_birth: values.date_of_birth || null,
         company: values.company || null,
         job_title: values.job_title || null,
-        household_id: values.household_id || null,
+        household_id: values.household_id && values.household_id !== "none" ? values.household_id : null,
       });
       toast({ title: "Contact created" });
       form.reset();
