@@ -96,6 +96,10 @@ export default function AdminRequests() {
               <CardContent className="py-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-medium text-foreground">{req.advisor_name || "Unknown Advisor"}</span>
+                      {req.advisor_email && <span className="text-[11px] text-muted-foreground">({req.advisor_email})</span>}
+                    </div>
                     <div className="flex items-center gap-2 mb-1.5">
                       <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">{req.category}</Badge>
                       <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 font-medium ${statusStyles[req.status] || ""}`}>
