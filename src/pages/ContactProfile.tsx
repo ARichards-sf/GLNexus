@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
-  Edit, Wallet, Plus,
+  Edit, Wallet, Plus, HelpCircle,
 } from "lucide-react";
 import { useContact, useContactAccounts } from "@/hooks/useContacts";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
 import AddAccountDialog from "@/components/AddAccountDialog";
+import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 
 export default function ContactProfile() {
   const { id } = useParams();

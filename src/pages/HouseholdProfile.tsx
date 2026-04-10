@@ -554,6 +554,15 @@ export default function HouseholdProfile() {
         householdId={household.id}
         householdName={household.name}
       />
+      <RequestAssistanceDialog
+        open={assistOpen}
+        onOpenChange={setAssistOpen}
+        context={{
+          householdName: household.name,
+          householdAum: Number(household.total_aum),
+          householdId: household.id,
+        }}
+      />
     </div>
   );
 }
