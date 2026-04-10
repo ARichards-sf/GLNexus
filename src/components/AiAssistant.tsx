@@ -194,6 +194,7 @@ export default function AiAssistant() {
             <Bot className="h-4 w-4 text-primary" />
             GL Nexus Assistant
           </SheetTitle>
+          <SheetDescription className="sr-only">AI assistant for managing your book of business</SheetDescription>
         </SheetHeader>
 
         {/* Messages */}
