@@ -43,7 +43,20 @@ export default function RequestDetail() {
         .eq("id", id!)
         .single();
       if (error) throw error;
-      return data as ServiceRequest;
+
+      // Fetch advisor profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("user_id", data.advisor_id)
+        .single();
+
+      return {
+        ...data,
+        file_paths: data.file_paths ?? [],
+        advisor_name: profile?.full_name || "Unknown",
+        advisor_email: profile?.email || undefined,
+      } as ServiceRequest;
     },
     enabled: !!id,
   });
