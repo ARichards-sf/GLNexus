@@ -16,7 +16,7 @@ export default function ActionCard({ toolCall, onConfirm, onReject }: Props) {
   return (
     <div className="bg-accent/50 border border-border rounded-lg p-3 space-y-2 max-w-[85%]">
       <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+        <span className="h-1.5 w-1.5 rounded-full bg-accent-foreground/50" />
         Proposed Action
       </div>
       <div className="text-sm whitespace-pre-wrap">
@@ -40,7 +40,7 @@ export default function ActionCard({ toolCall, onConfirm, onReject }: Props) {
         </div>
       )}
       {toolCall.status === "executed" && (
-        <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+        <div className="text-xs text-primary font-medium">
           ✓ {toolCall.result || "Done"}
         </div>
       )}
