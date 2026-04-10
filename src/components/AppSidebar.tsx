@@ -2,6 +2,7 @@ import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
+import { useUnreadRequestCounts } from "@/hooks/useUnreadRequestCounts";
 import {
   LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck,
 } from "lucide-react";
@@ -12,7 +13,7 @@ const navItems = [
   { to: "/households", label: "Households", icon: Users },
   { to: "/contacts", label: "Contacts", icon: UserRound },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
-  { to: "/my-requests", label: "My Requests", icon: TicketCheck },
+  { to: "/my-requests", label: "My Requests", icon: TicketCheck, badgeKey: "myRequests" as const },
   { to: "/reports", label: "Reports", icon: FileText },
   { to: "/performance", label: "Performance", icon: TrendingUp },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -20,13 +21,14 @@ const navItems = [
 
 const adminItems = [
   { to: "/admin/advisors", label: "Advisors", icon: ShieldCheck },
-  { to: "/admin/requests", label: "All Requests", icon: TicketCheck },
+  { to: "/admin/requests", label: "All Requests", icon: TicketCheck, badgeKey: "allRequests" as const },
 ];
 
 export default function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
+  const { data: unreadCounts } = useUnreadRequestCounts();
 
   const displayName = user?.user_metadata?.full_name || user?.email || "Advisor";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -40,6 +42,7 @@ export default function AppSidebar() {
       <nav className="flex flex-col gap-1 flex-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
+          const badgeCount = item.badgeKey && unreadCounts ? unreadCounts[item.badgeKey] : 0;
           return (
             <RouterNavLink
               key={item.label}
@@ -52,7 +55,12 @@ export default function AppSidebar() {
               )}
             >
               <item.icon className="w-[18px] h-[18px]" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {badgeCount > 0 && (
+                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-primary text-primary-foreground rounded-full">
+                  {badgeCount > 9 ? "9+" : badgeCount}
+                </span>
+              )}
             </RouterNavLink>
           );
         })}
@@ -64,6 +72,7 @@ export default function AppSidebar() {
             </div>
             {adminItems.map((item) => {
               const isActive = location.pathname.startsWith(item.to);
+              const badgeCount = item.badgeKey && unreadCounts ? unreadCounts[item.badgeKey] : 0;
               return (
                 <RouterNavLink
                   key={item.label}
@@ -76,7 +85,12 @@ export default function AppSidebar() {
                   )}
                 >
                   <item.icon className="w-[18px] h-[18px]" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {badgeCount > 0 && (
+                    <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-primary text-primary-foreground rounded-full">
+                      {badgeCount > 9 ? "9+" : badgeCount}
+                    </span>
+                  )}
                 </RouterNavLink>
               );
             })}
