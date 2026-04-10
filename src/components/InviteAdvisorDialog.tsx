@@ -41,8 +41,8 @@ export default function InviteAdvisorDialog({ open, onOpenChange }: Props) {
         office_location: values.office_location,
       });
       toast({
-        title: "Advisor created",
-        description: `Advisor ${values.full_name} created successfully. You can now log in with their credentials.`,
+        title: "Advisor provisioned",
+        description: "Advisor profile created and provisioned.",
       });
       form.reset();
       onOpenChange(false);
