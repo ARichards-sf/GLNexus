@@ -206,6 +206,24 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
+    // ── RUN SNAPSHOTS MANUALLY ──
+    if (action === "run_snapshots") {
+      const { error } = await supabaseAdmin.rpc("generate_daily_snapshots");
+      if (error) throw error;
+      return json({ success: true });
+    }
+
+    // ── GET AUTOMATION LOGS ──
+    if (action === "get_automation_logs") {
+      const { data, error } = await supabaseAdmin
+        .from("automation_logs")
+        .select("*")
+        .order("started_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return json({ logs: data });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (err: any) {
     const status = err.status || 500;
