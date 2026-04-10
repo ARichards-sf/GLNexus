@@ -31,7 +31,7 @@ export default function AdminAdvisors() {
     if (!search.trim()) return advisors;
     const q = search.toLowerCase();
     return advisors.filter(
-      (a) =>
+      (a: any) =>
         (a.full_name || "").toLowerCase().includes(q) ||
         (a.email || "").toLowerCase().includes(q)
     );
