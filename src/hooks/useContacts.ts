@@ -102,3 +102,20 @@ export function useCreateMember() {
     },
   });
 }
+
+export function useCreateAccount() {
+  const queryClient = useQueryClient();
+  const { user } = useTargetAdvisorId();
+  return useMutation({
+    mutationFn: async (data: Omit<TablesInsert<"contact_accounts">, "advisor_id">) => {
+      const { error } = await supabase
+        .from("contact_accounts")
+        .insert({ ...data, advisor_id: user!.id });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["contact_accounts", vars.member_id] });
+      queryClient.invalidateQueries({ queryKey: ["household_accounts"] });
+    },
+  });
+}
