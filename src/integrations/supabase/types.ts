@@ -425,6 +425,57 @@ export type Database = {
         }
         Relationships: []
       }
+      service_requests: {
+        Row: {
+          account_id: string | null
+          account_institution: string | null
+          account_type: string | null
+          advisor_id: string
+          category: string
+          created_at: string
+          description: string
+          file_paths: string[] | null
+          household_aum: number | null
+          household_id: string | null
+          household_name: string | null
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          account_institution?: string | null
+          account_type?: string | null
+          advisor_id: string
+          category: string
+          created_at?: string
+          description: string
+          file_paths?: string[] | null
+          household_aum?: number | null
+          household_id?: string | null
+          household_name?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          account_institution?: string | null
+          account_type?: string | null
+          advisor_id?: string
+          category?: string
+          created_at?: string
+          description?: string
+          file_paths?: string[] | null
+          household_aum?: number | null
+          household_id?: string | null
+          household_name?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
