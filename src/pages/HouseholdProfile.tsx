@@ -1,13 +1,15 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, DollarSign, Shield, Target, Users, Mail, Phone,
-  FileText, Lightbulb, Clock,
+  FileText, Lightbulb, UserPlus,
 } from "lucide-react";
 import { useHousehold, useHouseholdMembers, useComplianceNotes } from "@/hooks/useHouseholds";
 import { formatFullCurrency } from "@/data/sampleData";
+import AddMemberDialog from "@/components/AddMemberDialog";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -29,6 +31,7 @@ export default function HouseholdProfile() {
   const { data: household, isLoading } = useHousehold(id);
   const { data: members = [] } = useHouseholdMembers(id);
   const { data: notes = [] } = useComplianceNotes(id);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -54,8 +57,7 @@ export default function HouseholdProfile() {
 
   const memberAge = (dob: string | null) => {
     if (!dob) return null;
-    const diff = Date.now() - new Date(dob).getTime();
-    return Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000));
+    return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
   };
 
   return (
@@ -132,18 +134,28 @@ export default function HouseholdProfile() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Members - clickable names */}
         <Card className="lg:col-span-2 border-border shadow-none">
           <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-muted-foreground" />
-              <CardTitle className="text-base font-semibold">Family Members</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-muted-foreground" />
+                <CardTitle className="text-base font-semibold">Family Members</CardTitle>
+              </div>
+              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => setAddMemberOpen(true)}>
+                <UserPlus className="w-3.5 h-3.5 mr-1" /> Add
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {members.map((member) => (
-              <div key={member.id} className="p-3 rounded-lg bg-secondary/40">
+              <Link
+                key={member.id}
+                to={`/contacts/${member.id}`}
+                className="block p-3 rounded-lg bg-secondary/40 hover:bg-secondary/70 transition-colors"
+              >
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-sm font-medium text-foreground">{member.first_name} {member.last_name}</p>
+                  <p className="text-sm font-medium text-foreground hover:underline">{member.first_name} {member.last_name}</p>
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">{member.relationship}</Badge>
                 </div>
                 {member.date_of_birth && <p className="text-xs text-muted-foreground">Age {memberAge(member.date_of_birth)}</p>}
@@ -159,12 +171,13 @@ export default function HouseholdProfile() {
                     <span className="text-xs text-muted-foreground">{member.phone}</span>
                   </div>
                 )}
-              </div>
+              </Link>
             ))}
             {members.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No members added yet.</p>}
           </CardContent>
         </Card>
 
+        {/* Compliance Log */}
         <Card className="lg:col-span-3 border-border shadow-none">
           <CardHeader className="pb-4">
             <div className="flex items-center gap-2">
@@ -201,6 +214,8 @@ export default function HouseholdProfile() {
           </CardContent>
         </Card>
       </div>
+
+      <AddMemberDialog open={addMemberOpen} onOpenChange={setAddMemberOpen} householdId={household.id} />
     </div>
   );
 }
