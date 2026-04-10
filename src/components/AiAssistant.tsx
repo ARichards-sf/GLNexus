@@ -7,6 +7,7 @@ import { Bot, Send, X, Loader2 } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
 import { formatCurrency } from "@/data/sampleData";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -123,8 +124,12 @@ async function streamChat({
 }
 
 export default function AiAssistant() {
+  const { user } = useAuth();
+  const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [messages, setMessages] = useState<Msg[]>([
+    { role: "assistant", content: `Hi ${firstName}! 👋 I'm Goodie, your GL Nexus Assistant. How can I help you today?` },
+  ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -179,7 +184,7 @@ export default function AiAssistant() {
   }, [input, isLoading, messages, households, recentNotes]);
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={setOpen} modal={false}>
       <SheetTrigger asChild>
         <Button
           size="icon"
@@ -188,24 +193,17 @@ export default function AiAssistant() {
           <Bot className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[400px] sm:max-w-[400px] flex flex-col p-0">
+      <SheetContent side="right" hideOverlay className="w-[400px] sm:max-w-[400px] flex flex-col p-0 shadow-2xl">
         <SheetHeader className="px-4 py-3 border-b">
           <SheetTitle className="flex items-center gap-2 text-base">
             <Bot className="h-4 w-4 text-primary" />
-            GL Nexus Assistant
+            Goodie — GL Nexus Assistant
           </SheetTitle>
           <SheetDescription className="sr-only">AI assistant for managing your book of business</SheetDescription>
         </SheetHeader>
 
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          {messages.length === 0 && (
-            <div className="text-center text-muted-foreground text-sm py-12">
-              <Bot className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50" />
-              <p className="font-medium">How can I help?</p>
-              <p className="mt-1 text-xs">Ask about your households, AUM, upcoming reviews, or compliance notes.</p>
-            </div>
-          )}
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
