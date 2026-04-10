@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import {
   ArrowRight,
   Camera,
   CalendarDays,
+  HelpCircle,
 } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
@@ -20,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import { toast } from "sonner";
+import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -44,6 +47,7 @@ export default function Dashboard() {
   const { data: recentNotes = [] } = useAllComplianceNotes();
   const { data: upcomingEvents = [] } = useUpcomingEvents(5);
   const generateSnapshot = useGenerateSnapshot();
+  const [assistOpen, setAssistOpen] = useState(false);
 
   const totalAUM = households.reduce((sum, h) => sum + Number(h.total_aum), 0);
   const totalHouseholds = households.length;
@@ -81,20 +85,26 @@ export default function Dashboard() {
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
           <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            generateSnapshot.mutate(undefined, {
-              onSuccess: (data) => toast.success(`Snapshot saved — ${formatCurrency(data.total_aum)} AUM, ${data.household_count} households.`),
-              onError: () => toast.error("Failed to generate snapshot."),
-            })
-          }
-          disabled={generateSnapshot.isPending}
-        >
-          <Camera className="w-4 h-4 mr-1.5" />
-          {generateSnapshot.isPending ? "Saving…" : "Generate Snapshot"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setAssistOpen(true)}>
+            <HelpCircle className="w-4 h-4 mr-1.5" />
+            Request GL Assistance
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              generateSnapshot.mutate(undefined, {
+                onSuccess: (data) => toast.success(`Snapshot saved — ${formatCurrency(data.total_aum)} AUM, ${data.household_count} households.`),
+                onError: () => toast.error("Failed to generate snapshot."),
+              })
+            }
+            disabled={generateSnapshot.isPending}
+          >
+            <Camera className="w-4 h-4 mr-1.5" />
+            {generateSnapshot.isPending ? "Saving…" : "Generate Snapshot"}
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -231,6 +241,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
     </div>
   );
 }
