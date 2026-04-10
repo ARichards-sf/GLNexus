@@ -17,6 +17,8 @@ import AdminAdvisors from "./pages/AdminAdvisors";
 import AdvisorDetail from "./pages/AdvisorDetail";
 import Performance from "./pages/Performance";
 import CalendarPage from "./pages/Calendar";
+import MyRequests from "./pages/MyRequests";
+import AdminRequests from "./pages/AdminRequests";
 import ComingSoon from "./pages/ComingSoon";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -42,9 +44,11 @@ const App = () => (
               <Route path="/performance" element={<Performance />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/reports" element={<ComingSoon />} />
+              <Route path="/my-requests" element={<MyRequests />} />
               <Route path="/settings" element={<ComingSoon />} />
               <Route path="/admin/advisors" element={<AdminRoute><AdminAdvisors /></AdminRoute>} />
               <Route path="/admin/advisors/:id" element={<AdminRoute><AdvisorDetail /></AdminRoute>} />
+              <Route path="/admin/requests" element={<AdminRoute><AdminRequests /></AdminRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
