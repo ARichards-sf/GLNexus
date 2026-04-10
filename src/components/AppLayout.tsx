@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import AppSidebar from "./AppSidebar";
 import ImpersonationBar from "./ImpersonationBar";
+import AiAssistant from "./AiAssistant";
 
 export default function AppLayout() {
   return (
@@ -12,6 +13,7 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <AiAssistant />
     </div>
   );
 }
