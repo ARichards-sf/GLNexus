@@ -2,8 +2,10 @@ import { Outlet } from "react-router-dom";
 import AppSidebar from "./AppSidebar";
 import ImpersonationBar from "./ImpersonationBar";
 import AiAssistant from "./AiAssistant";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 
 export default function AppLayout() {
+  useRealtimeRefresh();
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <ImpersonationBar />
