@@ -17,6 +17,8 @@ export interface ServiceRequest {
   file_paths: string[];
   created_at: string;
   updated_at: string;
+  advisor_name?: string;
+  advisor_email?: string;
 }
 
 export function useMyServiceRequests() {
@@ -48,7 +50,22 @@ export function useAllServiceRequests() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as ServiceRequest[];
+
+      // Fetch advisor profiles
+      const advisorIds = [...new Set(data.map((r) => r.advisor_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", advisorIds);
+
+      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) ?? []);
+
+      return data.map((r) => ({
+        ...r,
+        file_paths: r.file_paths ?? [],
+        advisor_name: profileMap.get(r.advisor_id)?.full_name || "Unknown",
+        advisor_email: profileMap.get(r.advisor_id)?.email || undefined,
+      })) as ServiceRequest[];
     },
   });
 }
