@@ -204,13 +204,6 @@ export default function AiAssistant() {
 
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          {messages.length === 0 && (
-            <div className="text-center text-muted-foreground text-sm py-12">
-              <Bot className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50" />
-              <p className="font-medium">How can I help?</p>
-              <p className="mt-1 text-xs">Ask about your households, AUM, upcoming reviews, or compliance notes.</p>
-            </div>
-          )}
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
