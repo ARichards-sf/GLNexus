@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export default function AdminRequests() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const filtered = requests.filter((r) => {
     if (filterStatus !== "all" && r.status !== filterStatus) return false;
@@ -90,7 +92,7 @@ export default function AdminRequests() {
       ) : (
         <div className="space-y-3">
           {filtered.map((req) => (
-            <Card key={req.id} className="border-border shadow-none">
+            <Card key={req.id} className="border-border shadow-none cursor-pointer hover:bg-secondary/30 transition-colors" onClick={() => navigate(`/admin/requests/${req.id}`)}>
               <CardContent className="py-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">

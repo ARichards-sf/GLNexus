@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ export default function MyRequests() {
   const { data: requests = [], isLoading } = useMyServiceRequests();
   const [search, setSearch] = useState("");
   const [assistOpen, setAssistOpen] = useState(false);
+  const navigate = useNavigate();
 
   const filtered = requests.filter((r) => {
     if (!search.trim()) return true;
@@ -56,7 +58,7 @@ export default function MyRequests() {
       ) : (
         <div className="space-y-3">
           {filtered.map((req) => (
-            <Card key={req.id} className="border-border shadow-none">
+            <Card key={req.id} className="border-border shadow-none cursor-pointer hover:bg-secondary/30 transition-colors" onClick={() => navigate(`/my-requests/${req.id}`)}>
               <CardContent className="py-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
