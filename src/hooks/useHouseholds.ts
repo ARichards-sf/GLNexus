@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 export interface HouseholdRow {
   id: string;
@@ -36,26 +37,34 @@ export interface NoteRow {
   advisor_name: string | null;
 }
 
-export function useHouseholds() {
+function useTargetAdvisorId() {
   const { user } = useAuth();
+  const { targetAdvisorId } = useImpersonation();
+  const id = user ? targetAdvisorId(user.id) : undefined;
+  return { userId: user?.id, advisorId: id };
+}
+
+export function useHouseholds() {
+  const { userId, advisorId } = useTargetAdvisorId();
   return useQuery({
-    queryKey: ["households", user?.id],
+    queryKey: ["households", advisorId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("households")
         .select("*")
+        .eq("advisor_id", advisorId!)
         .order("name");
       if (error) throw error;
       return data as HouseholdRow[];
     },
-    enabled: !!user,
+    enabled: !!userId && !!advisorId,
   });
 }
 
 export function useHousehold(id: string | undefined) {
-  const { user } = useAuth();
+  const { userId } = useTargetAdvisorId();
   return useQuery({
-    queryKey: ["household", id, user?.id],
+    queryKey: ["household", id, userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("households")
@@ -65,14 +74,14 @@ export function useHousehold(id: string | undefined) {
       if (error) throw error;
       return data as HouseholdRow;
     },
-    enabled: !!user && !!id,
+    enabled: !!userId && !!id,
   });
 }
 
 export function useHouseholdMembers(householdId: string | undefined) {
-  const { user } = useAuth();
+  const { userId } = useTargetAdvisorId();
   return useQuery({
-    queryKey: ["household_members", householdId, user?.id],
+    queryKey: ["household_members", householdId, userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("household_members")
@@ -81,14 +90,14 @@ export function useHouseholdMembers(householdId: string | undefined) {
       if (error) throw error;
       return data as MemberRow[];
     },
-    enabled: !!user && !!householdId,
+    enabled: !!userId && !!householdId,
   });
 }
 
 export function useComplianceNotes(householdId: string | undefined) {
-  const { user } = useAuth();
+  const { userId } = useTargetAdvisorId();
   return useQuery({
-    queryKey: ["compliance_notes", householdId, user?.id],
+    queryKey: ["compliance_notes", householdId, userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("compliance_notes")
@@ -98,23 +107,24 @@ export function useComplianceNotes(householdId: string | undefined) {
       if (error) throw error;
       return data as NoteRow[];
     },
-    enabled: !!user && !!householdId,
+    enabled: !!userId && !!householdId,
   });
 }
 
 export function useAllComplianceNotes() {
-  const { user } = useAuth();
+  const { userId, advisorId } = useTargetAdvisorId();
   return useQuery({
-    queryKey: ["all_compliance_notes", user?.id],
+    queryKey: ["all_compliance_notes", advisorId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("compliance_notes")
         .select("*, households(name)")
+        .eq("advisor_id", advisorId!)
         .order("date", { ascending: false })
         .limit(6);
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!userId && !!advisorId,
   });
 }
