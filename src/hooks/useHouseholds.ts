@@ -163,6 +163,23 @@ export function useAllComplianceNotes() {
   });
 }
 
+export function useSnapshots() {
+  const { userId, advisorId } = useTargetAdvisorId();
+  return useQuery({
+    queryKey: ["daily_snapshots", advisorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("daily_snapshots")
+        .select("*")
+        .eq("advisor_id", advisorId!)
+        .order("snapshot_date", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId && !!advisorId,
+  });
+}
+
 export function useGenerateSnapshot() {
   const { userId, advisorId } = useTargetAdvisorId();
   const queryClient = useQueryClient();

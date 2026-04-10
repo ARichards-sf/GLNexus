@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Households from "./pages/Households";
 import HouseholdProfile from "./pages/HouseholdProfile";
 import AdminAdvisors from "./pages/AdminAdvisors";
+import Performance from "./pages/Performance";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
