@@ -252,43 +252,67 @@ export default function HouseholdProfile() {
         <TabsContent value="notes">
           <Card className="border-border shadow-none">
             <CardHeader className="pb-4">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                <CardTitle className="text-base font-semibold">Compliance Log</CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <CardTitle className="text-base font-semibold">Compliance Log</CardTitle>
+                </div>
+                <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => setAddNoteOpen(true)}>
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Add Note
+                </Button>
               </div>
+              {notes.length > 0 && (
+                <div className="relative mt-3">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search notes..."
+                    value={noteSearch}
+                    onChange={(e) => setNoteSearch(e.target.value)}
+                    className="pl-9 h-8 text-xs"
+                  />
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               <div className="relative">
-                {notes.length > 0 && <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" />}
+                {filteredNotes.length > 0 && <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" />}
                 <div className="space-y-6">
-                  {notes.map((note) => (
-                    <div key={note.id} className="flex gap-4 relative">
-                      <div className="w-[31px] flex justify-center shrink-0 z-10">
-                        <div className="w-2.5 h-2.5 rounded-full bg-border mt-1.5 ring-4 ring-card" />
-                      </div>
-                      <div className="flex-1 pb-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 font-medium ${noteTypeColors[note.type] || ""}`}>
-                            {note.type}
-                          </Badge>
-                          <span className="text-[11px] text-muted-foreground">
-                            {new Date(note.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                          </span>
+                  {filteredNotes.map((note) => {
+                    const isLocked = Date.now() - new Date(note.created_at).getTime() > 24 * 60 * 60 * 1000;
+                    return (
+                      <div key={note.id} className="flex gap-4 relative">
+                        <div className="w-[31px] flex justify-center shrink-0 z-10">
+                          <div className="w-2.5 h-2.5 rounded-full bg-border mt-1.5 ring-4 ring-card" />
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{note.summary}</p>
-                        {note.advisor_name && <p className="text-[11px] text-muted-foreground mt-1.5">— {note.advisor_name}</p>}
+                        <div className="flex-1 pb-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 font-medium ${noteTypeColors[note.type] || ""}`}>
+                              {note.type}
+                            </Badge>
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(note.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
+                            {isLocked && <Lock className="w-3 h-3 text-muted-foreground" />}
+                          </div>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{note.summary}</p>
+                          {note.advisor_name && <p className="text-[11px] text-muted-foreground mt-1.5">— {note.advisor_name}</p>}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
               {notes.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No compliance notes yet.</p>}
+              {notes.length > 0 && filteredNotes.length === 0 && (
+                <p className="text-sm text-muted-foreground py-4 text-center">No notes match your search.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
       <AddMemberDialog open={addMemberOpen} onOpenChange={setAddMemberOpen} householdId={household.id} />
+      <AddComplianceNoteDialog open={addNoteOpen} onOpenChange={setAddNoteOpen} householdId={household.id} />
     </div>
   );
 }
