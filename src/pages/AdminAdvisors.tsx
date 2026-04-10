@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,12 +15,15 @@ import { useAdminStats, useAdminAdvisors, useToggleAdvisorStatus, type AdvisorRe
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import InviteAdvisorDialog from "@/components/InviteAdvisorDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 export default function AdminAdvisors() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: advisors = [], isLoading } = useAdminAdvisors();
   const toggleStatus = useToggleAdvisorStatus();
   const { toast } = useToast();
+  const { startImpersonating } = useImpersonation();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -183,7 +187,8 @@ export default function AdminAdvisors() {
                     size="sm"
                     className="text-xs h-7"
                     onClick={() => {
-                      toast({ title: "View as Advisor", description: `Impersonation view for ${advisor.full_name} coming soon.` });
+                      startImpersonating({ id: advisor.user_id, name: advisor.full_name || "Unnamed" });
+                      navigate("/");
                     }}
                   >
                     <Eye className="w-3.5 h-3.5 mr-1" /> View As
