@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.103.0";
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
+const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
@@ -13,9 +13,17 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify the caller is an admin
+    // Verify the caller is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -24,12 +32,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const anonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
-    if (!caller) {
+    // Use service role client to verify the JWT and get the user
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: caller }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !caller) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -61,7 +67,6 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false });
       if (pErr) throw pErr;
 
-      // Get AUM per advisor
       const { data: aumData } = await supabaseAdmin
         .from("households")
         .select("advisor_id, total_aum");
@@ -73,7 +78,6 @@ Deno.serve(async (req) => {
         householdCountMap[h.advisor_id] = (householdCountMap[h.advisor_id] || 0) + 1;
       });
 
-      // Get roles
       const { data: roles } = await supabaseAdmin.from("user_roles").select("user_id, role");
       const roleMap: Record<string, string[]> = {};
       (roles || []).forEach((r: any) => {
@@ -81,7 +85,6 @@ Deno.serve(async (req) => {
         roleMap[r.user_id].push(r.role);
       });
 
-      // Get auth users for last_sign_in
       const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
       const authMap: Record<string, any> = {};
       (authUsers || []).forEach((u: any) => {
@@ -112,7 +115,6 @@ Deno.serve(async (req) => {
         .from("profiles")
         .select("*", { count: "exact", head: true });
 
-      // Active today: users with last_sign_in today
       const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
       const today = new Date().toISOString().split("T")[0];
       const activeToday = (authUsers || []).filter(
@@ -154,9 +156,8 @@ Deno.serve(async (req) => {
         .eq("user_id", user_id);
       if (error) throw error;
 
-      // If deactivating, also ban the auth user; if activating, unban
       if (status === "inactive") {
-        await supabaseAdmin.auth.admin.updateUserById(user_id, { ban_duration: "876600h" }); // ~100 years
+        await supabaseAdmin.auth.admin.updateUserById(user_id, { ban_duration: "876600h" });
       } else {
         await supabaseAdmin.auth.admin.updateUserById(user_id, { ban_duration: "none" });
       }
