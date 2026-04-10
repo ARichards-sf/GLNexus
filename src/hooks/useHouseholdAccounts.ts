@@ -1,14 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import type { AccountRow } from "@/hooks/useContacts";
 
 export function useHouseholdAccounts(householdId: string | undefined) {
   const { user } = useAuth();
+  const { targetAdvisorId } = useImpersonation();
+  const advisorId = user ? targetAdvisorId(user.id) : undefined;
+
   return useQuery({
-    queryKey: ["household_accounts", householdId, user?.id],
+    queryKey: ["household_accounts", householdId, advisorId],
     queryFn: async () => {
-      // Get all members of this household, then get their accounts
       const { data: members, error: mErr } = await supabase
         .from("household_members")
         .select("id, first_name, last_name")
