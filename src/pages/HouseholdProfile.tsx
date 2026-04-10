@@ -59,6 +59,43 @@ function AccountSparkline({ data }: { data: { date: string; balance: number }[] 
   );
 }
 
+function AnnualReviewStatus({ annualReviewDate, lastReviewDate }: { annualReviewDate: string | null; lastReviewDate: string | null }) {
+  const fmt = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  // Future scheduled review
+  if (annualReviewDate && new Date(annualReviewDate) > new Date()) {
+    return (
+      <div>
+        <p className="text-2xl font-semibold tracking-tight text-blue-600">Scheduled: {fmt(annualReviewDate)}</p>
+        {lastReviewDate && <p className="text-xs text-muted-foreground mt-1">Last review: {fmt(lastReviewDate)}</p>}
+      </div>
+    );
+  }
+
+  // Has a last review date — check if overdue (>12 months)
+  if (lastReviewDate) {
+    const monthsSince = (Date.now() - new Date(lastReviewDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
+    if (monthsSince > 1) {
+      return (
+        <div>
+          <p className="text-2xl font-semibold tracking-tight text-destructive flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" /> Overdue
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Last review: {fmt(lastReviewDate)}</p>
+        </div>
+      );
+    }
+    return (
+      <div>
+        <p className="text-2xl font-semibold tracking-tight text-emerald-600">Last Review: {fmt(lastReviewDate)}</p>
+      </div>
+    );
+  }
+
+  // Nothing at all
+  return <p className="text-2xl font-semibold tracking-tight text-destructive flex items-center gap-2"><AlertTriangle className="w-5 h-5" /> Not set</p>;
+}
+
 export default function HouseholdProfile() {
   const { id } = useParams();
   const { data: household, isLoading } = useHousehold(id);

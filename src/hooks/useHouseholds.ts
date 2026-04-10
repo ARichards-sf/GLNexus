@@ -14,6 +14,7 @@ export interface HouseholdRow {
   next_action: string | null;
   next_action_date: string | null;
   annual_review_date: string | null;
+  last_review_date: string | null;
   advisor_id: string;
 }
 
