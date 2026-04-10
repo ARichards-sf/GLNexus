@@ -241,6 +241,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
     </div>
   );
 }
