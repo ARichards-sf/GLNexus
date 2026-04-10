@@ -28,7 +28,7 @@ export default function AppSidebar() {
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
           <TrendingUp className="w-4 h-4 text-primary-foreground" />
         </div>
-        <span className="text-lg font-semibold tracking-tight text-foreground">WealthFlow</span>
+        <span className="text-lg font-semibold tracking-tight text-foreground">GL Nexus</span>
       </div>
 
       <nav className="flex flex-col gap-1 flex-1">
