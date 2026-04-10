@@ -425,6 +425,30 @@ export type Database = {
         }
         Relationships: []
       }
+      service_request_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          request_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          request_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          request_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       service_requests: {
         Row: {
           account_id: string | null
