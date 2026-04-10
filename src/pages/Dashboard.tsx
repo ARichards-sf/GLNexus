@@ -85,20 +85,26 @@ export default function Dashboard() {
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
           <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            generateSnapshot.mutate(undefined, {
-              onSuccess: (data) => toast.success(`Snapshot saved — ${formatCurrency(data.total_aum)} AUM, ${data.household_count} households.`),
-              onError: () => toast.error("Failed to generate snapshot."),
-            })
-          }
-          disabled={generateSnapshot.isPending}
-        >
-          <Camera className="w-4 h-4 mr-1.5" />
-          {generateSnapshot.isPending ? "Saving…" : "Generate Snapshot"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setAssistOpen(true)}>
+            <HelpCircle className="w-4 h-4 mr-1.5" />
+            Request GL Assistance
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              generateSnapshot.mutate(undefined, {
+                onSuccess: (data) => toast.success(`Snapshot saved — ${formatCurrency(data.total_aum)} AUM, ${data.household_count} households.`),
+                onError: () => toast.error("Failed to generate snapshot."),
+              })
+            }
+            disabled={generateSnapshot.isPending}
+          >
+            <Camera className="w-4 h-4 mr-1.5" />
+            {generateSnapshot.isPending ? "Saving…" : "Generate Snapshot"}
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
