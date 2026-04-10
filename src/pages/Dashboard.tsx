@@ -73,9 +73,25 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
-        <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
+          <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            generateSnapshot.mutate(undefined, {
+              onSuccess: (data) => toast.success(`Snapshot saved — ${formatCurrency(data.total_aum)} AUM, ${data.household_count} households.`),
+              onError: () => toast.error("Failed to generate snapshot."),
+            })
+          }
+          disabled={generateSnapshot.isPending}
+        >
+          <Camera className="w-4 h-4 mr-1.5" />
+          {generateSnapshot.isPending ? "Saving…" : "Generate Snapshot"}
+        </Button>
       </div>
 
       {/* KPI Cards */}
