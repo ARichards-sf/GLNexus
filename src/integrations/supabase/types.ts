@@ -14,7 +14,166 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      compliance_notes: {
+        Row: {
+          advisor_id: string
+          advisor_name: string | null
+          created_at: string
+          date: string
+          household_id: string
+          id: string
+          summary: string
+          type: string
+        }
+        Insert: {
+          advisor_id: string
+          advisor_name?: string | null
+          created_at?: string
+          date?: string
+          household_id: string
+          id?: string
+          summary: string
+          type: string
+        }
+        Update: {
+          advisor_id?: string
+          advisor_name?: string | null
+          created_at?: string
+          date?: string
+          household_id?: string
+          id?: string
+          summary?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_notes_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      household_members: {
+        Row: {
+          advisor_id: string
+          created_at: string
+          date_of_birth: string | null
+          email: string | null
+          first_name: string
+          household_id: string
+          id: string
+          last_name: string
+          phone: string | null
+          relationship: string
+        }
+        Insert: {
+          advisor_id: string
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          first_name: string
+          household_id: string
+          id?: string
+          last_name: string
+          phone?: string | null
+          relationship: string
+        }
+        Update: {
+          advisor_id?: string
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          first_name?: string
+          household_id?: string
+          id?: string
+          last_name?: string
+          phone?: string | null
+          relationship?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_members_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      households: {
+        Row: {
+          advisor_id: string
+          annual_review_date: string | null
+          created_at: string
+          id: string
+          investment_objective: string | null
+          name: string
+          next_action: string | null
+          next_action_date: string | null
+          risk_tolerance: string
+          status: string
+          total_aum: number
+          updated_at: string
+        }
+        Insert: {
+          advisor_id: string
+          annual_review_date?: string | null
+          created_at?: string
+          id?: string
+          investment_objective?: string | null
+          name: string
+          next_action?: string | null
+          next_action_date?: string | null
+          risk_tolerance?: string
+          status?: string
+          total_aum?: number
+          updated_at?: string
+        }
+        Update: {
+          advisor_id?: string
+          annual_review_date?: string | null
+          created_at?: string
+          id?: string
+          investment_objective?: string | null
+          name?: string
+          next_action?: string | null
+          next_action_date?: string | null
+          risk_tolerance?: string
+          status?: string
+          total_aum?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
