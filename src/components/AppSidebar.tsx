@@ -12,7 +12,7 @@ const navItems = [
   { to: "/contacts", label: "Contacts", icon: UserRound },
   { to: "#", label: "Calendar", icon: CalendarDays },
   { to: "#", label: "Reports", icon: FileText },
-  { to: "#", label: "Performance", icon: TrendingUp },
+  { to: "/performance", label: "Performance", icon: TrendingUp },
   { to: "#", label: "Settings", icon: Settings },
 ];
 

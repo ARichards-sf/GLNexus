@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Households from "./pages/Households";
 import HouseholdProfile from "./pages/HouseholdProfile";
 import AdminAdvisors from "./pages/AdminAdvisors";
+import Performance from "./pages/Performance";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/household/:id" element={<HouseholdProfile />} />
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/contacts/:id" element={<ContactProfile />} />
+              <Route path="/performance" element={<Performance />} />
               <Route path="/admin/advisors" element={<AdminRoute><AdminAdvisors /></AdminRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
