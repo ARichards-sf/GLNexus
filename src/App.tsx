@@ -16,6 +16,7 @@ import HouseholdProfile from "./pages/HouseholdProfile";
 import AdminAdvisors from "./pages/AdminAdvisors";
 import AdvisorDetail from "./pages/AdvisorDetail";
 import Performance from "./pages/Performance";
+import ComingSoon from "./pages/ComingSoon";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
