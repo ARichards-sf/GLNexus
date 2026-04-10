@@ -184,7 +184,7 @@ export default function AiAssistant() {
   }, [input, isLoading, messages, households, recentNotes]);
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={setOpen} modal={false}>
       <SheetTrigger asChild>
         <Button
           size="icon"
@@ -193,11 +193,11 @@ export default function AiAssistant() {
           <Bot className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[400px] sm:max-w-[400px] flex flex-col p-0">
+      <SheetContent side="right" className="w-[400px] sm:max-w-[400px] flex flex-col p-0 shadow-2xl">
         <SheetHeader className="px-4 py-3 border-b">
           <SheetTitle className="flex items-center gap-2 text-base">
             <Bot className="h-4 w-4 text-primary" />
-            GL Nexus Assistant
+            Goodie — GL Nexus Assistant
           </SheetTitle>
           <SheetDescription className="sr-only">AI assistant for managing your book of business</SheetDescription>
         </SheetHeader>
