@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck,
 } from "lucide-react";
 import glLogo from "@/assets/gl-logo.png";
 
@@ -12,6 +12,7 @@ const navItems = [
   { to: "/households", label: "Households", icon: Users },
   { to: "/contacts", label: "Contacts", icon: UserRound },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
+  { to: "/my-requests", label: "My Requests", icon: TicketCheck },
   { to: "/reports", label: "Reports", icon: FileText },
   { to: "/performance", label: "Performance", icon: TrendingUp },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -19,6 +20,7 @@ const navItems = [
 
 const adminItems = [
   { to: "/admin/advisors", label: "Advisors", icon: ShieldCheck },
+  { to: "/admin/requests", label: "All Requests", icon: TicketCheck },
 ];
 
 export default function AppSidebar() {
