@@ -12,8 +12,10 @@ import {
   Phone,
   ArrowRight,
   Camera,
+  CalendarDays,
 } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
+import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
@@ -40,6 +42,7 @@ export default function Dashboard() {
   const { impersonatedUser } = useImpersonation();
   const { data: households = [], isLoading } = useHouseholds();
   const { data: recentNotes = [] } = useAllComplianceNotes();
+  const { data: upcomingEvents = [] } = useUpcomingEvents(5);
   const generateSnapshot = useGenerateSnapshot();
 
   const totalAUM = households.reduce((sum, h) => sum + Number(h.total_aum), 0);
@@ -134,34 +137,53 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Upcoming Reviews */}
+        {/* Upcoming Meetings */}
         <Card className="lg:col-span-2 border-border shadow-none">
           <CardHeader className="pb-4">
-            <CardTitle className="text-base font-semibold">Annual Reviews</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold">Upcoming Meetings</CardTitle>
+              <Link to="/calendar">
+                <Button variant="ghost" size="sm" className="text-xs h-7">
+                  View Calendar <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {upcomingReviews.map((h) => (
-              <Link
-                key={h.id}
-                to={`/household/${h.id}`}
-                className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/60 transition-colors group"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground">{h.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(Number(h.total_aum))} AUM</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-right">
-                    <p className="text-xs font-medium text-foreground">
-                      {new Date(h.annual_review_date!).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            {upcomingEvents.map((ev) => {
+              const colors = EVENT_TYPE_COLORS[ev.event_type] || EVENT_TYPE_COLORS["Discovery Call"];
+              return (
+                <Link
+                  key={ev.id}
+                  to="/calendar"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors group"
+                >
+                  <div className={`w-2 h-8 rounded-full shrink-0 ${colors.dot}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {ev.households?.name || "No household linked"}
                     </p>
                   </div>
-                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </Link>
-            ))}
-            {upcomingReviews.length === 0 && (
-              <p className="text-sm text-muted-foreground py-4 text-center">No upcoming reviews</p>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-medium text-foreground">
+                      {new Date(ev.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(ev.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+            {upcomingEvents.length === 0 && (
+              <div className="text-center py-6">
+                <CalendarDays className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">No upcoming meetings</p>
+                <Link to="/calendar">
+                  <Button variant="outline" size="sm" className="mt-2 text-xs">Schedule a meeting</Button>
+                </Link>
+              </div>
             )}
           </CardContent>
         </Card>
