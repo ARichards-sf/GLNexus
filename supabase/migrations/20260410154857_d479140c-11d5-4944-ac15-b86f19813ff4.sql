@@ -1,0 +1,1 @@
+ALTER TABLE public.households ADD COLUMN wealth_tier text DEFAULT 'HNW';
