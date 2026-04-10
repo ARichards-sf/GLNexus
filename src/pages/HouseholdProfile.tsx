@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
+import { CalendarCheck, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -188,11 +189,10 @@ export default function HouseholdProfile() {
               <Target className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground font-medium">Annual Review</span>
             </div>
-            <p className="text-2xl font-semibold tracking-tight text-foreground">
-              {household.annual_review_date
-                ? new Date(household.annual_review_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-                : "Not set"}
-            </p>
+            <AnnualReviewStatus
+              annualReviewDate={household.annual_review_date}
+              lastReviewDate={household.last_review_date}
+            />
           </CardContent>
         </Card>
       </div>
