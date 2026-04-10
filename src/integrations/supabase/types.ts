@@ -79,6 +79,56 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          advisor_id: string
+          created_at: string
+          description: string | null
+          end_time: string
+          event_type: string
+          household_id: string | null
+          id: string
+          start_time: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          advisor_id: string
+          created_at?: string
+          description?: string | null
+          end_time: string
+          event_type?: string
+          household_id?: string | null
+          id?: string
+          start_time: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          advisor_id?: string
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          event_type?: string
+          household_id?: string | null
+          id?: string
+          start_time?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_notes: {
         Row: {
           advisor_id: string
@@ -292,6 +342,7 @@ export type Database = {
           created_at: string
           id: string
           investment_objective: string | null
+          last_review_date: string | null
           name: string
           next_action: string | null
           next_action_date: string | null
@@ -307,6 +358,7 @@ export type Database = {
           created_at?: string
           id?: string
           investment_objective?: string | null
+          last_review_date?: string | null
           name: string
           next_action?: string | null
           next_action_date?: string | null
@@ -322,6 +374,7 @@ export type Database = {
           created_at?: string
           id?: string
           investment_objective?: string | null
+          last_review_date?: string | null
           name?: string
           next_action?: string | null
           next_action_date?: string | null
