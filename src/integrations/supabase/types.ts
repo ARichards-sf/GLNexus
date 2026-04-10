@@ -102,6 +102,33 @@ export type Database = {
           },
         ]
       }
+      daily_snapshots: {
+        Row: {
+          advisor_id: string
+          created_at: string
+          household_count: number
+          id: string
+          snapshot_date: string
+          total_aum: number
+        }
+        Insert: {
+          advisor_id: string
+          created_at?: string
+          household_count?: number
+          id?: string
+          snapshot_date?: string
+          total_aum?: number
+        }
+        Update: {
+          advisor_id?: string
+          created_at?: string
+          household_count?: number
+          id?: string
+          snapshot_date?: string
+          total_aum?: number
+        }
+        Relationships: []
+      }
       household_members: {
         Row: {
           advisor_id: string
