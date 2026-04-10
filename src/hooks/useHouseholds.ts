@@ -188,17 +188,73 @@ export function useGenerateSnapshot() {
     mutationFn: async () => {
       const targetId = advisorId || userId;
       if (!targetId) throw new Error("Not authenticated");
-
-      // Calculate totals from households
-      const { data: households, error } = await supabase
-        .from("households")
-        .select("total_aum")
-        .eq("advisor_id", targetId);
-      if (error) throw error;
-
-      const total_aum = (households || []).reduce((s, h) => s + Number(h.total_aum), 0);
-      const household_count = (households || []).length;
       const today = new Date().toISOString().split("T")[0];
+
+      // 1. Fetch all households with their members
+      const { data: households, error: hhErr } = await supabase
+        .from("households")
+        .select("id, total_aum")
+        .eq("advisor_id", targetId);
+      if (hhErr) throw hhErr;
+
+      // 2. Fetch all accounts for this advisor
+      const { data: accounts, error: accErr } = await supabase
+        .from("contact_accounts")
+        .select("id, balance, member_id")
+        .eq("advisor_id", targetId);
+      if (accErr) throw accErr;
+
+      // 3. Fetch members to map account → household
+      const { data: members, error: memErr } = await supabase
+        .from("household_members")
+        .select("id, household_id")
+        .eq("advisor_id", targetId);
+      if (memErr) throw memErr;
+
+      const memberHousehold = new Map<string, string>();
+      for (const m of members || []) {
+        if (m.household_id) memberHousehold.set(m.id, m.household_id);
+      }
+
+      // 4. Account snapshots (upsert each)
+      const accountRows = (accounts || []).map((a) => ({
+        account_id: a.id,
+        advisor_id: targetId,
+        balance: Number(a.balance),
+        snapshot_date: today,
+      }));
+
+      if (accountRows.length > 0) {
+        const { error: accSnapErr } = await supabase
+          .from("account_snapshots")
+          .upsert(accountRows, { onConflict: "account_id,snapshot_date" });
+        if (accSnapErr) throw accSnapErr;
+      }
+
+      // 5. Household snapshots — sum accounts per household
+      const hhAum = new Map<string, number>();
+      for (const a of accounts || []) {
+        const hhId = memberHousehold.get(a.member_id);
+        if (hhId) hhAum.set(hhId, (hhAum.get(hhId) || 0) + Number(a.balance));
+      }
+
+      const householdRows = (households || []).map((h) => ({
+        household_id: h.id,
+        advisor_id: targetId,
+        total_aum: hhAum.get(h.id) || Number(h.total_aum),
+        snapshot_date: today,
+      }));
+
+      if (householdRows.length > 0) {
+        const { error: hhSnapErr } = await supabase
+          .from("household_snapshots")
+          .upsert(householdRows, { onConflict: "household_id,snapshot_date" });
+        if (hhSnapErr) throw hhSnapErr;
+      }
+
+      // 6. Advisor-level daily snapshot
+      const total_aum = householdRows.reduce((s, r) => s + r.total_aum, 0);
+      const household_count = (households || []).length;
 
       const { error: upsertErr } = await supabase
         .from("daily_snapshots")
@@ -212,6 +268,8 @@ export function useGenerateSnapshot() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["daily_snapshots"] });
+      queryClient.invalidateQueries({ queryKey: ["household_snapshots"] });
+      queryClient.invalidateQueries({ queryKey: ["account_snapshots"] });
     },
   });
 }
