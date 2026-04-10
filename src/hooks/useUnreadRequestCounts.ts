@@ -4,8 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
 
 /**
- * Returns the total count of requests with unread messages for the current user.
- * Used for sidebar badge indicators.
+ * Returns the total count of requests with unread messages for the current user,
+ * plus a count of brand-new requests the admin hasn't opened yet.
  */
 export function useUnreadRequestCounts() {
   const { user } = useAuth();
@@ -14,27 +14,26 @@ export function useUnreadRequestCounts() {
   return useQuery({
     queryKey: ["unread_request_counts", user?.id, isAdmin],
     queryFn: async () => {
-      if (!user) return { myRequests: 0, allRequests: 0 };
+      if (!user) return { myRequests: 0, allRequests: 0, newRequests: 0 };
 
-      // Get all relevant request IDs
-      let requestIds: string[] = [];
+      // Get all relevant requests
+      let allRequestData: { id: string; advisor_id: string; created_at: string }[] = [];
 
       if (isAdmin) {
-        // Admins need counts for both their own requests and all requests
-        const { data: allRequests } = await supabase
+        const { data } = await supabase
           .from("service_requests")
-          .select("id, advisor_id");
-        requestIds = allRequests?.map(r => r.id) ?? [];
+          .select("id, advisor_id, created_at");
+        allRequestData = data ?? [];
       } else {
-        // Regular advisors only need their own requests
-        const { data: myRequests } = await supabase
+        const { data } = await supabase
           .from("service_requests")
-          .select("id")
+          .select("id, advisor_id, created_at")
           .eq("advisor_id", user.id);
-        requestIds = myRequests?.map(r => r.id) ?? [];
+        allRequestData = data ?? [];
       }
 
-      if (requestIds.length === 0) return { myRequests: 0, allRequests: 0 };
+      const requestIds = allRequestData.map(r => r.id);
+      if (requestIds.length === 0) return { myRequests: 0, allRequests: 0, newRequests: 0 };
 
       // Get user's read status for these requests
       const { data: readStatuses } = await supabase
@@ -54,7 +53,6 @@ export function useUnreadRequestCounts() {
         .in("request_id", requestIds)
         .order("created_at", { ascending: false });
 
-      // Group by request_id, get latest
       const latestMsg = new Map<string, string>();
       for (const msg of messages ?? []) {
         if (!latestMsg.has(msg.request_id)) {
@@ -62,29 +60,26 @@ export function useUnreadRequestCounts() {
         }
       }
 
-      // Count unread per category
+      // Count unread messages per category
       let myUnreadCount = 0;
       let allUnreadCount = 0;
 
-      // Need to know which requests are mine vs others (for admins)
       const myRequestIds = new Set<string>();
       if (isAdmin) {
-        const { data: myRequests } = await supabase
+        const { data: myReqs } = await supabase
           .from("service_requests")
           .select("id")
           .eq("advisor_id", user.id);
-        myRequests?.forEach(r => myRequestIds.add(r.id));
+        myReqs?.forEach(r => myRequestIds.add(r.id));
       } else {
-        // For non-admins, all visible requests are "mine"
         requestIds.forEach(id => myRequestIds.add(id));
       }
 
       for (const reqId of requestIds) {
         const lastMsg = latestMsg.get(reqId);
-        if (!lastMsg) continue; // no messages = not unread
+        if (!lastMsg) continue;
 
         const lastRead = readMap.get(reqId);
-        // Unread if no last_read or last message is newer than last read
         if (!lastRead || new Date(lastMsg) > new Date(lastRead)) {
           allUnreadCount++;
           if (myRequestIds.has(reqId)) {
@@ -93,12 +88,24 @@ export function useUnreadRequestCounts() {
         }
       }
 
+      // Count NEW requests (never opened by this admin)
+      let newRequests = 0;
+      if (isAdmin) {
+        for (const req of allRequestData) {
+          // A request is "new" if the admin has never opened it (no read status entry)
+          if (!readMap.has(req.id)) {
+            newRequests++;
+          }
+        }
+      }
+
       return {
-        myRequests: isAdmin ? myUnreadCount : allUnreadCount, // For non-admins, all are "mine"
-        allRequests: isAdmin ? allUnreadCount : 0, // Only admins see "all"
+        myRequests: isAdmin ? myUnreadCount : allUnreadCount,
+        allRequests: isAdmin ? allUnreadCount : 0,
+        newRequests,
       };
     },
     enabled: !!user,
-    refetchInterval: 30000, // Refetch every 30 seconds to keep badge updated
+    refetchInterval: 30000,
   });
 }
