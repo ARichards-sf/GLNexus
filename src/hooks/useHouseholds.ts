@@ -162,3 +162,39 @@ export function useAllComplianceNotes() {
     enabled: !!userId && !!advisorId,
   });
 }
+
+export function useGenerateSnapshot() {
+  const { userId, advisorId } = useTargetAdvisorId();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const targetId = advisorId || userId;
+      if (!targetId) throw new Error("Not authenticated");
+
+      // Calculate totals from households
+      const { data: households, error } = await supabase
+        .from("households")
+        .select("total_aum")
+        .eq("advisor_id", targetId);
+      if (error) throw error;
+
+      const total_aum = (households || []).reduce((s, h) => s + Number(h.total_aum), 0);
+      const household_count = (households || []).length;
+      const today = new Date().toISOString().split("T")[0];
+
+      const { error: upsertErr } = await supabase
+        .from("daily_snapshots")
+        .upsert(
+          { advisor_id: targetId, snapshot_date: today, total_aum, household_count },
+          { onConflict: "advisor_id,snapshot_date" }
+        );
+      if (upsertErr) throw upsertErr;
+
+      return { total_aum, household_count, snapshot_date: today };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["daily_snapshots"] });
+    },
+  });
+}

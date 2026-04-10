@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DollarSign,
   CalendarCheck,
@@ -10,11 +11,13 @@ import {
   FileText,
   Phone,
   ArrowRight,
+  Camera,
 } from "lucide-react";
-import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
+import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
+import { toast } from "sonner";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -37,6 +40,7 @@ export default function Dashboard() {
   const { impersonatedUser } = useImpersonation();
   const { data: households = [], isLoading } = useHouseholds();
   const { data: recentNotes = [] } = useAllComplianceNotes();
+  const generateSnapshot = useGenerateSnapshot();
 
   const totalAUM = households.reduce((sum, h) => sum + Number(h.total_aum), 0);
   const totalHouseholds = households.length;
@@ -69,9 +73,25 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
-        <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
+          <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            generateSnapshot.mutate(undefined, {
+              onSuccess: (data) => toast.success(`Snapshot saved — ${formatCurrency(data.total_aum)} AUM, ${data.household_count} households.`),
+              onError: () => toast.error("Failed to generate snapshot."),
+            })
+          }
+          disabled={generateSnapshot.isPending}
+        >
+          <Camera className="w-4 h-4 mr-1.5" />
+          {generateSnapshot.isPending ? "Saving…" : "Generate Snapshot"}
+        </Button>
       </div>
 
       {/* KPI Cards */}
