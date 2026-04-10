@@ -10,7 +10,11 @@ import {
   ArrowLeft, DollarSign, Shield, Target, Users, Mail, Phone,
   FileText, Lightbulb, UserPlus, Briefcase, Plus, Lock, Search,
 } from "lucide-react";
-import { useHousehold, useHouseholdMembers, useComplianceNotes } from "@/hooks/useHouseholds";
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  PieChart, Pie, Cell, Legend,
+} from "recharts";
+import { useHousehold, useHouseholdMembers, useComplianceNotes, useHouseholdSnapshots, useAccountSnapshots } from "@/hooks/useHouseholds";
 import { useHouseholdAccounts } from "@/hooks/useHouseholdAccounts";
 import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
 import AddMemberDialog from "@/components/AddMemberDialog";
@@ -31,15 +35,42 @@ const riskColors: Record<string, string> = {
   Aggressive: "text-destructive",
 };
 
+const PIE_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(142, 71%, 45%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(262, 83%, 58%)",
+  "hsl(0, 84%, 60%)",
+  "hsl(199, 89%, 48%)",
+  "hsl(330, 81%, 60%)",
+];
+
+function AccountSparkline({ data }: { data: { date: string; balance: number }[] }) {
+  if (data.length < 2) return <span className="text-[10px] text-muted-foreground">—</span>;
+  return (
+    <div className="w-24 h-8">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data}>
+          <Line type="monotone" dataKey="balance" stroke="hsl(var(--primary))" strokeWidth={1.5} dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export default function HouseholdProfile() {
   const { id } = useParams();
   const { data: household, isLoading } = useHousehold(id);
   const { data: members = [] } = useHouseholdMembers(id);
   const { data: notes = [] } = useComplianceNotes(id);
   const { data: accounts = [] } = useHouseholdAccounts(id);
+  const { data: hhSnapshots = [] } = useHouseholdSnapshots(id);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [noteSearch, setNoteSearch] = useState("");
+
+  const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
+  const { data: accSnapshots = [] } = useAccountSnapshots(accountIds);
 
   const filteredNotes = useMemo(() => {
     if (!noteSearch.trim()) return notes;
@@ -50,6 +81,43 @@ export default function HouseholdProfile() {
   }, [notes, noteSearch]);
 
   const totalAccountsAUM = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
+
+  // AUM trend chart data
+  const aumChartData = useMemo(() => {
+    return hhSnapshots.map((s) => ({
+      date: new Date(s.snapshot_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      aum: Number(s.total_aum),
+    }));
+  }, [hhSnapshots]);
+
+  // Asset allocation pie data
+  const allocationData = useMemo(() => {
+    const byType: Record<string, number> = {};
+    accounts.forEach((a) => {
+      const t = a.account_type || "Other";
+      byType[t] = (byType[t] || 0) + Number(a.balance);
+    });
+    return Object.entries(byType)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [accounts]);
+
+  // Account sparkline data map
+  const accountSparkData = useMemo(() => {
+    const map: Record<string, { date: string; balance: number }[]> = {};
+    accSnapshots.forEach((s) => {
+      if (!map[s.account_id]) map[s.account_id] = [];
+      map[s.account_id].push({
+        date: s.snapshot_date,
+        balance: Number(s.balance),
+      });
+    });
+    // Keep last 30 entries per account
+    Object.keys(map).forEach((k) => {
+      map[k] = map[k].slice(-30);
+    });
+    return map;
+  }, [accSnapshots]);
 
   if (isLoading) {
     return (
@@ -125,6 +193,75 @@ export default function HouseholdProfile() {
                 ? new Date(household.annual_review_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
                 : "Not set"}
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row: AUM Trend + Asset Allocation */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-8">
+        <Card className="lg:col-span-3 border-border shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">AUM Trend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {aumChartData.length >= 2 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={aumChartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                  <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 11 }} className="fill-muted-foreground" width={70} />
+                  <Tooltip
+                    formatter={(value: number) => [formatFullCurrency(value), "AUM"]}
+                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
+                  />
+                  <Line type="monotone" dataKey="aum" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[220px] text-sm text-muted-foreground">
+                Not enough snapshot data yet. Generate snapshots to see trends.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2 border-border shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">Asset Allocation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {allocationData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={allocationData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                  >
+                    {allocationData.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) => formatFullCurrency(value)}
+                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
+                  />
+                  <Legend
+                    formatter={(value: string) => <span className="text-xs text-muted-foreground">{value}</span>}
+                    wrapperStyle={{ fontSize: "11px" }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[220px] text-sm text-muted-foreground">
+                No accounts to display.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -232,6 +369,7 @@ export default function HouseholdProfile() {
                         <TableHead>Owner</TableHead>
                         <TableHead>Institution</TableHead>
                         <TableHead className="text-right">Balance</TableHead>
+                        <TableHead className="text-right">30d Trend</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -244,6 +382,11 @@ export default function HouseholdProfile() {
                           <TableCell className="text-sm text-muted-foreground">{(a as any).owner_name}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{a.institution || "—"}</TableCell>
                           <TableCell className="text-right text-sm font-semibold text-emerald-600">{formatCurrency(Number(a.balance))}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end">
+                              <AccountSparkline data={accountSparkData[a.id] || []} />
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
