@@ -137,15 +137,47 @@ Deno.serve(async (req) => {
 
     // ACTION: Invite a new advisor
     if (action === "invite_advisor") {
-      const { email, full_name } = payload;
+      const { email, full_name, office_location } = payload;
       if (!email) throw new Error("Email is required");
 
-      const { data: inviteData, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-        data: { full_name: full_name || "" },
-      });
-      if (inviteErr) throw inviteErr;
+      // Generate a random temporary password
+      const tempPassword = crypto.randomUUID() + "Aa1!";
 
-      return new Response(JSON.stringify({ user: inviteData.user }), {
+      // 1. Create the user in auth.users with a temp password
+      const { data: createData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { full_name: full_name || "" },
+      });
+      if (createErr) throw createErr;
+      const newUser = createData.user;
+
+      // 2. Update the profile with office_location (profile row created by handle_new_user trigger)
+      if (office_location) {
+        await supabaseAdmin
+          .from("profiles")
+          .update({ office_location })
+          .eq("user_id", newUser.id);
+      }
+
+      // 3. Assign the 'user' role (advisor)
+      await supabaseAdmin.from("user_roles").insert({
+        user_id: newUser.id,
+        role: "user",
+      });
+
+      // 4. Generate a recovery link so the advisor can set their own password
+      const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+        type: "recovery",
+        email,
+      });
+      if (linkErr) throw linkErr;
+
+      return new Response(JSON.stringify({
+        user: newUser,
+        recovery_link: linkData?.properties?.action_link || null,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
