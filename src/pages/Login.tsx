@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import glLogo from "@/assets/gl-logo.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -37,11 +37,8 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-sm">
-        <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-semibold tracking-tight text-foreground">GL Nexus</span>
+        <div className="flex items-center justify-center mb-8">
+          <img src={glLogo} alt="Good Life Companies" className="h-10 w-auto" />
         </div>
 
         <Card className="border-border shadow-none">

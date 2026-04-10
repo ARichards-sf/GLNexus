@@ -5,6 +5,7 @@ import { useIsAdmin } from "@/hooks/useAdmin";
 import {
   LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck,
 } from "lucide-react";
+import glLogo from "@/assets/gl-logo.png";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -31,10 +32,7 @@ export default function AppSidebar() {
   return (
     <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card min-h-screen px-4 py-6">
       <div className="flex items-center gap-2.5 px-3 mb-10">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-          <TrendingUp className="w-4 h-4 text-primary-foreground" />
-        </div>
-        <span className="text-lg font-semibold tracking-tight text-foreground">GL Nexus</span>
+        <img src={glLogo} alt="Good Life Companies" className="h-8 w-auto" />
       </div>
 
       <nav className="flex flex-col gap-1 flex-1">
