@@ -111,6 +111,39 @@ export function useComplianceNotes(householdId: string | undefined) {
   });
 }
 
+export function useCreateComplianceNote() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { targetAdvisorId } = useImpersonation();
+
+  return useMutation({
+    mutationFn: async ({ householdId, type, summary }: { householdId: string; type: string; summary: string }) => {
+      const advisorId = user ? targetAdvisorId(user.id) : user!.id;
+      const { error } = await supabase.from("compliance_notes").insert({
+        household_id: householdId,
+        advisor_id: advisorId,
+        type,
+        summary,
+        date: new Date().toISOString().split("T")[0],
+      });
+      if (error) throw error;
+
+      // If Annual Review, update household's annual_review_date
+      if (type === "Annual Review") {
+        await supabase
+          .from("households")
+          .update({ annual_review_date: new Date().toISOString().split("T")[0] })
+          .eq("id", householdId);
+      }
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["compliance_notes"] });
+      queryClient.invalidateQueries({ queryKey: ["all_compliance_notes"] });
+      queryClient.invalidateQueries({ queryKey: ["household", vars.householdId] });
+    },
+  });
+}
+
 export function useAllComplianceNotes() {
   const { userId, advisorId } = useTargetAdvisorId();
   return useQuery({
