@@ -36,7 +36,13 @@ export function useAiActions() {
 
     switch (name) {
       case "update_household_details": {
-        const updates: Record<string, any> = {};
+        const updates: {
+          risk_tolerance?: string;
+          status?: string;
+          investment_objective?: string;
+          next_action?: string;
+          next_action_date?: string;
+        } = {};
         if (args.risk_tolerance) updates.risk_tolerance = args.risk_tolerance;
         if (args.status) updates.status = args.status;
         if (args.investment_objective) updates.investment_objective = args.investment_objective;
@@ -71,15 +77,15 @@ export function useAiActions() {
       }
 
       case "schedule_meeting": {
-        const insertData: Record<string, any> = {
-          title: args.title,
-          event_type: args.event_type,
-          start_time: args.start_time,
-          end_time: args.end_time,
+        const insertData = {
+          title: args.title as string,
+          event_type: args.event_type as string,
+          start_time: args.start_time as string,
+          end_time: args.end_time as string,
           advisor_id: advisorId,
+          household_id: (args.household_id as string) || null,
+          description: (args.description as string) || null,
         };
-        if (args.household_id) insertData.household_id = args.household_id;
-        if (args.description) insertData.description = args.description;
 
         const { error } = await supabase.from("calendar_events").insert(insertData);
         if (error) throw error;
