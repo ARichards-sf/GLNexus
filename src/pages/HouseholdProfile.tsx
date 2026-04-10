@@ -70,6 +70,14 @@ export default function HouseholdProfile() {
 
   const totalAccountsAUM = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
 
+  const filteredNotes = useMemo(() => {
+    if (!noteSearch.trim()) return notes;
+    const q = noteSearch.toLowerCase();
+    return notes.filter(
+      (n) => n.summary.toLowerCase().includes(q) || n.type.toLowerCase().includes(q)
+    );
+  }, [notes, noteSearch]);
+
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
       {/* Header */}
