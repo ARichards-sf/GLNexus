@@ -16,6 +16,7 @@ import HouseholdProfile from "./pages/HouseholdProfile";
 import AdminAdvisors from "./pages/AdminAdvisors";
 import AdvisorDetail from "./pages/AdvisorDetail";
 import Performance from "./pages/Performance";
+import CalendarPage from "./pages/Calendar";
 import ComingSoon from "./pages/ComingSoon";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -39,7 +40,7 @@ const App = () => (
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/contacts/:id" element={<ContactProfile />} />
               <Route path="/performance" element={<Performance />} />
-              <Route path="/calendar" element={<ComingSoon />} />
+              <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/reports" element={<ComingSoon />} />
               <Route path="/settings" element={<ComingSoon />} />
               <Route path="/admin/advisors" element={<AdminRoute><AdminAdvisors /></AdminRoute>} />
