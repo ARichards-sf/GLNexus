@@ -1,8 +1,9 @@
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useAdmin";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck,
 } from "lucide-react";
 
 const navItems = [
@@ -15,9 +16,14 @@ const navItems = [
   { to: "#", label: "Settings", icon: Settings },
 ];
 
+const adminItems = [
+  { to: "/admin/advisors", label: "Advisors", icon: ShieldCheck },
+];
+
 export default function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { isAdmin } = useIsAdmin();
 
   const displayName = user?.user_metadata?.full_name || user?.email || "Advisor";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -50,6 +56,32 @@ export default function AppSidebar() {
             </RouterNavLink>
           );
         })}
+
+        {isAdmin && (
+          <>
+            <div className="mt-6 mb-2 px-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Admin</span>
+            </div>
+            {adminItems.map((item) => {
+              const isActive = location.pathname.startsWith(item.to);
+              return (
+                <RouterNavLink
+                  key={item.label}
+                  to={item.to}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  )}
+                >
+                  <item.icon className="w-[18px] h-[18px]" />
+                  {item.label}
+                </RouterNavLink>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       <div className="mt-auto px-3 pt-6 border-t border-border">
@@ -58,7 +90,7 @@ export default function AppSidebar() {
             <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground">{initials}</div>
             <div>
               <p className="text-sm font-medium text-foreground">{displayName}</p>
-              <p className="text-xs text-muted-foreground">Advisor</p>
+              <p className="text-xs text-muted-foreground">{isAdmin ? "Admin" : "Advisor"}</p>
             </div>
           </div>
           <button onClick={signOut} className="text-muted-foreground hover:text-foreground transition-colors" title="Sign out">
