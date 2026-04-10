@@ -309,6 +309,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_internal: boolean
           last_sign_in: string | null
           office_location: string | null
           status: string
@@ -320,6 +321,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_internal?: boolean
           last_sign_in?: string | null
           office_location?: string | null
           status?: string
@@ -331,6 +333,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_internal?: boolean
           last_sign_in?: string | null
           office_location?: string | null
           status?: string
