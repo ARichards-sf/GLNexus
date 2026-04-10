@@ -213,6 +213,7 @@ export type Database = {
           full_name: string | null
           id: string
           last_sign_in: string | null
+          office_location: string | null
           status: string
           updated_at: string
           user_id: string
@@ -223,6 +224,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           last_sign_in?: string | null
+          office_location?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -233,6 +235,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           last_sign_in?: string | null
+          office_location?: string | null
           status?: string
           updated_at?: string
           user_id?: string
