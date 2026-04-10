@@ -160,7 +160,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <TicketCheck className="w-4 h-4" />
-              Open Support Requests
+              Active Support Requests
             </CardTitle>
             <Link to="/my-requests">
               <Button variant="ghost" size="sm" className="text-xs h-7">
@@ -170,14 +170,14 @@ export default function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          {myRequests.filter((r) => r.status === "open").length === 0 ? (
+          {myRequests.filter((r) => r.status === "open" || r.status === "in-progress").length === 0 ? (
             <div className="text-center py-6">
               <TicketCheck className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">No open support requests</p>
+              <p className="text-sm text-muted-foreground">No active support requests</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {myRequests.filter((r) => r.status === "open").slice(0, 5).map((req) => {
+              {myRequests.filter((r) => r.status === "open" || r.status === "in-progress").slice(0, 5).map((req) => {
                 const hasUnread = unreadSet.has(req.id);
                 return (
                   <div
