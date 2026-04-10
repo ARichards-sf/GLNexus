@@ -31,7 +31,7 @@ export default function AdminAdvisors() {
     if (!search.trim()) return advisors;
     const q = search.toLowerCase();
     return advisors.filter(
-      (a) =>
+      (a: any) =>
         (a.full_name || "").toLowerCase().includes(q) ||
         (a.email || "").toLowerCase().includes(q)
     );
@@ -128,6 +128,7 @@ export default function AdminAdvisors() {
           <TableHeader>
             <TableRow>
               <TableHead>Advisor</TableHead>
+              <TableHead>Staff Type</TableHead>
               <TableHead>Email</TableHead>
               <TableHead className="text-right">Book of Business</TableHead>
               <TableHead>Households</TableHead>
@@ -158,6 +159,13 @@ export default function AdminAdvisors() {
                       )}
                     </div>
                   </div>
+                </TableCell>
+                <TableCell>
+                  {(advisor as any).is_internal ? (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-[11px] font-medium">GL Corporate</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[11px] font-medium">Field Advisor</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{advisor.email}</TableCell>
                 <TableCell className="text-right text-sm font-semibold text-foreground">
@@ -198,7 +206,7 @@ export default function AdminAdvisors() {
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-sm text-muted-foreground">
                   No advisors found.
                 </TableCell>
               </TableRow>
