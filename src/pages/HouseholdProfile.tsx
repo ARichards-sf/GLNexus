@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
+import { CalendarCheck, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,43 @@ function AccountSparkline({ data }: { data: { date: string; balance: number }[] 
       </ResponsiveContainer>
     </div>
   );
+}
+
+function AnnualReviewStatus({ annualReviewDate, lastReviewDate }: { annualReviewDate: string | null; lastReviewDate: string | null }) {
+  const fmt = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  // Future scheduled review
+  if (annualReviewDate && new Date(annualReviewDate) > new Date()) {
+    return (
+      <div>
+        <p className="text-2xl font-semibold tracking-tight text-blue-600">Scheduled: {fmt(annualReviewDate)}</p>
+        {lastReviewDate && <p className="text-xs text-muted-foreground mt-1">Last review: {fmt(lastReviewDate)}</p>}
+      </div>
+    );
+  }
+
+  // Has a last review date — check if overdue (>12 months)
+  if (lastReviewDate) {
+    const monthsSince = (Date.now() - new Date(lastReviewDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
+    if (monthsSince > 1) {
+      return (
+        <div>
+          <p className="text-2xl font-semibold tracking-tight text-destructive flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" /> Overdue
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Last review: {fmt(lastReviewDate)}</p>
+        </div>
+      );
+    }
+    return (
+      <div>
+        <p className="text-2xl font-semibold tracking-tight text-emerald-600">Last Review: {fmt(lastReviewDate)}</p>
+      </div>
+    );
+  }
+
+  // Nothing at all
+  return <p className="text-2xl font-semibold tracking-tight text-destructive flex items-center gap-2"><AlertTriangle className="w-5 h-5" /> Not set</p>;
 }
 
 export default function HouseholdProfile() {
@@ -188,11 +226,10 @@ export default function HouseholdProfile() {
               <Target className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground font-medium">Annual Review</span>
             </div>
-            <p className="text-2xl font-semibold tracking-tight text-foreground">
-              {household.annual_review_date
-                ? new Date(household.annual_review_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-                : "Not set"}
-            </p>
+            <AnnualReviewStatus
+              annualReviewDate={household.annual_review_date}
+              lastReviewDate={household.last_review_date}
+            />
           </CardContent>
         </Card>
       </div>
