@@ -78,6 +78,9 @@ export interface AdvisorRecord {
   roles: string[];
   last_sign_in_at: string | null;
   created_at: string;
+  is_internal?: boolean;
+  office_location?: string | null;
+  households?: { id: string; name: string; total_aum: number }[];
 }
 
 export function useAdminAdvisors() {
@@ -89,6 +92,18 @@ export function useAdminAdvisors() {
       return data.advisors as AdvisorRecord[];
     },
     enabled: isAdmin,
+  });
+}
+
+export function useAdvisorDetail(userId: string | undefined) {
+  const { isAdmin } = useIsAdmin();
+  return useQuery({
+    queryKey: ["admin_advisor_detail", userId],
+    queryFn: async () => {
+      const data = await callAdmin("get_advisor", { user_id: userId });
+      return data.advisor as AdvisorRecord;
+    },
+    enabled: isAdmin && !!userId,
   });
 }
 
@@ -111,6 +126,50 @@ export function useToggleAdvisorStatus() {
       callAdmin("toggle_status", payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin_advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["admin_advisor_detail"] });
+    },
+  });
+}
+
+export function useUpdateAdvisorProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { user_id: string; full_name?: string; office_location?: string }) =>
+      callAdmin("update_advisor_profile", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin_advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["admin_advisor_detail"] });
+    },
+  });
+}
+
+export function useResetAdvisorPassword() {
+  return useMutation({
+    mutationFn: (payload: { user_id: string; new_password: string }) =>
+      callAdmin("reset_advisor_password", payload),
+  });
+}
+
+export function useUpdateAdvisorRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { user_id: string; role: string }) =>
+      callAdmin("update_advisor_role", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin_advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["admin_advisor_detail"] });
+    },
+  });
+}
+
+export function useToggleInternal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { user_id: string; is_internal: boolean }) =>
+      callAdmin("toggle_internal", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin_advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["admin_advisor_detail"] });
     },
   });
 }
