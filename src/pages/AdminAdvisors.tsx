@@ -139,7 +139,7 @@ export default function AdminAdvisors() {
           </TableHeader>
           <TableBody>
             {filtered.map((advisor) => (
-              <TableRow key={advisor.id}>
+              <TableRow key={advisor.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/advisors/${advisor.user_id}`)}>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
@@ -177,7 +177,7 @@ export default function AdminAdvisors() {
                     ? new Date(advisor.last_sign_in_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
                     : "Never"}
                 </TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={advisor.status === "active"}
@@ -189,7 +189,7 @@ export default function AdminAdvisors() {
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="sm"
