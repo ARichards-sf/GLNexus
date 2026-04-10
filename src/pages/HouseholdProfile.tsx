@@ -151,6 +151,7 @@ export default function HouseholdProfile() {
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [noteSearch, setNoteSearch] = useState("");
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
   const { data: accSnapshots = [] } = useAccountSnapshots(accountIds);
@@ -265,18 +266,11 @@ export default function HouseholdProfile() {
             <p className={`text-2xl font-semibold tracking-tight ${riskColors[household.risk_tolerance] || "text-foreground"}`}>{household.risk_tolerance}</p>
           </CardContent>
         </Card>
-        <Card className="border-border shadow-none">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Target className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground font-medium">Annual Review</span>
-            </div>
-            <AnnualReviewStatus
-              annualReviewDate={household.annual_review_date}
-              lastReviewDate={household.last_review_date}
-            />
-          </CardContent>
-        </Card>
+        <AnnualReviewWidget
+          annualReviewDate={household.annual_review_date}
+          lastReviewDate={household.last_review_date}
+          onSchedule={() => setScheduleOpen(true)}
+        />
       </div>
 
       {/* Charts Row: AUM Trend + Asset Allocation */}
@@ -546,6 +540,12 @@ export default function HouseholdProfile() {
 
       <AddMemberDialog open={addMemberOpen} onOpenChange={setAddMemberOpen} householdId={household.id} />
       <AddComplianceNoteDialog open={addNoteOpen} onOpenChange={setAddNoteOpen} householdId={household.id} />
+      <QuickScheduleReviewDialog
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        householdId={household.id}
+        householdName={household.name}
+      />
     </div>
   );
 }
