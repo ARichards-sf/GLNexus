@@ -47,6 +47,7 @@ export default function Dashboard() {
   const { data: recentNotes = [] } = useAllComplianceNotes();
   const { data: upcomingEvents = [] } = useUpcomingEvents(5);
   const generateSnapshot = useGenerateSnapshot();
+  const [assistOpen, setAssistOpen] = useState(false);
 
   const totalAUM = households.reduce((sum, h) => sum + Number(h.total_aum), 0);
   const totalHouseholds = households.length;
