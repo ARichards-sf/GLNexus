@@ -70,6 +70,11 @@ export default function MyRequests() {
                       <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 font-medium ${statusStyles[req.status] || ""}`}>
                         {req.status}
                       </Badge>
+                      {unreadSet.has(req.id) && (
+                        <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary">
+                          <MessageCircle className="w-3 h-3" /> New message
+                        </span>
+                      )}
                       {req.household_name && (
                         <span className="text-xs text-muted-foreground">• {req.household_name}</span>
                       )}
