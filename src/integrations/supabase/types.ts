@@ -55,39 +55,92 @@ export type Database = {
           },
         ]
       }
+      contact_accounts: {
+        Row: {
+          account_name: string
+          account_number: string | null
+          account_type: string
+          advisor_id: string
+          balance: number
+          created_at: string
+          id: string
+          institution: string | null
+          member_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_number?: string | null
+          account_type?: string
+          advisor_id: string
+          balance?: number
+          created_at?: string
+          id?: string
+          institution?: string | null
+          member_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string | null
+          account_type?: string
+          advisor_id?: string
+          balance?: number
+          created_at?: string
+          id?: string
+          institution?: string | null
+          member_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_accounts_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "household_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_members: {
         Row: {
           advisor_id: string
+          company: string | null
           created_at: string
           date_of_birth: string | null
           email: string | null
           first_name: string
           household_id: string
           id: string
+          job_title: string | null
           last_name: string
           phone: string | null
           relationship: string
         }
         Insert: {
           advisor_id: string
+          company?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
           first_name: string
           household_id: string
           id?: string
+          job_title?: string | null
           last_name: string
           phone?: string | null
           relationship: string
         }
         Update: {
           advisor_id?: string
+          company?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
           first_name?: string
           household_id?: string
           id?: string
+          job_title?: string | null
           last_name?: string
           phone?: string | null
           relationship?: string
