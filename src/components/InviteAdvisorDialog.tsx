@@ -32,7 +32,7 @@ export default function InviteAdvisorDialog({ open, onOpenChange }: Props) {
 
   const onSubmit = async (values: Values) => {
     try {
-      await invite.mutateAsync(values);
+      await invite.mutateAsync({ email: values.email, full_name: values.full_name });
       toast({ title: "Invitation sent", description: `An invite has been sent to ${values.email}.` });
       form.reset();
       onOpenChange(false);
