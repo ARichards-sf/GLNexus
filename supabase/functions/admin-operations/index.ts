@@ -5,85 +5,56 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function verifyAdmin(req: Request) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  if (!supabaseUrl || !serviceRoleKey) throw { status: 500, message: "Server configuration error" };
+
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) throw { status: 401, message: "Unauthorized" };
+
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const callerClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsErr } = await callerClient.auth.getClaims(token);
+  if (claimsErr || !claimsData?.claims?.sub) throw { status: 401, message: "Unauthorized" };
+  const callerId = claimsData.claims.sub as string;
+
+  const { data: roleCheck } = await supabaseAdmin
+    .from("user_roles").select("id").eq("user_id", callerId).eq("role", "admin").maybeSingle();
+  const { data: profileCheck } = await supabaseAdmin
+    .from("profiles").select("is_internal").eq("user_id", callerId).maybeSingle();
+
+  if (!roleCheck && !profileCheck?.is_internal) throw { status: 403, message: "Forbidden: admin role required" };
+
+  return { supabaseAdmin, callerId };
+}
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return new Response(JSON.stringify({ error: "Server configuration error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-
-    // Verify the caller is authenticated
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Verify caller using anon client with their JWT
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await callerClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims?.sub) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const callerId = claimsData.claims.sub as string;
-
-    // Check admin role OR is_internal flag
-    const { data: roleCheck } = await supabaseAdmin
-      .from("user_roles")
-      .select("id")
-      .eq("user_id", callerId)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    const { data: profileCheck } = await supabaseAdmin
-      .from("profiles")
-      .select("is_internal")
-      .eq("user_id", callerId)
-      .maybeSingle();
-
-    const isAdmin = !!roleCheck || !!profileCheck?.is_internal;
-
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden: admin role required" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
+    const { supabaseAdmin } = await verifyAdmin(req);
     const { action, ...payload } = await req.json();
 
-    // ACTION: Get all advisors with their stats
+    // ── LIST ADVISORS ──
     if (action === "list_advisors") {
       const { data: profiles, error: pErr } = await supabaseAdmin
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from("profiles").select("*").order("created_at", { ascending: false });
       if (pErr) throw pErr;
 
-      const { data: aumData } = await supabaseAdmin
-        .from("households")
-        .select("advisor_id, total_aum");
-
+      const { data: aumData } = await supabaseAdmin.from("households").select("advisor_id, total_aum");
       const aumMap: Record<string, number> = {};
       const householdCountMap: Record<string, number> = {};
       (aumData || []).forEach((h: any) => {
@@ -100,9 +71,7 @@ Deno.serve(async (req) => {
 
       const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
       const authMap: Record<string, any> = {};
-      (authUsers || []).forEach((u: any) => {
-        authMap[u.id] = u;
-      });
+      (authUsers || []).forEach((u: any) => { authMap[u.id] = u; });
 
       const advisors = (profiles || []).map((p: any) => ({
         ...p,
@@ -112,102 +81,134 @@ Deno.serve(async (req) => {
         last_sign_in_at: authMap[p.user_id]?.last_sign_in_at || null,
       }));
 
-      return new Response(JSON.stringify({ advisors }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ advisors });
     }
 
-    // ACTION: Get system-wide stats
-    if (action === "system_stats") {
-      const { data: aumData } = await supabaseAdmin
-        .from("households")
-        .select("total_aum");
-      const totalAUM = (aumData || []).reduce((s: number, h: any) => s + Number(h.total_aum), 0);
+    // ── GET SINGLE ADVISOR ──
+    if (action === "get_advisor") {
+      const { user_id } = payload;
+      if (!user_id) throw new Error("user_id required");
 
-      const { count: advisorCount } = await supabaseAdmin
-        .from("profiles")
-        .select("*", { count: "exact", head: true });
+      const { data: profile, error: pErr } = await supabaseAdmin
+        .from("profiles").select("*").eq("user_id", user_id).maybeSingle();
+      if (pErr) throw pErr;
+      if (!profile) throw new Error("Advisor not found");
+
+      const { data: aumData } = await supabaseAdmin
+        .from("households").select("id, name, total_aum").eq("advisor_id", user_id).order("total_aum", { ascending: false });
+
+      const totalAum = (aumData || []).reduce((s: number, h: any) => s + Number(h.total_aum), 0);
+
+      const { data: roles } = await supabaseAdmin
+        .from("user_roles").select("role").eq("user_id", user_id);
 
       const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
-      const today = new Date().toISOString().split("T")[0];
-      const activeToday = (authUsers || []).filter(
-        (u: any) => u.last_sign_in_at && u.last_sign_in_at.startsWith(today)
-      ).length;
+      const authUser = (authUsers || []).find((u: any) => u.id === user_id);
 
-      return new Response(JSON.stringify({
-        total_aum: totalAUM,
-        advisor_count: advisorCount || 0,
-        active_today: activeToday,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return json({
+        advisor: {
+          ...profile,
+          total_aum: totalAum,
+          household_count: (aumData || []).length,
+          households: aumData || [],
+          roles: (roles || []).map((r: any) => r.role),
+          last_sign_in_at: authUser?.last_sign_in_at || null,
+        },
       });
     }
 
-    // ACTION: Invite a new advisor
+    // ── SYSTEM STATS ──
+    if (action === "system_stats") {
+      const { data: aumData } = await supabaseAdmin.from("households").select("total_aum");
+      const totalAUM = (aumData || []).reduce((s: number, h: any) => s + Number(h.total_aum), 0);
+      const { count: advisorCount } = await supabaseAdmin.from("profiles").select("*", { count: "exact", head: true });
+      const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
+      const today = new Date().toISOString().split("T")[0];
+      const activeToday = (authUsers || []).filter((u: any) => u.last_sign_in_at?.startsWith(today)).length;
+      return json({ total_aum: totalAUM, advisor_count: advisorCount || 0, active_today: activeToday });
+    }
+
+    // ── INVITE ADVISOR ──
     if (action === "invite_advisor") {
       const { email, password, full_name, office_location } = payload;
       if (!email) throw new Error("Email is required");
       if (!password || password.length < 6) throw new Error("Password must be at least 6 characters");
 
-      // 1. Create the user in auth.users with the provided password
       const { data: createData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { full_name: full_name || "" },
+        email, password, email_confirm: true, user_metadata: { full_name: full_name || "" },
       });
       if (createErr) throw createErr;
       const newUser = createData.user;
 
-      // 2. Update the profile with office_location (profile row created by handle_new_user trigger)
       if (office_location) {
-        await supabaseAdmin
-          .from("profiles")
-          .update({ office_location })
-          .eq("user_id", newUser.id);
+        await supabaseAdmin.from("profiles").update({ office_location }).eq("user_id", newUser.id);
       }
-
-      // 3. Assign the 'user' role (advisor)
-      await supabaseAdmin.from("user_roles").insert({
-        user_id: newUser.id,
-        role: "user",
-      });
-
-      return new Response(JSON.stringify({ user: newUser }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      await supabaseAdmin.from("user_roles").insert({ user_id: newUser.id, role: "user" });
+      return json({ user: newUser });
     }
 
-    // ACTION: Toggle advisor status
+    // ── TOGGLE STATUS ──
     if (action === "toggle_status") {
       const { user_id, status } = payload;
       if (!user_id || !status) throw new Error("user_id and status required");
-
-      const { error } = await supabaseAdmin
-        .from("profiles")
-        .update({ status })
-        .eq("user_id", user_id);
+      const { error } = await supabaseAdmin.from("profiles").update({ status }).eq("user_id", user_id);
       if (error) throw error;
-
       if (status === "inactive") {
         await supabaseAdmin.auth.admin.updateUserById(user_id, { ban_duration: "876600h" });
       } else {
         await supabaseAdmin.auth.admin.updateUserById(user_id, { ban_duration: "none" });
       }
-
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ success: true });
     }
 
-    return new Response(JSON.stringify({ error: "Unknown action" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // ── UPDATE ADVISOR PROFILE ──
+    if (action === "update_advisor_profile") {
+      const { user_id, full_name, office_location } = payload;
+      if (!user_id) throw new Error("user_id required");
+      const updates: Record<string, any> = {};
+      if (full_name !== undefined) updates.full_name = full_name;
+      if (office_location !== undefined) updates.office_location = office_location;
+      const { error } = await supabaseAdmin.from("profiles").update(updates).eq("user_id", user_id);
+      if (error) throw error;
+      if (full_name !== undefined) {
+        await supabaseAdmin.auth.admin.updateUserById(user_id, { user_metadata: { full_name } });
+      }
+      return json({ success: true });
+    }
+
+    // ── RESET PASSWORD ──
+    if (action === "reset_advisor_password") {
+      const { user_id, new_password } = payload;
+      if (!user_id || !new_password) throw new Error("user_id and new_password required");
+      if (new_password.length < 6) throw new Error("Password must be at least 6 characters");
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(user_id, { password: new_password });
+      if (error) throw error;
+      return json({ success: true });
+    }
+
+    // ── UPDATE ROLE ──
+    if (action === "update_advisor_role") {
+      const { user_id, role } = payload;
+      if (!user_id || !role) throw new Error("user_id and role required");
+      // Remove existing roles, insert new one
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", user_id);
+      const { error } = await supabaseAdmin.from("user_roles").insert({ user_id, role });
+      if (error) throw error;
+      return json({ success: true });
+    }
+
+    // ── TOGGLE INTERNAL ──
+    if (action === "toggle_internal") {
+      const { user_id, is_internal } = payload;
+      if (!user_id || is_internal === undefined) throw new Error("user_id and is_internal required");
+      const { error } = await supabaseAdmin.from("profiles").update({ is_internal }).eq("user_id", user_id);
+      if (error) throw error;
+      return json({ success: true });
+    }
+
+    return json({ error: "Unknown action" }, 400);
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const status = err.status || 500;
+    return json({ error: err.message || "Internal error" }, status);
   }
 });
