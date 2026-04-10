@@ -1,18 +1,20 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import {
   ArrowLeft, DollarSign, Shield, Target, Users, Mail, Phone,
-  FileText, Lightbulb, UserPlus, Briefcase,
+  FileText, Lightbulb, UserPlus, Briefcase, Plus, Lock, Search,
 } from "lucide-react";
 import { useHousehold, useHouseholdMembers, useComplianceNotes } from "@/hooks/useHouseholds";
 import { useHouseholdAccounts } from "@/hooks/useHouseholdAccounts";
 import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
 import AddMemberDialog from "@/components/AddMemberDialog";
+import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -36,6 +38,8 @@ export default function HouseholdProfile() {
   const { data: notes = [] } = useComplianceNotes(id);
   const { data: accounts = [] } = useHouseholdAccounts(id);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [addNoteOpen, setAddNoteOpen] = useState(false);
+  const [noteSearch, setNoteSearch] = useState("");
 
   if (isLoading) {
     return (
