@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TicketCheck, Search, Clock, Plus } from "lucide-react";
+import { TicketCheck, Search, Clock, Plus, MessageCircle } from "lucide-react";
 import { useMyServiceRequests } from "@/hooks/useServiceRequests";
+import { useUnreadRequests } from "@/hooks/useUnreadRequests";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 
 const statusStyles: Record<string, string> = {
@@ -19,6 +20,8 @@ export default function MyRequests() {
   const [search, setSearch] = useState("");
   const [assistOpen, setAssistOpen] = useState(false);
   const navigate = useNavigate();
+  const requestIds = requests.map((r) => r.id);
+  const { data: unreadSet = new Set<string>() } = useUnreadRequests(requestIds);
 
   const filtered = requests.filter((r) => {
     if (!search.trim()) return true;
@@ -67,6 +70,11 @@ export default function MyRequests() {
                       <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 font-medium ${statusStyles[req.status] || ""}`}>
                         {req.status}
                       </Badge>
+                      {unreadSet.has(req.id) && (
+                        <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary">
+                          <MessageCircle className="w-3 h-3" /> New message
+                        </span>
+                      )}
                       {req.household_name && (
                         <span className="text-xs text-muted-foreground">• {req.household_name}</span>
                       )}

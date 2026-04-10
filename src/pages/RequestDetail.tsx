@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useRequestMessages } from "@/hooks/useRequestMessages";
+import { markRequestAsRead } from "@/hooks/useUnreadRequests";
 import { toast } from "sonner";
 import type { ServiceRequest } from "@/hooks/useServiceRequests";
 
@@ -63,12 +64,17 @@ export default function RequestDetail() {
 
   const { messages, isLoading: messagesLoading, sendMessage } = useRequestMessages(id!);
 
-  // Auto-scroll on new messages
+  // Auto-scroll on new messages + mark as read
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+    if (messages.length > 0 && user) {
+      markRequestAsRead(id!, user.id).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["unread_requests"] });
+      });
+    }
+  }, [messages, id, user, queryClient]);
 
   const handleSend = () => {
     const text = messageText.trim();

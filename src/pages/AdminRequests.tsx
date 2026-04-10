@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TicketCheck, Search, Clock } from "lucide-react";
+import { TicketCheck, Search, Clock, MessageCircle } from "lucide-react";
 import { useAllServiceRequests } from "@/hooks/useServiceRequests";
+import { useUnreadRequests } from "@/hooks/useUnreadRequests";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -25,6 +26,8 @@ export default function AdminRequests() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const requestIds = requests.map((r) => r.id);
+  const { data: unreadSet = new Set<string>() } = useUnreadRequests(requestIds);
 
   const filtered = requests.filter((r) => {
     if (filterStatus !== "all" && r.status !== filterStatus) return false;
@@ -105,6 +108,11 @@ export default function AdminRequests() {
                       <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 font-medium ${statusStyles[req.status] || ""}`}>
                         {req.status}
                       </Badge>
+                      {unreadSet.has(req.id) && (
+                        <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary">
+                          <MessageCircle className="w-3 h-3" /> New message
+                        </span>
+                      )}
                       {req.household_name && (
                         <span className="text-xs text-muted-foreground">• {req.household_name}</span>
                       )}
