@@ -180,6 +180,41 @@ export function useSnapshots() {
   });
 }
 
+export function useHouseholdSnapshots(householdId: string | undefined) {
+  const { userId } = useTargetAdvisorId();
+  return useQuery({
+    queryKey: ["household_snapshots", householdId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("household_snapshots")
+        .select("*")
+        .eq("household_id", householdId!)
+        .order("snapshot_date", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId && !!householdId,
+  });
+}
+
+export function useAccountSnapshots(accountIds: string[]) {
+  const { userId } = useTargetAdvisorId();
+  return useQuery({
+    queryKey: ["account_snapshots", accountIds],
+    queryFn: async () => {
+      if (accountIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("account_snapshots")
+        .select("*")
+        .in("account_id", accountIds)
+        .order("snapshot_date", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId && accountIds.length > 0,
+  });
+}
+
 export function useGenerateSnapshot() {
   const { userId, advisorId } = useTargetAdvisorId();
   const queryClient = useQueryClient();
