@@ -59,7 +59,7 @@ export default function Login() {
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-semibold tracking-tight text-foreground">WealthFlow</span>
+          <span className="text-xl font-semibold tracking-tight text-foreground">GL Nexus</span>
         </div>
 
         <Card className="border-border shadow-none">
