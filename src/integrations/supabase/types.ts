@@ -110,9 +110,10 @@ export type Database = {
           date_of_birth: string | null
           email: string | null
           first_name: string
-          household_id: string
+          household_id: string | null
           id: string
           job_title: string | null
+          last_contacted: string | null
           last_name: string
           phone: string | null
           relationship: string
@@ -124,9 +125,10 @@ export type Database = {
           date_of_birth?: string | null
           email?: string | null
           first_name: string
-          household_id: string
+          household_id?: string | null
           id?: string
           job_title?: string | null
+          last_contacted?: string | null
           last_name: string
           phone?: string | null
           relationship: string
@@ -138,9 +140,10 @@ export type Database = {
           date_of_birth?: string | null
           email?: string | null
           first_name?: string
-          household_id?: string
+          household_id?: string | null
           id?: string
           job_title?: string | null
+          last_contacted?: string | null
           last_name?: string
           phone?: string | null
           relationship?: string

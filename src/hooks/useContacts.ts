@@ -6,6 +6,26 @@ import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase
 export type MemberRow = Tables<"household_members">;
 export type AccountRow = Tables<"contact_accounts">;
 
+export type ContactWithHousehold = MemberRow & {
+  households: { name: string } | null;
+};
+
+export function useAllContacts() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["all_contacts", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("household_members")
+        .select("*, households(name)")
+        .order("last_name");
+      if (error) throw error;
+      return data as ContactWithHousehold[];
+    },
+    enabled: !!user,
+  });
+}
+
 export function useContact(id: string | undefined) {
   const { user } = useAuth();
   return useQuery({
@@ -69,6 +89,7 @@ export function useCreateMember() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["household_members"] });
+      queryClient.invalidateQueries({ queryKey: ["all_contacts"] });
     },
   });
 }
