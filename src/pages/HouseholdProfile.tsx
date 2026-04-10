@@ -41,6 +41,16 @@ export default function HouseholdProfile() {
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [noteSearch, setNoteSearch] = useState("");
 
+  const filteredNotes = useMemo(() => {
+    if (!noteSearch.trim()) return notes;
+    const q = noteSearch.toLowerCase();
+    return notes.filter(
+      (n) => n.summary.toLowerCase().includes(q) || n.type.toLowerCase().includes(q)
+    );
+  }, [notes, noteSearch]);
+
+  const totalAccountsAUM = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
+
   if (isLoading) {
     return (
       <div className="p-6 lg:p-10 max-w-5xl">
@@ -67,16 +77,6 @@ export default function HouseholdProfile() {
     if (!dob) return null;
     return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
   };
-
-  const totalAccountsAUM = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
-
-  const filteredNotes = useMemo(() => {
-    if (!noteSearch.trim()) return notes;
-    const q = noteSearch.toLowerCase();
-    return notes.filter(
-      (n) => n.summary.toLowerCase().includes(q) || n.type.toLowerCase().includes(q)
-    );
-  }, [notes, noteSearch]);
 
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
