@@ -3,19 +3,22 @@ import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
-  DollarSign, Edit, Wallet,
+  Edit, Wallet, Plus,
 } from "lucide-react";
 import { useContact, useContactAccounts } from "@/hooks/useContacts";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
+import AddAccountDialog from "@/components/AddAccountDialog";
 
 export default function ContactProfile() {
   const { id } = useParams();
   const { data: contact, isLoading } = useContact(id);
   const { data: accounts = [] } = useContactAccounts(id);
   const [editOpen, setEditOpen] = useState(false);
+  const [addAccountOpen, setAddAccountOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -152,42 +155,61 @@ export default function ContactProfile() {
             </CardContent>
           </Card>
 
-          {/* Individual Accounts */}
+          {/* Financial Accounts */}
           <Card className="border-border shadow-none">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Wallet className="w-4 h-4 text-muted-foreground" />
-                  <CardTitle className="text-base font-semibold">Individual Accounts</CardTitle>
+                  <CardTitle className="text-base font-semibold">Financial Accounts</CardTitle>
                 </div>
-                {accounts.length > 0 && (
-                  <span className="text-sm font-semibold text-foreground">{formatFullCurrency(totalAccountBalance)}</span>
-                )}
+                <div className="flex items-center gap-3">
+                  {accounts.length > 0 && (
+                    <span className="text-sm font-semibold text-emerald-600">{formatFullCurrency(totalAccountBalance)}</span>
+                  )}
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => setAddAccountOpen(true)}>
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add Account
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
               {accounts.length > 0 ? (
-                <div className="space-y-3">
-                  {accounts.map((account) => (
-                    <div key={account.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/40">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{account.account_name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">{account.account_type}</Badge>
-                          {account.institution && <span className="text-xs text-muted-foreground">{account.institution}</span>}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-foreground">{formatFullCurrency(Number(account.balance))}</p>
-                        {account.account_number && (
-                          <p className="text-xs text-muted-foreground">••••{account.account_number.slice(-4)}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Account</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Institution</TableHead>
+                        <TableHead className="text-right">Balance</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {accounts.map((account) => (
+                        <TableRow key={account.id}>
+                          <TableCell>
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{account.account_name}</p>
+                              {account.account_number && (
+                                <p className="text-xs text-muted-foreground">••••{account.account_number.slice(-4)}</p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">{account.account_type}</Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{account.institution || "—"}</TableCell>
+                          <TableCell className="text-right text-sm font-semibold text-emerald-600">
+                            {formatFullCurrency(Number(account.balance))}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-2">No individual accounts linked yet.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No accounts linked yet. Click "Add Account" to get started.</p>
               )}
             </CardContent>
           </Card>
@@ -195,6 +217,7 @@ export default function ContactProfile() {
       </div>
 
       <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
+      <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} memberId={contact.id} />
     </div>
   );
 }

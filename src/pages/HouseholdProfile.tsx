@@ -90,7 +90,7 @@ export default function HouseholdProfile() {
               <DollarSign className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground font-medium">Total Assets</span>
             </div>
-            <p className="text-2xl font-semibold tracking-tight text-foreground">{formatFullCurrency(Number(household.total_aum))}</p>
+            <p className="text-2xl font-semibold tracking-tight text-emerald-600">{formatFullCurrency(totalAccountsAUM)}</p>
           </CardContent>
         </Card>
         <Card className="border-border shadow-none">
@@ -231,7 +231,7 @@ export default function HouseholdProfile() {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{(a as any).owner_name}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{a.institution || "—"}</TableCell>
-                          <TableCell className="text-right text-sm font-semibold text-foreground">{formatCurrency(Number(a.balance))}</TableCell>
+                          <TableCell className="text-right text-sm font-semibold text-emerald-600">{formatCurrency(Number(a.balance))}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
