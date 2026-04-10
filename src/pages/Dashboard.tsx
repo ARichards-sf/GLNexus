@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,13 @@ import {
   Camera,
   CalendarDays,
   HelpCircle,
+  TicketCheck,
+  MessageCircle,
 } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
+import { useMyServiceRequests } from "@/hooks/useServiceRequests";
+import { useUnreadRequests } from "@/hooks/useUnreadRequests";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
@@ -46,8 +50,12 @@ export default function Dashboard() {
   const { data: households = [], isLoading } = useHouseholds();
   const { data: recentNotes = [] } = useAllComplianceNotes();
   const { data: upcomingEvents = [] } = useUpcomingEvents(5);
+  const { data: myRequests = [] } = useMyServiceRequests();
+  const requestIds = myRequests.map((r) => r.id);
+  const { data: unreadSet = new Set<string>() } = useUnreadRequests(requestIds);
   const generateSnapshot = useGenerateSnapshot();
   const [assistOpen, setAssistOpen] = useState(false);
+  const navigate = useNavigate();
 
   const totalAUM = households.reduce((sum, h) => sum + Number(h.total_aum), 0);
   const totalHouseholds = households.length;
@@ -145,6 +153,79 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Support Requests Widget */}
+      <Card className="border-border shadow-none mb-6">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <TicketCheck className="w-4 h-4" />
+              Support Requests
+              {myRequests.filter((r) => r.status === "open").length > 0 && (
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[10px] px-1.5 py-0">
+                  {myRequests.filter((r) => r.status === "open").length} open
+                </Badge>
+              )}
+            </CardTitle>
+            <Link to="/my-requests">
+              <Button variant="ghost" size="sm" className="text-xs h-7">
+                View All <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {myRequests.length === 0 ? (
+            <div className="text-center py-6">
+              <TicketCheck className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">No support requests yet</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {myRequests.slice(0, 5).map((req) => {
+                const hasUnread = unreadSet.has(req.id);
+                return (
+                  <div
+                    key={req.id}
+                    onClick={() => navigate(`/my-requests/${req.id}`)}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className={`text-sm truncate ${hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground"}`}>
+                          {req.category}
+                        </p>
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] px-1.5 py-0 font-medium shrink-0 ${
+                            req.status === "open"
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                              : req.status === "in-progress"
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          }`}
+                        >
+                          {req.status}
+                        </Badge>
+                        {hasUnread && (
+                          <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary shrink-0">
+                            <MessageCircle className="w-3 h-3" />
+                            New
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{req.description}</p>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground shrink-0">
+                      {new Date(req.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Upcoming Meetings */}
