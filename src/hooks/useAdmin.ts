@@ -73,7 +73,7 @@ export function useAdminAdvisors() {
 export function useInviteAdvisor() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { email: string; full_name?: string }) =>
+    mutationFn: (payload: { email: string; full_name?: string; office_location?: string }) =>
       callAdmin("invite_advisor", payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin_advisors"] });

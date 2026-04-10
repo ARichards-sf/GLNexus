@@ -66,7 +66,7 @@ export default function AdminAdvisors() {
           <p className="text-muted-foreground mt-1">Manage advisors and monitor platform health.</p>
         </div>
         <Button onClick={() => setInviteOpen(true)}>
-          <UserPlus className="w-4 h-4 mr-1.5" /> Provision Advisor
+          <UserPlus className="w-4 h-4 mr-1.5" /> Add Advisor
         </Button>
       </div>
 

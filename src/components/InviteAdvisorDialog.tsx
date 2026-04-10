@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 const schema = z.object({
   full_name: z.string().trim().min(1, "Required").max(200),
   email: z.string().trim().email("Invalid email"),
+  office_location: z.string().trim().max(200).optional(),
 });
 type Values = z.infer<typeof schema>;
 
@@ -27,13 +28,20 @@ export default function InviteAdvisorDialog({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { full_name: "", email: "" },
+    defaultValues: { full_name: "", email: "", office_location: "" },
   });
 
   const onSubmit = async (values: Values) => {
     try {
-      await invite.mutateAsync({ email: values.email, full_name: values.full_name });
-      toast({ title: "Invitation sent", description: `An invite has been sent to ${values.email}.` });
+      await invite.mutateAsync({
+        email: values.email,
+        full_name: values.full_name,
+        office_location: values.office_location,
+      });
+      toast({
+        title: "Advisor provisioned",
+        description: `Welcome email sent to ${values.email}.`,
+      });
       form.reset();
       onOpenChange(false);
     } catch (e: any) {
@@ -45,8 +53,8 @@ export default function InviteAdvisorDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Provision New Advisor</DialogTitle>
-          <DialogDescription>Send an email invitation to onboard a new advisor.</DialogDescription>
+          <DialogTitle>Add Advisor</DialogTitle>
+          <DialogDescription>Provision a new advisor account. They will receive an email to set their password.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
@@ -56,8 +64,11 @@ export default function InviteAdvisorDialog({ open, onOpenChange }: Props) {
             <FormField control={form.control} name="email" render={({ field }) => (
               <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="jane@firm.com" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
+            <FormField control={form.control} name="office_location" render={({ field }) => (
+              <FormItem><FormLabel>Office Location</FormLabel><FormControl><Input placeholder="New York, NY" {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
             <Button type="submit" className="w-full" disabled={invite.isPending}>
-              {invite.isPending ? "Sending Invite..." : "Send Invitation"}
+              {invite.isPending ? "Provisioning..." : "Add Advisor"}
             </Button>
           </form>
         </Form>
