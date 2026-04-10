@@ -32,21 +32,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role client to verify the JWT and get the user
+    // Verify caller using anon client with their JWT
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user: caller }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !caller) {
+    const { data: claimsData, error: claimsErr } = await callerClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const callerId = claimsData.claims.sub as string;
 
     // Check admin role
     const { data: roleCheck } = await supabaseAdmin
       .from("user_roles")
       .select("id")
-      .eq("user_id", caller.id)
+      .eq("user_id", callerId)
       .eq("role", "admin")
       .maybeSingle();
 
