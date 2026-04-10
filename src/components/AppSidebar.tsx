@@ -86,11 +86,18 @@ export default function AppSidebar() {
                 >
                   <item.icon className="w-[18px] h-[18px]" />
                   <span className="flex-1">{item.label}</span>
-                  {badgeCount > 0 && (
-                    <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-primary text-primary-foreground rounded-full">
-                      {badgeCount > 9 ? "9+" : badgeCount}
-                    </span>
-                  )}
+                  <span className="flex items-center gap-1">
+                    {item.badgeKey === "allRequests" && (unreadCounts?.newRequests ?? 0) > 0 && (
+                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-destructive text-destructive-foreground rounded-full">
+                        {(unreadCounts?.newRequests ?? 0) > 9 ? "9+" : unreadCounts?.newRequests}
+                      </span>
+                    )}
+                    {badgeCount > 0 && (
+                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-primary text-primary-foreground rounded-full">
+                        {badgeCount > 9 ? "9+" : badgeCount}
+                      </span>
+                    )}
+                  </span>
                 </RouterNavLink>
               );
             })}
