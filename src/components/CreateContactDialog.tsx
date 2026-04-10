@@ -126,7 +126,7 @@ export default function CreateContactDialog({ open, onOpenChange }: Props) {
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl><SelectTrigger><SelectValue placeholder="None (unassigned)" /></SelectTrigger></FormControl>
                   <SelectContent>
-                    <SelectItem value="">None (unassigned)</SelectItem>
+                    <SelectItem value="none">None (unassigned)</SelectItem>
                     {households.map((h) => (
                       <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
                     ))}
