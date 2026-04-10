@@ -6,9 +6,93 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are the GL Nexus Assistant. You help advisors manage their book of business at Good Life Companies. Use the provided data to answer questions accurately. If you don't have the data, say so.
+const SYSTEM_PROMPT = `You are the GL Nexus Assistant named Goodie. You help advisors manage their book of business at Good Life Companies. Use the provided data to answer questions accurately. If you don't have the data, say so.
 
-Keep answers concise and actionable. Format currency values nicely. When referencing households or clients, use their names. If asked about trends, note that you only see the current snapshot, not historical data, unless snapshot history is provided.`;
+Keep answers concise and actionable. Format currency values nicely. When referencing households or clients, use their names. If asked about trends, note that you only see the current snapshot, not historical data, unless snapshot history is provided.
+
+You have access to the following tools to take actions on behalf of the advisor. When the user asks you to DO something (update, schedule, log, add), call the appropriate tool. Always confirm the details before calling.
+
+IMPORTANT: When you want to take an action, use the tool calling mechanism. Do NOT return JSON manually.`;
+
+const TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "update_household_details",
+      description: "Update a household's risk tolerance, status, investment objective, or next action. Use when an advisor asks to change household settings.",
+      parameters: {
+        type: "object",
+        properties: {
+          household_id: { type: "string", description: "UUID of the household to update" },
+          household_name: { type: "string", description: "Name of the household (for confirmation display)" },
+          risk_tolerance: { type: "string", enum: ["Conservative", "Moderate", "Aggressive", "Very Aggressive"], description: "New risk tolerance level" },
+          status: { type: "string", enum: ["Active", "Inactive", "Review Scheduled", "Onboarding"], description: "New status" },
+          investment_objective: { type: "string", description: "New investment objective" },
+          next_action: { type: "string", description: "Next action to take" },
+          next_action_date: { type: "string", description: "Date for next action (YYYY-MM-DD)" },
+        },
+        required: ["household_id", "household_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_compliance_note",
+      description: "Log a compliance note for a household. Use when the advisor wants to record a note, call summary, email log, or meeting note.",
+      parameters: {
+        type: "object",
+        properties: {
+          household_id: { type: "string", description: "UUID of the household" },
+          household_name: { type: "string", description: "Name of the household (for confirmation display)" },
+          type: { type: "string", enum: ["Annual Review", "Phone Call", "Email", "Prospecting", "Compliance"], description: "Type of note" },
+          summary: { type: "string", description: "Content of the note" },
+        },
+        required: ["household_id", "household_name", "type", "summary"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "schedule_meeting",
+      description: "Schedule a calendar event/meeting. Use when the advisor asks to schedule a review, call, or meeting.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Meeting title" },
+          event_type: { type: "string", enum: ["Annual Review", "Discovery Call", "Portfolio Update", "Prospecting"], description: "Type of event" },
+          start_time: { type: "string", description: "Start time in ISO 8601 format" },
+          end_time: { type: "string", description: "End time in ISO 8601 format" },
+          household_id: { type: "string", description: "UUID of the household (optional)" },
+          household_name: { type: "string", description: "Name of the household (for confirmation display)" },
+          description: { type: "string", description: "Meeting description" },
+        },
+        required: ["title", "event_type", "start_time", "end_time"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_financial_account",
+      description: "Add a new financial account linked to a contact/household member.",
+      parameters: {
+        type: "object",
+        properties: {
+          member_id: { type: "string", description: "UUID of the household member" },
+          member_name: { type: "string", description: "Name of the member (for confirmation display)" },
+          account_name: { type: "string", description: "Name for the account" },
+          account_type: { type: "string", enum: ["Brokerage", "IRA", "401k", "Roth IRA", "529", "Trust", "Joint", "Custodial"], description: "Type of account" },
+          balance: { type: "number", description: "Initial balance" },
+          institution: { type: "string", description: "Financial institution name" },
+          account_number: { type: "string", description: "Account number (last 4 digits)" },
+        },
+        required: ["member_id", "member_name", "account_name", "account_type", "balance"],
+      },
+    },
+  },
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -22,7 +106,6 @@ serve(async (req) => {
       });
     }
 
-    // Verify user via Supabase auth
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey, {
@@ -48,7 +131,6 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Build system message with context
     let systemContent = SYSTEM_PROMPT;
     if (context) {
       systemContent += `\n\n--- ADVISOR DATA SNAPSHOT ---\n${context}`;
@@ -66,6 +148,8 @@ serve(async (req) => {
           { role: "system", content: systemContent },
           ...messages,
         ],
+        tools: TOOLS,
+        tool_choice: "auto",
         stream: true,
       }),
     });

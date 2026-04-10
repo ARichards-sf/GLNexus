@@ -3,21 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
-import { Bot, Send, X, Loader2 } from "lucide-react";
+import { Bot, Send, Loader2 } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
 import { formatCurrency } from "@/data/sampleData";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { ParsedToolCall, useAiActions } from "@/hooks/useAiActions";
+import ActionCard from "@/components/ActionCard";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; toolCalls?: ParsedToolCall[] };
 
-function buildContextSnapshot(
-  households: any[],
-  notes: any[]
-): string {
+function buildContextSnapshot(households: any[], notes: any[]): string {
   const totalAUM = households.reduce((s, h) => s + Number(h.total_aum), 0);
   const active = households.filter((h) => h.status === "Active").length;
-
   const now = new Date();
   const upcoming = households
     .filter((h) => {
@@ -28,13 +26,11 @@ function buildContextSnapshot(
     })
     .sort((a: any, b: any) => new Date(a.annual_review_date).getTime() - new Date(b.annual_review_date).getTime());
 
-  let ctx = `Total AUM: ${formatCurrency(totalAUM)}\n`;
-  ctx += `Households: ${households.length} total, ${active} active\n\n`;
-
-  ctx += "TOP HOUSEHOLDS BY AUM:\n";
-  const sorted = [...households].sort((a, b) => Number(b.total_aum) - Number(a.total_aum)).slice(0, 10);
-  sorted.forEach((h, i) => {
-    ctx += `${i + 1}. ${h.name} — ${formatCurrency(Number(h.total_aum))} | ${h.status} | Risk: ${h.risk_tolerance}`;
+  let ctx = `Total AUM: ${formatCurrency(totalAUM)}\nHouseholds: ${households.length} total, ${active} active\n\n`;
+  ctx += "HOUSEHOLDS (id | name | AUM | status | risk):\n";
+  const sorted = [...households].sort((a, b) => Number(b.total_aum) - Number(a.total_aum));
+  sorted.forEach((h) => {
+    ctx += `${h.id} | ${h.name} | ${formatCurrency(Number(h.total_aum))} | ${h.status} | ${h.risk_tolerance}`;
     if (h.next_action) ctx += ` | Next: ${h.next_action}`;
     ctx += "\n";
   });
@@ -60,20 +56,19 @@ async function streamChat({
   messages,
   context,
   onDelta,
+  onToolCalls,
   onDone,
   onError,
 }: {
-  messages: Msg[];
+  messages: { role: string; content: string }[];
   context: string;
   onDelta: (t: string) => void;
+  onToolCalls: (calls: ParsedToolCall[]) => void;
   onDone: () => void;
   onError: (msg: string) => void;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) {
-    onError("Not authenticated. Please sign in.");
-    return;
-  }
+  if (!session?.access_token) { onError("Not authenticated."); return; }
 
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
   const resp = await fetch(url, {
@@ -96,6 +91,7 @@ async function streamChat({
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
+  const toolCallAccum: Record<number, { id: string; name: string; args: string }> = {};
 
   while (true) {
     const { done, value } = await reader.read();
@@ -109,16 +105,50 @@ async function streamChat({
       if (line.endsWith("\r")) line = line.slice(0, -1);
       if (!line.startsWith("data: ")) continue;
       const json = line.slice(6).trim();
-      if (json === "[DONE]") { onDone(); return; }
+      if (json === "[DONE]") {
+        // Flush accumulated tool calls
+        const calls = Object.values(toolCallAccum);
+        if (calls.length > 0) {
+          onToolCalls(calls.map(c => ({
+            id: c.id,
+            name: c.name,
+            args: (() => { try { return JSON.parse(c.args); } catch { return {}; } })(),
+            status: "pending" as const,
+          })));
+        }
+        onDone();
+        return;
+      }
       try {
         const parsed = JSON.parse(json);
-        const content = parsed.choices?.[0]?.delta?.content;
-        if (content) onDelta(content);
+        const delta = parsed.choices?.[0]?.delta;
+        if (delta?.content) onDelta(delta.content);
+        if (delta?.tool_calls) {
+          for (const tc of delta.tool_calls) {
+            const tcIdx = tc.index ?? 0;
+            if (!toolCallAccum[tcIdx]) {
+              toolCallAccum[tcIdx] = { id: tc.id || `tc_${tcIdx}`, name: "", args: "" };
+            }
+            if (tc.function?.name) toolCallAccum[tcIdx].name = tc.function.name;
+            if (tc.function?.arguments) toolCallAccum[tcIdx].args += tc.function.arguments;
+            if (tc.id) toolCallAccum[tcIdx].id = tc.id;
+          }
+        }
       } catch {
         buf = line + "\n" + buf;
         break;
       }
     }
+  }
+  // Flush on stream end too
+  const calls = Object.values(toolCallAccum);
+  if (calls.length > 0) {
+    onToolCalls(calls.map(c => ({
+      id: c.id,
+      name: c.name,
+      args: (() => { try { return JSON.parse(c.args); } catch { return {}; } })(),
+      status: "pending" as const,
+    })));
   }
   onDone();
 }
@@ -128,20 +158,50 @@ export default function AiAssistant() {
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: `Hi ${firstName}! 👋 I'm Goodie, your GL Nexus Assistant. How can I help you today?` },
+    { role: "assistant", content: `Hi ${firstName}! 👋 I'm Goodie, your GL Nexus Assistant. I can answer questions about your book of business — and now I can also **take actions** for you like scheduling meetings, logging notes, and updating households. How can I help?` },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { executeAction } = useAiActions();
 
   const { data: households = [] } = useHouseholds();
   const { data: recentNotes = [] } = useAllComplianceNotes();
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
+
+  const handleConfirm = useCallback(async (tc: ParsedToolCall) => {
+    // Update status to confirmed
+    setMessages(prev => prev.map(m => ({
+      ...m,
+      toolCalls: m.toolCalls?.map(t => t.id === tc.id ? { ...t, status: "confirmed" as const } : t),
+    })));
+
+    try {
+      const result = await executeAction(tc);
+      setMessages(prev => prev.map(m => ({
+        ...m,
+        toolCalls: m.toolCalls?.map(t => t.id === tc.id ? { ...t, status: "executed" as const, result } : t),
+      })));
+      toast.success(result);
+    } catch (err: any) {
+      const errMsg = err?.message || "Action failed";
+      setMessages(prev => prev.map(m => ({
+        ...m,
+        toolCalls: m.toolCalls?.map(t => t.id === tc.id ? { ...t, status: "error" as const, result: errMsg } : t),
+      })));
+      toast.error(errMsg);
+    }
+  }, [executeAction]);
+
+  const handleReject = useCallback((tc: ParsedToolCall) => {
+    setMessages(prev => prev.map(m => ({
+      ...m,
+      toolCalls: m.toolCalls?.map(t => t.id === tc.id ? { ...t, status: "rejected" as const } : t),
+    })));
+  }, []);
 
   const send = useCallback(async () => {
     const text = input.trim();
@@ -155,11 +215,13 @@ export default function AiAssistant() {
     const context = buildContextSnapshot(households, recentNotes);
     let assistantSoFar = "";
 
+    const apiMessages = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
+
     const upsert = (chunk: string) => {
       assistantSoFar += chunk;
       setMessages((prev) => {
         const last = prev[prev.length - 1];
-        if (last?.role === "assistant") {
+        if (last?.role === "assistant" && !last.toolCalls) {
           return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
         }
         return [...prev, { role: "assistant", content: assistantSoFar }];
@@ -168,14 +230,21 @@ export default function AiAssistant() {
 
     try {
       await streamChat({
-        messages: [...messages, userMsg],
+        messages: apiMessages,
         context,
         onDelta: upsert,
-        onDone: () => setIsLoading(false),
-        onError: (msg) => {
-          toast.error(msg);
-          setIsLoading(false);
+        onToolCalls: (calls) => {
+          setMessages((prev) => {
+            // Attach tool calls to the last assistant message, or create one
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return prev.map((m, i) => i === prev.length - 1 ? { ...m, toolCalls: calls } : m);
+            }
+            return [...prev, { role: "assistant", content: "", toolCalls: calls }];
+          });
         },
+        onDone: () => setIsLoading(false),
+        onError: (msg) => { toast.error(msg); setIsLoading(false); },
       });
     } catch {
       toast.error("Failed to reach the AI assistant.");
@@ -186,10 +255,7 @@ export default function AiAssistant() {
   return (
     <Sheet open={open} onOpenChange={setOpen} modal={false}>
       <SheetTrigger asChild>
-        <Button
-          size="icon"
-          className="fixed bottom-6 right-6 h-12 w-12 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90"
-        >
+        <Button size="icon" className="fixed bottom-6 right-6 h-12 w-12 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90">
           <Bot className="h-5 w-5" />
         </Button>
       </SheetTrigger>
@@ -202,19 +268,23 @@ export default function AiAssistant() {
           <SheetDescription className="sr-only">AI assistant for managing your book of business</SheetDescription>
         </SheetHeader>
 
-        {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           {messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
-                  m.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-foreground"
-                }`}
-              >
-                {m.content}
+            <div key={i}>
+              <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
+                  m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
+                }`}>
+                  {m.content}
+                </div>
               </div>
+              {m.toolCalls && m.toolCalls.length > 0 && (
+                <div className="mt-2 space-y-2 flex flex-col items-start">
+                  {m.toolCalls.map((tc) => (
+                    <ActionCard key={tc.id} toolCall={tc} onConfirm={handleConfirm} onReject={handleReject} />
+                  ))}
+                </div>
+              )}
             </div>
           ))}
           {isLoading && messages[messages.length - 1]?.role === "user" && (
@@ -226,17 +296,10 @@ export default function AiAssistant() {
           )}
         </div>
 
-        {/* Input */}
         <div className="border-t px-4 py-3">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              send();
-            }}
-            className="flex gap-2"
-          >
+          <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex gap-2">
             <Input
-              placeholder="Ask about your book of business…"
+              placeholder="Ask or give instructions…"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isLoading}
