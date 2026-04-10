@@ -9,9 +9,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  DollarSign, Users, Activity, Search, UserPlus, Eye, ShieldCheck,
+  DollarSign, Users, Activity, Search, UserPlus, Eye, ShieldCheck, Play, Clock, CheckCircle2, XCircle,
 } from "lucide-react";
-import { useAdminStats, useAdminAdvisors, useToggleAdvisorStatus, type AdvisorRecord } from "@/hooks/useAdmin";
+import { useAdminStats, useAdminAdvisors, useToggleAdvisorStatus, useAutomationLogs, useRunSnapshots, type AdvisorRecord } from "@/hooks/useAdmin";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import InviteAdvisorDialog from "@/components/InviteAdvisorDialog";
 import { useToast } from "@/hooks/use-toast";
