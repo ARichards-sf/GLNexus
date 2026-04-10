@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { CalendarCheck, AlertTriangle } from "lucide-react";
+import { CalendarCheck, AlertTriangle, CalendarPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,41 +59,86 @@ function AccountSparkline({ data }: { data: { date: string; balance: number }[] 
   );
 }
 
-function AnnualReviewStatus({ annualReviewDate, lastReviewDate }: { annualReviewDate: string | null; lastReviewDate: string | null }) {
-  const fmt = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+/** Compute the next Tuesday or Wednesday at 10:00 AM from today */
+function getNextAdvisorSlot(): { date: string; startTime: string; endTime: string } {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  // days until next Tue(2) or Wed(3)
+  let daysUntilTue = (2 - day + 7) % 7 || 7;
+  let daysUntilWed = (3 - day + 7) % 7 || 7;
+  const daysAhead = Math.min(daysUntilTue, daysUntilWed);
+  const target = new Date(now);
+  target.setDate(target.getDate() + daysAhead);
+  const yyyy = target.getFullYear();
+  const mm = String(target.getMonth() + 1).padStart(2, "0");
+  const dd = String(target.getDate()).padStart(2, "0");
+  return { date: `${yyyy}-${mm}-${dd}`, startTime: "10:00", endTime: "11:00" };
+}
 
-  // Future scheduled review
-  if (annualReviewDate && new Date(annualReviewDate) > new Date()) {
-    return (
-      <div>
-        <p className="text-2xl font-semibold tracking-tight text-blue-600">Scheduled: {fmt(annualReviewDate)}</p>
-        {lastReviewDate && <p className="text-xs text-muted-foreground mt-1">Last review: {fmt(lastReviewDate)}</p>}
-      </div>
+function AnnualReviewWidget({
+  annualReviewDate,
+  lastReviewDate,
+  onSchedule,
+}: {
+  annualReviewDate: string | null;
+  lastReviewDate: string | null;
+  onSchedule: () => void;
+}) {
+  const fmt = (d: string) =>
+    new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  const isScheduled = annualReviewDate && new Date(annualReviewDate) > new Date();
+  const isOverdue =
+    lastReviewDate && (Date.now() - new Date(lastReviewDate).getTime()) / (1000 * 60 * 60 * 24 * 365) > 1;
+  const isNotSet = !annualReviewDate && !lastReviewDate;
+  const isClickable = !isScheduled && (isOverdue || isNotSet || !annualReviewDate);
+
+  const icon =
+    isNotSet || isOverdue ? (
+      <CalendarPlus className="w-4 h-4 text-muted-foreground" />
+    ) : (
+      <Target className="w-4 h-4 text-muted-foreground" />
     );
-  }
 
-  // Has a last review date — check if overdue (>12 months)
-  if (lastReviewDate) {
-    const monthsSince = (Date.now() - new Date(lastReviewDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
-    if (monthsSince > 1) {
-      return (
-        <div>
-          <p className="text-2xl font-semibold tracking-tight text-destructive flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" /> Overdue
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Last review: {fmt(lastReviewDate)}</p>
+  return (
+    <Card
+      className={`border-border shadow-none transition-all ${
+        isClickable ? "cursor-pointer hover:scale-[1.02] hover:border-primary/40 hover:shadow-md" : ""
+      }`}
+      onClick={isClickable ? onSchedule : undefined}
+    >
+      <CardContent className="pt-6">
+        <div className="flex items-center gap-2 mb-2">
+          {icon}
+          <span className="text-sm text-muted-foreground font-medium">Annual Review</span>
         </div>
-      );
-    }
-    return (
-      <div>
-        <p className="text-2xl font-semibold tracking-tight text-emerald-600">Last Review: {fmt(lastReviewDate)}</p>
-      </div>
-    );
-  }
-
-  // Nothing at all
-  return <p className="text-2xl font-semibold tracking-tight text-destructive flex items-center gap-2"><AlertTriangle className="w-5 h-5" /> Not set</p>;
+        {isScheduled ? (
+          <div>
+            <p className="text-2xl font-semibold tracking-tight text-blue-600">
+              Scheduled: {fmt(annualReviewDate!)}
+            </p>
+            {lastReviewDate && (
+              <p className="text-xs text-muted-foreground mt-1">Last review: {fmt(lastReviewDate)}</p>
+            )}
+          </div>
+        ) : isOverdue || isNotSet ? (
+          <div>
+            <p className="text-2xl font-semibold tracking-tight text-destructive flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" /> {isNotSet ? "Not set" : "Overdue"}
+            </p>
+            {lastReviewDate && (
+              <p className="text-xs text-muted-foreground mt-1">Last review: {fmt(lastReviewDate)}</p>
+            )}
+            <p className="text-xs text-primary mt-1.5 font-medium">Click to schedule →</p>
+          </div>
+        ) : (
+          <p className="text-2xl font-semibold tracking-tight text-emerald-600">
+            Last Review: {fmt(lastReviewDate!)}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function HouseholdProfile() {
