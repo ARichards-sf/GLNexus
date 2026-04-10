@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
-  Edit, Wallet, Plus,
+  Edit, Wallet, Plus, HelpCircle,
 } from "lucide-react";
 import { useContact, useContactAccounts } from "@/hooks/useContacts";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
 import AddAccountDialog from "@/components/AddAccountDialog";
+import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 
 export default function ContactProfile() {
   const { id } = useParams();
@@ -19,6 +20,7 @@ export default function ContactProfile() {
   const { data: accounts = [] } = useContactAccounts(id);
   const [editOpen, setEditOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
+  const [assistOpen, setAssistOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -76,9 +78,14 @@ export default function ContactProfile() {
               </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Contact
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAssistOpen(true)}>
+              <HelpCircle className="w-3.5 h-3.5 mr-1.5" /> Request GL Assistance
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Contact
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -218,6 +225,14 @@ export default function ContactProfile() {
 
       <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
       <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} memberId={contact.id} />
+      <RequestAssistanceDialog
+        open={assistOpen}
+        onOpenChange={setAssistOpen}
+        context={{
+          householdName: householdName,
+          householdId: contact.household_id || undefined,
+        }}
+      />
     </div>
   );
 }
