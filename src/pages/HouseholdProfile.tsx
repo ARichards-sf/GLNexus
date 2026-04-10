@@ -20,6 +20,7 @@ import { useHouseholdAccounts } from "@/hooks/useHouseholdAccounts";
 import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
 import AddMemberDialog from "@/components/AddMemberDialog";
 import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
+import QuickScheduleReviewDialog from "@/components/QuickScheduleReviewDialog";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
