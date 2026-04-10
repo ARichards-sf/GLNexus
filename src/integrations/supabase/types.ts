@@ -49,6 +49,36 @@ export type Database = {
           },
         ]
       }
+      automation_logs: {
+        Row: {
+          completed_at: string | null
+          function_name: string
+          id: string
+          message: string | null
+          records_processed: number | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          function_name: string
+          id?: string
+          message?: string | null
+          records_processed?: number | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          function_name?: string
+          id?: string
+          message?: string | null
+          records_processed?: number | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       compliance_notes: {
         Row: {
           advisor_id: string
@@ -365,6 +395,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_daily_snapshots: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
