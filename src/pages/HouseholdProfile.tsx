@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import {
   ArrowLeft, DollarSign, Shield, Target, Users, Mail, Phone,
-  FileText, Lightbulb, UserPlus, Briefcase, Plus, Lock, Search,
+  FileText, Lightbulb, UserPlus, Briefcase, Plus, Lock, Search, HelpCircle,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
