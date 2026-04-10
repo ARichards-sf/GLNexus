@@ -7,6 +7,7 @@ import { Bot, Send, X, Loader2 } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
 import { formatCurrency } from "@/data/sampleData";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
