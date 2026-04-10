@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 
 const noteTypeColors: Record<string, string> = {
@@ -33,6 +34,7 @@ const noteTypeIcons: Record<string, React.ElementType> = {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { impersonatedUser } = useImpersonation();
   const { data: households = [], isLoading } = useHouseholds();
   const { data: recentNotes = [] } = useAllComplianceNotes();
 
@@ -50,7 +52,7 @@ export default function Dashboard() {
     })
     .sort((a, b) => new Date(a.annual_review_date!).getTime() - new Date(b.annual_review_date!).getTime());
 
-  const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "Advisor";
+  const firstName = impersonatedUser?.name?.split(" ")[0] || user?.user_metadata?.full_name?.split(" ")[0] || "Advisor";
 
   if (isLoading) {
     return (
