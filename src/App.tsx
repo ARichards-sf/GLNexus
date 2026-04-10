@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ContactProfile from "./pages/ContactProfile";
 import AppLayout from "./components/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Households from "./pages/Households";
