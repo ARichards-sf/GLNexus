@@ -173,3 +173,36 @@ export function useToggleInternal() {
     },
   });
 }
+
+export interface AutomationLog {
+  id: string;
+  function_name: string;
+  status: string;
+  message: string | null;
+  records_processed: number;
+  started_at: string;
+  completed_at: string | null;
+}
+
+export function useAutomationLogs() {
+  const { isAdmin } = useIsAdmin();
+  return useQuery({
+    queryKey: ["automation_logs"],
+    queryFn: async () => {
+      const data = await callAdmin("get_automation_logs");
+      return data.logs as AutomationLog[];
+    },
+    enabled: isAdmin,
+  });
+}
+
+export function useRunSnapshots() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => callAdmin("run_snapshots"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["automation_logs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin_stats"] });
+    },
+  });
+}

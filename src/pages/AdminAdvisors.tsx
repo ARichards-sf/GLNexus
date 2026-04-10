@@ -9,9 +9,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  DollarSign, Users, Activity, Search, UserPlus, Eye, ShieldCheck,
+  DollarSign, Users, Activity, Search, UserPlus, Eye, ShieldCheck, Play, Clock, CheckCircle2, XCircle,
 } from "lucide-react";
-import { useAdminStats, useAdminAdvisors, useToggleAdvisorStatus, type AdvisorRecord } from "@/hooks/useAdmin";
+import { useAdminStats, useAdminAdvisors, useToggleAdvisorStatus, useAutomationLogs, useRunSnapshots, type AdvisorRecord } from "@/hooks/useAdmin";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import InviteAdvisorDialog from "@/components/InviteAdvisorDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,9 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 export default function AdminAdvisors() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: advisors = [], isLoading } = useAdminAdvisors();
+  const { data: logs = [] } = useAutomationLogs();
   const toggleStatus = useToggleAdvisorStatus();
+  const runSnapshots = useRunSnapshots();
   const { toast } = useToast();
   const { startImpersonating } = useImpersonation();
   const navigate = useNavigate();
@@ -213,6 +215,86 @@ export default function AdminAdvisors() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Automation Logs */}
+      <div className="mt-10">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Automation Logs</h2>
+            <p className="text-sm text-muted-foreground">Nightly snapshot job runs at 12:00 AM UTC.</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={runSnapshots.isPending}
+            onClick={async () => {
+              try {
+                await runSnapshots.mutateAsync();
+                toast({ title: "Snapshots generated successfully" });
+              } catch (e: any) {
+                toast({ title: "Snapshot failed", description: e.message, variant: "destructive" });
+              }
+            }}
+          >
+            <Play className="w-3.5 h-3.5 mr-1.5" />
+            {runSnapshots.isPending ? "Running…" : "Run Now"}
+          </Button>
+        </div>
+        <div className="rounded-lg border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Status</TableHead>
+                <TableHead>Function</TableHead>
+                <TableHead>Message</TableHead>
+                <TableHead>Advisors Processed</TableHead>
+                <TableHead>Started</TableHead>
+                <TableHead>Duration</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {logs.map((log) => {
+                const duration = log.completed_at
+                  ? `${((new Date(log.completed_at).getTime() - new Date(log.started_at).getTime()) / 1000).toFixed(1)}s`
+                  : "—";
+                return (
+                  <TableRow key={log.id}>
+                    <TableCell>
+                      {log.status === "success" ? (
+                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[11px]">
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Success
+                        </Badge>
+                      ) : log.status === "error" ? (
+                        <Badge variant="destructive" className="text-[11px]">
+                          <XCircle className="w-3 h-3 mr-1" /> Error
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[11px]">
+                          <Clock className="w-3 h-3 mr-1" /> Running
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm font-mono text-muted-foreground">{log.function_name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{log.message || "—"}</TableCell>
+                    <TableCell className="text-sm text-foreground">{log.records_processed}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(log.started_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{duration}</TableCell>
+                  </TableRow>
+                );
+              })}
+              {logs.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
+                    No automation logs yet. Click "Run Now" to trigger the first snapshot.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <InviteAdvisorDialog open={inviteOpen} onOpenChange={setInviteOpen} />
