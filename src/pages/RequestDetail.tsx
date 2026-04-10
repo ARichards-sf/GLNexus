@@ -64,17 +64,22 @@ export default function RequestDetail() {
 
   const { messages, isLoading: messagesLoading, sendMessage } = useRequestMessages(id!);
 
-  // Auto-scroll on new messages + mark as read
+  // Mark as read immediately when opening the request
+  useEffect(() => {
+    if (id && user) {
+      markRequestAsRead(id, user.id).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["unread_requests"] });
+        queryClient.invalidateQueries({ queryKey: ["unread_request_counts"] });
+      });
+    }
+  }, [id, user, queryClient]);
+
+  // Auto-scroll on new messages
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-    if (messages.length > 0 && user) {
-      markRequestAsRead(id!, user.id).then(() => {
-        queryClient.invalidateQueries({ queryKey: ["unread_requests"] });
-      });
-    }
-  }, [messages, id, user, queryClient]);
+  }, [messages]);
 
   const handleSend = () => {
     const text = messageText.trim();
