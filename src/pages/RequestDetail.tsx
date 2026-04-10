@@ -157,6 +157,13 @@ export default function RequestDetail() {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
+          {isAdminRoute && (
+            <div className="flex items-center gap-2 text-sm">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium text-foreground">{request.advisor_name}</span>
+              {request.advisor_email && <span className="text-muted-foreground">({request.advisor_email})</span>}
+            </div>
+          )}
           <p className="text-sm text-foreground">{request.description}</p>
 
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
