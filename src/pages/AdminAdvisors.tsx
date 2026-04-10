@@ -20,7 +20,9 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 export default function AdminAdvisors() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: advisors = [], isLoading } = useAdminAdvisors();
+  const { data: logs = [] } = useAutomationLogs();
   const toggleStatus = useToggleAdvisorStatus();
+  const runSnapshots = useRunSnapshots();
   const { toast } = useToast();
   const { startImpersonating } = useImpersonation();
   const navigate = useNavigate();
