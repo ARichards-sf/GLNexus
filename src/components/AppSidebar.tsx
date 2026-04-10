@@ -11,10 +11,10 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/households", label: "Households", icon: Users },
   { to: "/contacts", label: "Contacts", icon: UserRound },
-  { to: "#", label: "Calendar", icon: CalendarDays },
-  { to: "#", label: "Reports", icon: FileText },
+  { to: "/calendar", label: "Calendar", icon: CalendarDays },
+  { to: "/reports", label: "Reports", icon: FileText },
   { to: "/performance", label: "Performance", icon: TrendingUp },
-  { to: "#", label: "Settings", icon: Settings },
+  { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 const adminItems = [
