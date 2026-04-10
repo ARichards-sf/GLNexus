@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     }
     const callerId = claimsData.claims.sub as string;
 
-    // Check admin role
+    // Check admin role OR is_internal flag
     const { data: roleCheck } = await supabaseAdmin
       .from("user_roles")
       .select("id")
@@ -55,7 +55,15 @@ Deno.serve(async (req) => {
       .eq("role", "admin")
       .maybeSingle();
 
-    if (!roleCheck) {
+    const { data: profileCheck } = await supabaseAdmin
+      .from("profiles")
+      .select("is_internal")
+      .eq("user_id", callerId)
+      .maybeSingle();
+
+    const isAdmin = !!roleCheck || !!profileCheck?.is_internal;
+
+    if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden: admin role required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

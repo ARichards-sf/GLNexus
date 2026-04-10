@@ -19,9 +19,31 @@ export function useUserRole() {
   });
 }
 
+export function useIsInternal() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["is_internal", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_internal")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return !!data?.is_internal;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useIsAdmin() {
-  const { data: roles = [], isLoading } = useUserRole();
-  return { isAdmin: roles.includes("admin"), isLoading };
+  const { data: roles = [], isLoading: rolesLoading } = useUserRole();
+  const { data: isInternal = false, isLoading: internalLoading } = useIsInternal();
+  return {
+    isAdmin: roles.includes("admin") || isInternal,
+    isLoading: rolesLoading || internalLoading,
+  };
 }
 
 async function callAdmin(action: string, payload: Record<string, any> = {}) {
