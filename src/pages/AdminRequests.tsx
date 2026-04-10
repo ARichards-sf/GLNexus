@@ -26,6 +26,8 @@ export default function AdminRequests() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const requestIds = requests.map((r) => r.id);
+  const { data: unreadSet = new Set<string>() } = useUnreadRequests(requestIds);
 
   const filtered = requests.filter((r) => {
     if (filterStatus !== "all" && r.status !== filterStatus) return false;
