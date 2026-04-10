@@ -137,16 +137,14 @@ Deno.serve(async (req) => {
 
     // ACTION: Invite a new advisor
     if (action === "invite_advisor") {
-      const { email, full_name, office_location } = payload;
+      const { email, password, full_name, office_location } = payload;
       if (!email) throw new Error("Email is required");
+      if (!password || password.length < 6) throw new Error("Password must be at least 6 characters");
 
-      // Generate a random temporary password
-      const tempPassword = crypto.randomUUID() + "Aa1!";
-
-      // 1. Create the user in auth.users with a temp password
+      // 1. Create the user in auth.users with the provided password
       const { data: createData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: tempPassword,
+        password,
         email_confirm: true,
         user_metadata: { full_name: full_name || "" },
       });
@@ -167,17 +165,7 @@ Deno.serve(async (req) => {
         role: "user",
       });
 
-      // 4. Generate a recovery link so the advisor can set their own password
-      const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
-        type: "recovery",
-        email,
-      });
-      if (linkErr) throw linkErr;
-
-      return new Response(JSON.stringify({
-        user: newUser,
-        recovery_link: linkData?.properties?.action_link || null,
-      }), {
+      return new Response(JSON.stringify({ user: newUser }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

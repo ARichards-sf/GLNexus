@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 const schema = z.object({
   full_name: z.string().trim().min(1, "Required").max(200),
   email: z.string().trim().email("Invalid email"),
+  password: z.string().min(6, "At least 6 characters"),
   office_location: z.string().trim().max(200).optional(),
 });
 type Values = z.infer<typeof schema>;
@@ -28,19 +29,20 @@ export default function InviteAdvisorDialog({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { full_name: "", email: "", office_location: "" },
+    defaultValues: { full_name: "", email: "", password: "", office_location: "" },
   });
 
   const onSubmit = async (values: Values) => {
     try {
       await invite.mutateAsync({
         email: values.email,
+        password: values.password,
         full_name: values.full_name,
         office_location: values.office_location,
       });
       toast({
-        title: "Advisor provisioned",
-        description: `Welcome email sent to ${values.email}.`,
+        title: "Advisor created",
+        description: `Advisor ${values.full_name} created successfully. You can now log in with their credentials.`,
       });
       form.reset();
       onOpenChange(false);
@@ -63,6 +65,9 @@ export default function InviteAdvisorDialog({ open, onOpenChange }: Props) {
             )} />
             <FormField control={form.control} name="email" render={({ field }) => (
               <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="jane@firm.com" {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="password" render={({ field }) => (
+              <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" placeholder="Min 6 characters" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
             <FormField control={form.control} name="office_location" render={({ field }) => (
               <FormItem><FormLabel>Office Location</FormLabel><FormControl><Input placeholder="New York, NY" {...field} /></FormControl><FormMessage /></FormItem>
