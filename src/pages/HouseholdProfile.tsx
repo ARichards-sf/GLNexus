@@ -21,6 +21,7 @@ import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
 import AddMemberDialog from "@/components/AddMemberDialog";
 import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
 import QuickScheduleReviewDialog from "@/components/QuickScheduleReviewDialog";
+import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -153,6 +154,7 @@ export default function HouseholdProfile() {
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [noteSearch, setNoteSearch] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [assistOpen, setAssistOpen] = useState(false);
 
   const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
   const { data: accSnapshots = [] } = useAccountSnapshots(accountIds);
@@ -243,7 +245,12 @@ export default function HouseholdProfile() {
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">{household.name}</h1>
             <p className="text-muted-foreground mt-1">{household.investment_objective}</p>
           </div>
-          <Badge variant="secondary" className="text-xs font-medium">{household.status}</Badge>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAssistOpen(true)}>
+              <HelpCircle className="w-3.5 h-3.5 mr-1.5" /> Request GL Assistance
+            </Button>
+            <Badge variant="secondary" className="text-xs font-medium">{household.status}</Badge>
+          </div>
         </div>
       </div>
 
