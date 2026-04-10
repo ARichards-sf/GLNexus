@@ -124,8 +124,12 @@ async function streamChat({
 }
 
 export default function AiAssistant() {
+  const { user } = useAuth();
+  const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [messages, setMessages] = useState<Msg[]>([
+    { role: "assistant", content: `Hi ${firstName}! 👋 I'm Goodie, your GL Nexus Assistant. How can I help you today?` },
+  ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
