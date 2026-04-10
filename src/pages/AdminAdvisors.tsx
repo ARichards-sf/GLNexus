@@ -177,7 +177,7 @@ export default function AdminAdvisors() {
                     ? new Date(advisor.last_sign_in_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
                     : "Never"}
                 </TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={advisor.status === "active"}
@@ -189,7 +189,7 @@ export default function AdminAdvisors() {
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="sm"
