@@ -56,7 +56,7 @@ export default function Dashboard() {
   const { impersonatedUser } = useImpersonation();
   const { data: households = [], isLoading } = useHouseholds();
   const { data: recentNotes = [] } = useAllComplianceNotes();
-  const { data: upcomingEvents = [] } = useUpcomingEvents(5);
+  const { data: upcomingEvents = [] } = useUpcomingEvents(20);
   const { data: myRequests = [] } = useMyServiceRequests();
   const requestIds = myRequests.map((r) => r.id);
   const { data: unreadSet = new Set<string>() } = useUnreadRequests(requestIds);
