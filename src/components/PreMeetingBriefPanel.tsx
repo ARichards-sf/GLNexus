@@ -361,14 +361,23 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
                       <TableRow>
                         <TableHead className="h-8 text-xs">Type</TableHead>
                         <TableHead className="h-8 text-xs text-right">Balance</TableHead>
+                        <TableHead className="h-8 w-8" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {g.accounts.map((a) => (
-                        <TableRow key={a.id}>
-                          <TableCell className="py-2 text-sm">{a.account_type}</TableCell>
-                          <TableCell className="py-2 text-sm text-right tabular-nums">
-                            {formatFullCurrency(a.balance)}
+                        <TableRow key={a.id} className="cursor-pointer group">
+                          <TableCell className="p-0" colSpan={3}>
+                            <Link
+                              to={`/accounts/${a.id}`}
+                              className="flex items-center w-full py-2 px-4 transition-colors hover:text-primary hover:bg-muted/40"
+                            >
+                              <span className="flex-1 text-sm">{a.account_type}</span>
+                              <span className="text-sm text-right tabular-nums w-32">
+                                {formatFullCurrency(a.balance)}
+                              </span>
+                              <ChevronRight className="w-3.5 h-3.5 ml-2 text-muted-foreground group-hover:text-primary" />
+                            </Link>
                           </TableCell>
                         </TableRow>
                       ))}
