@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useUpdateAccount, type AccountRow } from "@/hooks/useContacts";
 import { useToast } from "@/hooks/use-toast";
 
-const ACCOUNT_TYPES = ["401k", "IRA", "Roth IRA", "Brokerage", "Savings", "Checking", "529 Plan"];
+const ACCOUNT_TYPES = ["Brokerage", "IRA", "401k", "Roth IRA", "529", "Trust", "Joint", "Custodial"];
 
 const schema = z.object({
   account_name: z.string().trim().min(1, "Required").max(200),
