@@ -120,6 +120,26 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Quick Actions */}
+      <div className="mb-6 rounded-lg bg-secondary/40 p-3 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => navigate("/households")}>
+          <FileText className="w-4 h-4 mr-1.5" />
+          Log a Note
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate("/calendar")}>
+          <CalendarDays className="w-4 h-4 mr-1.5" />
+          Schedule Meeting
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setCreateHouseholdOpen(true)}>
+          <Plus className="w-4 h-4 mr-1.5" />
+          Add Household
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setAssistOpen(true)}>
+          <HelpCircle className="w-4 h-4 mr-1.5" />
+          Request GL Assistance
+        </Button>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <Card className="border-border shadow-none">
