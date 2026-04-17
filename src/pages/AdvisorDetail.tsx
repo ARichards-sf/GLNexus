@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useAdmin";
 import { formatFullCurrency } from "@/data/sampleData";
 import { useToast } from "@/hooks/use-toast";
+import FirmAssignmentCard from "@/components/FirmAssignmentCard";
 
 export default function AdvisorDetail() {
   const { id } = useParams<{ id: string }>();
@@ -235,6 +236,10 @@ export default function AdvisorDetail() {
               )}
             </CardContent>
           </Card>
+
+          <div className="mt-6">
+            <FirmAssignmentCard advisorUserId={advisor.user_id} />
+          </div>
         </TabsContent>
 
         {/* ── SECURITY TAB (Admin only) ── */}
