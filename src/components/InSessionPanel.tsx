@@ -330,7 +330,33 @@ export default function InSessionPanel({ event, householdId, onClose }: Props) {
         </CardContent>
       </Card>
 
-      {/* SECTION 2 — Accounts */}
+      {/* SECTION 2 — Goodie's Take */}
+      <Card className="border-amber-200/70 dark:border-amber-700/40 bg-amber-50/30 dark:bg-amber-950/10">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium">
+            <Bot className="h-4 w-4" />
+            Goodie's Take
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {goodie.error ? (
+            <p className="text-sm text-destructive">{goodie.error}</p>
+          ) : goodie.loading && !goodie.text ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ) : (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
+              {goodie.text || "Preparing brief..."}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* SECTION 3 — Accounts */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground font-medium uppercase tracking-wide">
@@ -393,7 +419,7 @@ export default function InSessionPanel({ event, householdId, onClose }: Props) {
         </CardContent>
       </Card>
 
-      {/* SECTION 3 — Recent Activity */}
+      {/* SECTION 4 — Recent Activity */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground font-medium uppercase tracking-wide">
@@ -441,32 +467,6 @@ export default function InSessionPanel({ event, householdId, onClose }: Props) {
                 </li>
               ))}
             </ol>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* SECTION 4 — Goodie's Take */}
-      <Card className="border-amber-200/70 dark:border-amber-700/40 bg-amber-50/30 dark:bg-amber-950/10">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium">
-            <Bot className="h-4 w-4" />
-            Goodie's Take
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {goodie.error ? (
-            <p className="text-sm text-destructive">{goodie.error}</p>
-          ) : goodie.loading && !goodie.text ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-4/5" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>
-          ) : (
-            <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
-              {goodie.text || "Preparing brief..."}
-            </p>
           )}
         </CardContent>
       </Card>
