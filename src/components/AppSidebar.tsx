@@ -5,7 +5,7 @@ import { useIsAdmin } from "@/hooks/useAdmin";
 import { useUnreadRequestCounts } from "@/hooks/useUnreadRequestCounts";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2,
 } from "lucide-react";
 import glLogo from "@/assets/gl-logo.png";
 
@@ -22,6 +22,7 @@ const navItems = [
 
 const adminItems = [
   { to: "/admin/advisors", label: "Advisors", icon: ShieldCheck },
+  { to: "/admin/firms", label: "Firms", icon: Building2 },
   { to: "/admin/requests", label: "All Requests", icon: TicketCheck, badgeKey: "allRequests" as const },
 ];
 
