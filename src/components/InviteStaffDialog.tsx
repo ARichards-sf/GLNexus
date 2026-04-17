@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useInviteInternalUser } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
 
-const DEPARTMENTS = ["vpm", "wam", "marketing", "transitions", "compliance", "accounting"] as const;
+const DEPARTMENTS = ["vpm", "wam", "marketing", "transitions", "compliance", "accounting", "operations"] as const;
 const ROLES = ["admin", "super_admin"] as const;
 
 const DEPT_LABELS: Record<typeof DEPARTMENTS[number], string> = {
@@ -21,6 +21,7 @@ const DEPT_LABELS: Record<typeof DEPARTMENTS[number], string> = {
   transitions: "Transitions",
   compliance: "Compliance",
   accounting: "Accounting",
+  operations: "Operations",
 };
 
 const ROLE_LABELS: Record<typeof ROLES[number], string> = {
