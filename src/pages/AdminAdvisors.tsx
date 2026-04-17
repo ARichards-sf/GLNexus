@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,7 @@ import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import InviteAdvisorDialog from "@/components/InviteAdvisorDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { useSelectedFirm } from "@/contexts/FirmContext";
 
 export default function AdminAdvisors() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
@@ -25,19 +28,39 @@ export default function AdminAdvisors() {
   const runSnapshots = useRunSnapshots();
   const { toast } = useToast();
   const { startImpersonating } = useImpersonation();
+  const { selectedFirmId } = useSelectedFirm();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
 
+  // Fetch firm memberships when scoping to a firm
+  const { data: firmAdvisorIds } = useQuery({
+    queryKey: ["firm_advisor_ids", selectedFirmId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("firm_memberships")
+        .select("user_id")
+        .eq("firm_id", selectedFirmId!)
+        .eq("role", "advisor");
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.user_id));
+    },
+    enabled: !!selectedFirmId,
+  });
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return advisors;
+    let list = advisors;
+    if (selectedFirmId && firmAdvisorIds) {
+      list = list.filter((a) => firmAdvisorIds.has(a.user_id));
+    }
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return advisors.filter(
+    return list.filter(
       (a: any) =>
         (a.full_name || "").toLowerCase().includes(q) ||
         (a.email || "").toLowerCase().includes(q)
     );
-  }, [advisors, search]);
+  }, [advisors, search, selectedFirmId, firmAdvisorIds]);
 
   const handleToggle = async (advisor: AdvisorRecord) => {
     const newStatus = advisor.status === "active" ? "inactive" : "active";
