@@ -12,7 +12,7 @@ import {
 import { useCreateComplianceNote } from "@/hooks/useHouseholds";
 import ScheduleEventDialog from "@/components/ScheduleEventDialog";
 import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
-import { useBrief } from "@/contexts/BriefContext";
+import { useInSession } from "@/contexts/InSessionContext";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -57,7 +57,7 @@ export default function Calendar() {
   const [completeTarget, setCompleteTarget] = useState<CalendarEvent | null>(null);
   const [complianceOpen, setComplianceOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CalendarEvent | null>(null);
-  const { openBrief } = useBrief();
+  const { startSession } = useInSession();
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -263,9 +263,9 @@ export default function Calendar() {
                     size="sm"
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => openBrief(selectedEvent)}
+                    onClick={() => startSession(selectedEvent)}
                   >
-                    <FileText className="w-3.5 h-3.5 mr-1.5" /> View Pre-Meeting Brief
+                    <FileText className="w-3.5 h-3.5 mr-1.5" /> Start Session
                   </Button>
                 </div>
 
@@ -275,9 +275,9 @@ export default function Calendar() {
                       size="sm"
                       variant="outline"
                       className="text-xs"
-                      onClick={() => openBrief(selectedEvent)}
+                      onClick={() => startSession(selectedEvent)}
                     >
-                      <Bot className="w-3.5 h-3.5 mr-1.5" /> Pre-Meeting Brief
+                      <Bot className="w-3.5 h-3.5 mr-1.5" /> Start Session
                     </Button>
                     <Button
                       size="sm"

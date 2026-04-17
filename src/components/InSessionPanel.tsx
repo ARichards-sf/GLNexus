@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { usePreMeetingBrief } from "@/hooks/usePreMeetingBrief";
+import { usePreMeetingBrief } from "@/hooks/useInSession";
 import { formatFullCurrency } from "@/data/sampleData";
 import { EVENT_TYPE_COLORS, type CalendarEvent } from "@/hooks/useCalendarEvents";
 import { supabase } from "@/integrations/supabase/client";
@@ -211,7 +211,7 @@ function useGoodieBrief(brief: ReturnType<typeof usePreMeetingBrief>) {
   return { text, loading, error };
 }
 
-export default function PreMeetingBriefPanel({ event, householdId, onClose }: Props) {
+export default function InSessionPanel({ event, householdId, onClose }: Props) {
   const brief = usePreMeetingBrief(event, householdId);
   const goodie = useGoodieBrief(brief);
 
