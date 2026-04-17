@@ -282,6 +282,7 @@ export type Database = {
           allow_book_sharing: boolean
           created_at: string
           id: string
+          is_gl_internal: boolean
           logo_url: string | null
           name: string
         }
@@ -290,6 +291,7 @@ export type Database = {
           allow_book_sharing?: boolean
           created_at?: string
           id?: string
+          is_gl_internal?: boolean
           logo_url?: string | null
           name: string
         }
@@ -298,6 +300,7 @@ export type Database = {
           allow_book_sharing?: boolean
           created_at?: string
           id?: string
+          is_gl_internal?: boolean
           logo_url?: string | null
           name?: string
         }
@@ -445,42 +448,80 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_user_firm_assignments: {
+        Row: {
+          created_at: string
+          firm_id: string
+          id: string
+          internal_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          firm_id: string
+          id?: string
+          internal_user_id: string
+        }
+        Update: {
+          created_at?: string
+          firm_id?: string
+          id?: string
+          internal_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_user_firm_assignments_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
+          department: string | null
           email: string | null
           firm_id: string | null
           full_name: string | null
           id: string
+          is_gl_internal: boolean
           is_internal: boolean
           last_sign_in: string | null
           office_location: string | null
+          platform_role: string | null
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          department?: string | null
           email?: string | null
           firm_id?: string | null
           full_name?: string | null
           id?: string
+          is_gl_internal?: boolean
           is_internal?: boolean
           last_sign_in?: string | null
           office_location?: string | null
+          platform_role?: string | null
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          department?: string | null
           email?: string | null
           firm_id?: string | null
           full_name?: string | null
           id?: string
+          is_gl_internal?: boolean
           is_internal?: boolean
           last_sign_in?: string | null
           office_location?: string | null
+          platform_role?: string | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -651,6 +692,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_gl_internal: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
