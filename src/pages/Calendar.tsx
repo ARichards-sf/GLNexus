@@ -275,7 +275,7 @@ export default function Calendar() {
                       size="sm"
                       variant="outline"
                       className="text-xs"
-                      onClick={() => setBriefEvent(selectedEvent)}
+                      onClick={() => openBrief(selectedEvent)}
                     >
                       <Bot className="w-3.5 h-3.5 mr-1.5" /> Pre-Meeting Brief
                     </Button>
