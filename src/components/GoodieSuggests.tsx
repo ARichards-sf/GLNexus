@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Bot, CalendarCheck, FileText, MessageCircle, Sparkles, X, type LucideIcon } from "lucide-react";
 import ScheduleEventDialog from "@/components/ScheduleEventDialog";
 import QuickLogNoteDialog from "@/components/QuickLogNoteDialog";
+import type { HouseholdRow } from "@/hooks/useHouseholds";
 
 type ActionKind = "schedule" | "households" | "logNote";
 
@@ -15,6 +15,7 @@ interface Suggestion {
   text: string;
   context: string;
   action: ActionKind;
+  householdMatch?: string;
 }
 
 const SUGGESTIONS: Suggestion[] = [
@@ -25,6 +26,7 @@ const SUGGESTIONS: Suggestion[] = [
     text: "Schedule annual review for Henderson Family",
     context: "Last review was 14 months ago — overdue by 2 months",
     action: "schedule",
+    householdMatch: "Henderson",
   },
   {
     id: "s2",
@@ -41,21 +43,37 @@ const SUGGESTIONS: Suggestion[] = [
     text: "Follow up with Davis Family",
     context: "No contact logged in 45 days — last note was a phone call",
     action: "logNote",
+    householdMatch: "Davis",
   },
 ];
 
-export default function GoodieSuggests() {
+interface Props {
+  households: HouseholdRow[];
+}
+
+export default function GoodieSuggests({ households }: Props) {
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [logNoteOpen, setLogNoteOpen] = useState(false);
+  const [scheduleHouseholdId, setScheduleHouseholdId] = useState<string | undefined>(undefined);
+
+  const findHousehold = (name: string) =>
+    households.find((h) => h.name.toLowerCase().includes(name.toLowerCase())) ?? households[0] ?? null;
 
   const visible = SUGGESTIONS.filter((s) => !dismissed.has(s.id));
 
-  const handleAction = (kind: ActionKind) => {
-    if (kind === "schedule") setScheduleOpen(true);
-    else if (kind === "households") navigate("/households");
-    else if (kind === "logNote") setLogNoteOpen(true);
+  const handleAction = (s: Suggestion) => {
+    if (s.action === "schedule") {
+      const found = s.householdMatch ? findHousehold(s.householdMatch) : null;
+      setScheduleHouseholdId(found?.id);
+      setScheduleOpen(true);
+    } else if (s.action === "households") {
+      navigate("/households");
+    } else if (s.action === "logNote") {
+      // Dialog does not support household pre-population; open as-is.
+      setLogNoteOpen(true);
+    }
   };
 
   const dismiss = (id: string) =>
@@ -87,7 +105,7 @@ export default function GoodieSuggests() {
                 <button
                   type="button"
                   key={s.id}
-                  onClick={() => handleAction(s.action)}
+                  onClick={() => handleAction(s)}
                   className="group w-full text-left flex items-start gap-2.5 p-2 rounded-md hover:bg-secondary/60 transition-colors"
                 >
                   <div className={`shrink-0 w-7 h-7 rounded-md flex items-center justify-center ${s.iconClass}`}>
@@ -127,7 +145,12 @@ export default function GoodieSuggests() {
         </CardContent>
       </Card>
 
-      <ScheduleEventDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
+      <ScheduleEventDialog
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        defaultHouseholdId={scheduleHouseholdId}
+        defaultType="Annual Review"
+      />
       <QuickLogNoteDialog open={logNoteOpen} onOpenChange={setLogNoteOpen} />
     </>
   );
