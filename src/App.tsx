@@ -21,6 +21,7 @@ import MyRequests from "./pages/MyRequests";
 import AdminRequests from "./pages/AdminRequests";
 import RequestDetail from "./pages/RequestDetail";
 import ComingSoon from "./pages/ComingSoon";
+import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -47,7 +48,7 @@ const App = () => (
               <Route path="/reports" element={<ComingSoon />} />
               <Route path="/my-requests" element={<MyRequests />} />
               <Route path="/my-requests/:id" element={<RequestDetail />} />
-              <Route path="/settings" element={<ComingSoon />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/admin/advisors" element={<AdminRoute><AdminAdvisors /></AdminRoute>} />
               <Route path="/admin/advisors/:id" element={<AdminRoute><AdvisorDetail /></AdminRoute>} />
               <Route path="/admin/requests" element={<AdminRoute><AdminRequests /></AdminRoute>} />
