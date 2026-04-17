@@ -172,39 +172,72 @@ export type Database = {
       }
       contact_accounts: {
         Row: {
+          account_class: string | null
           account_name: string
           account_number: string | null
+          account_registration: string | null
           account_type: string
           advisor_id: string
           balance: number
+          br_suitability: string | null
           created_at: string
+          data_source: string | null
+          description: string | null
           id: string
           institution: string | null
+          lpl_last_updated: string | null
+          lpl_linking_status: string | null
+          lpl_net_revenues: number | null
+          lpl_type: string | null
           member_id: string
+          objective: string | null
+          tier_schedule: string | null
           updated_at: string
         }
         Insert: {
+          account_class?: string | null
           account_name: string
           account_number?: string | null
+          account_registration?: string | null
           account_type?: string
           advisor_id: string
           balance?: number
+          br_suitability?: string | null
           created_at?: string
+          data_source?: string | null
+          description?: string | null
           id?: string
           institution?: string | null
+          lpl_last_updated?: string | null
+          lpl_linking_status?: string | null
+          lpl_net_revenues?: number | null
+          lpl_type?: string | null
           member_id: string
+          objective?: string | null
+          tier_schedule?: string | null
           updated_at?: string
         }
         Update: {
+          account_class?: string | null
           account_name?: string
           account_number?: string | null
+          account_registration?: string | null
           account_type?: string
           advisor_id?: string
           balance?: number
+          br_suitability?: string | null
           created_at?: string
+          data_source?: string | null
+          description?: string | null
           id?: string
           institution?: string | null
+          lpl_last_updated?: string | null
+          lpl_linking_status?: string | null
+          lpl_net_revenues?: number | null
+          lpl_type?: string | null
           member_id?: string
+          objective?: string | null
+          tier_schedule?: string | null
           updated_at?: string
         }
         Relationships: [
