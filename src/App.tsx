@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
+import { FirmProvider } from "@/contexts/FirmContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import ContactProfile from "./pages/ContactProfile";
@@ -36,6 +37,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
         <ImpersonationProvider>
+        <FirmProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -58,6 +60,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+        </FirmProvider>
         </ImpersonationProvider>
         </BrowserRouter>
       </TooltipProvider>
