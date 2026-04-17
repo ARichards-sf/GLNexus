@@ -129,7 +129,7 @@ function useGoodieBrief(brief: ReturnType<typeof usePreMeetingBrief>) {
 
   useEffect(() => {
     if (!ready) return;
-    triggeredRef.current = true;
+    triggeredRef.current = brief.event.id;
 
     const run = async () => {
       setLoading(true);
