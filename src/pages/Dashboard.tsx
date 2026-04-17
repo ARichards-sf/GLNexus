@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
 import QuickLogNoteDialog from "@/components/QuickLogNoteDialog";
-import PreMeetingBriefPanel from "@/components/PreMeetingBriefPanel";
+import { useBrief } from "@/contexts/BriefContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
