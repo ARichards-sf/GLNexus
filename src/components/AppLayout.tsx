@@ -3,15 +3,17 @@ import { Bot, X } from "lucide-react";
 import AppSidebar from "./AppSidebar";
 import ImpersonationBar from "./ImpersonationBar";
 import AiAssistant from "./AiAssistant";
-import PreMeetingBriefPanel from "./PreMeetingBriefPanel";
+import InSessionPanel from "./InSessionPanel";
 import { Button } from "@/components/ui/button";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
-import { BriefProvider, useBrief } from "@/contexts/BriefContext";
+import { InSessionProvider, useInSession } from "@/contexts/InSessionContext";
 import { cn } from "@/lib/utils";
 
 function LayoutInner() {
-  const { briefEvent, isBriefOpen, closeBrief } = useBrief();
-  const showPanel = isBriefOpen && briefEvent && briefEvent.household_id;
+  const { sessionEvent, isInSession, endSession } = useInSession();
+  const showPanel = isInSession && sessionEvent && sessionEvent.household_id;
+  const householdName = sessionEvent?.households?.name;
+  const headerTitle = householdName ? `In Session · ${householdName}` : "In Session";
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -29,18 +31,18 @@ function LayoutInner() {
         {showPanel && (
           <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[480px] border-l border-border bg-background shadow-lg z-40 flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background sticky top-0 z-10">
-              <div className="flex items-center gap-2">
-                <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                <h2 className="text-sm font-semibold">Pre-Meeting Brief</h2>
+              <div className="flex items-center gap-2 min-w-0">
+                <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <h2 className="text-sm font-semibold truncate">{headerTitle}</h2>
               </div>
-              <Button variant="ghost" size="icon" onClick={closeBrief} className="h-7 w-7">
+              <Button variant="ghost" size="icon" onClick={endSession} className="h-7 w-7">
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
-              <PreMeetingBriefPanel
-                event={briefEvent}
-                householdId={briefEvent.household_id!}
+              <InSessionPanel
+                event={sessionEvent}
+                householdId={sessionEvent.household_id!}
               />
             </div>
           </aside>
@@ -54,8 +56,8 @@ function LayoutInner() {
 export default function AppLayout() {
   useRealtimeRefresh();
   return (
-    <BriefProvider>
+    <InSessionProvider>
       <LayoutInner />
-    </BriefProvider>
+    </InSessionProvider>
   );
 }

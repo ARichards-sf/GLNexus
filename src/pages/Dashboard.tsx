@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
 import QuickLogNoteDialog from "@/components/QuickLogNoteDialog";
-import { useBrief } from "@/contexts/BriefContext";
+import { useInSession } from "@/contexts/InSessionContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
@@ -64,7 +64,7 @@ export default function Dashboard() {
   const [assistOpen, setAssistOpen] = useState(false);
   const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
   const [logNoteOpen, setLogNoteOpen] = useState(false);
-  const { openBrief } = useBrief();
+  const { startSession } = useInSession();
 
   const imminentMeeting = useMemo(() => {
     const now = Date.now();
@@ -167,10 +167,10 @@ export default function Dashboard() {
               </div>
               <Button
                 size="sm"
-                onClick={() => imminentMeeting && openBrief(imminentMeeting)}
+                onClick={() => imminentMeeting && startSession(imminentMeeting)}
                 disabled={!imminentMeeting.household_id}
               >
-                View Brief
+                Start Session
                 <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
               </Button>
             </div>
