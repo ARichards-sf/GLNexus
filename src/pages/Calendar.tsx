@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  ChevronLeft, ChevronRight, Plus, CheckCircle2, Trash2, CalendarDays, FileText,
+  ChevronLeft, ChevronRight, Plus, CheckCircle2, Trash2, CalendarDays, FileText, Bot,
 } from "lucide-react";
 import {
   useCalendarEvents, useCompleteEvent, useDeleteCalendarEvent,
