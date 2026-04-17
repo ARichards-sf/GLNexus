@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Households from "./pages/Households";
 import HouseholdProfile from "./pages/HouseholdProfile";
 import AdminAdvisors from "./pages/AdminAdvisors";
+import AdminFirms from "./pages/AdminFirms";
 import AdvisorDetail from "./pages/AdvisorDetail";
 import Performance from "./pages/Performance";
 import CalendarPage from "./pages/Calendar";
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/my-requests/:id" element={<RequestDetail />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/admin/advisors" element={<AdminRoute><AdminAdvisors /></AdminRoute>} />
+              <Route path="/admin/firms" element={<AdminRoute><AdminFirms /></AdminRoute>} />
               <Route path="/admin/advisors/:id" element={<AdminRoute><AdvisorDetail /></AdminRoute>} />
               <Route path="/admin/requests" element={<AdminRoute><AdminRequests /></AdminRoute>} />
               <Route path="/admin/requests/:id" element={<AdminRoute><RequestDetail /></AdminRoute>} />
