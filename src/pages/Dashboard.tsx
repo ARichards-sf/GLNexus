@@ -60,6 +60,7 @@ export default function Dashboard() {
   const generateSnapshot = useGenerateSnapshot();
   const [assistOpen, setAssistOpen] = useState(false);
   const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
+  const [logNoteOpen, setLogNoteOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
