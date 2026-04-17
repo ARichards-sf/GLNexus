@@ -167,7 +167,7 @@ export default function Dashboard() {
               </div>
               <Button
                 size="sm"
-                onClick={() => setBriefOpen(true)}
+                onClick={() => imminentMeeting && openBrief(imminentMeeting)}
                 disabled={!imminentMeeting.household_id}
               >
                 View Brief
