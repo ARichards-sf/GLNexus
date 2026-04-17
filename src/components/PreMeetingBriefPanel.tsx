@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, X, Calendar, TrendingUp, FileText, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Bot, X, Calendar, TrendingUp, FileText, Users, ChevronRight, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -217,9 +218,6 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
   const eventColor = EVENT_TYPE_COLORS[event.event_type] || EVENT_TYPE_COLORS["Discovery Call"];
   const startingSoon = useMemo(() => isStartingSoon(event.start_time), [event.start_time]);
 
-  const memberSummary = brief.members
-    .map((m) => `${m.first_name} ${m.last_name}${m.age ? ` (${m.age})` : ""}`)
-    .join(", ");
 
   return (
     <div className="space-y-4">
@@ -275,7 +273,12 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <div className="flex items-center justify-between md:col-span-2">
-                <span className="font-semibold text-base">{brief.household.name}</span>
+                <Link
+                  to={`/household/${brief.household.id}`}
+                  className="font-semibold text-base hover:underline transition-colors hover:text-primary"
+                >
+                  {brief.household.name}
+                </Link>
                 <Badge variant="secondary">{brief.household.status}</Badge>
               </div>
               <div className="flex justify-between">
@@ -297,12 +300,31 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
                   {brief.household.investment_objective || "—"}
                 </span>
               </div>
-              {memberSummary && (
+              {brief.members.length > 0 && (
                 <div className="md:col-span-2 pt-2 border-t">
                   <span className="text-muted-foreground">Members: </span>
-                  <span className="font-medium">{memberSummary}</span>
+                  {brief.members.map((m, i) => (
+                    <span key={m.id}>
+                      <Link
+                        to={`/contacts/${m.id}`}
+                        className="font-medium text-foreground hover:underline transition-colors hover:text-primary"
+                      >
+                        {m.first_name} {m.last_name}
+                        {m.age ? ` (${m.age})` : ""}
+                      </Link>
+                      {i < brief.members.length - 1 && <span>, </span>}
+                    </span>
+                  ))}
                 </div>
               )}
+              <div className="md:col-span-2">
+                <Link to={`/household/${brief.household.id}`}>
+                  <Button variant="outline" size="sm" className="w-full mt-3">
+                    View Full Profile
+                    <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
         </CardContent>
@@ -336,14 +358,23 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
                       <TableRow>
                         <TableHead className="h-8 text-xs">Type</TableHead>
                         <TableHead className="h-8 text-xs text-right">Balance</TableHead>
+                        <TableHead className="h-8 w-8" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {g.accounts.map((a) => (
-                        <TableRow key={a.id}>
-                          <TableCell className="py-2 text-sm">{a.account_type}</TableCell>
-                          <TableCell className="py-2 text-sm text-right tabular-nums">
-                            {formatFullCurrency(a.balance)}
+                        <TableRow key={a.id} className="cursor-pointer group">
+                          <TableCell className="p-0" colSpan={3}>
+                            <Link
+                              to={`/accounts/${a.id}`}
+                              className="flex items-center w-full py-2 px-4 transition-colors hover:text-primary hover:bg-muted/40"
+                            >
+                              <span className="flex-1 text-sm">{a.account_type}</span>
+                              <span className="text-sm text-right tabular-nums w-32">
+                                {formatFullCurrency(a.balance)}
+                              </span>
+                              <ChevronRight className="w-3.5 h-3.5 ml-2 text-muted-foreground group-hover:text-primary" />
+                            </Link>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -386,7 +417,10 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
                     <div className="h-2 w-2 rounded-full bg-primary" />
                     <div className="flex-1 w-px bg-border mt-1" />
                   </div>
-                  <div className="flex-1 space-y-1 pb-1">
+                  <Link
+                    to={`/household/${brief.household!.id}`}
+                    className="flex-1 space-y-1 pb-1 rounded-md -mx-2 px-2 py-1 transition-colors hover:bg-muted/40 hover:text-primary"
+                  >
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="outline"
@@ -403,7 +437,7 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
                         ? `${n.summary.slice(0, 100)}…`
                         : n.summary}
                     </p>
-                  </div>
+                  </Link>
                 </li>
               ))}
             </ol>
