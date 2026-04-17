@@ -12,8 +12,7 @@ import {
 import { useCreateComplianceNote } from "@/hooks/useHouseholds";
 import ScheduleEventDialog from "@/components/ScheduleEventDialog";
 import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
-import PreMeetingBriefPanel from "@/components/PreMeetingBriefPanel";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useBrief } from "@/contexts/BriefContext";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
