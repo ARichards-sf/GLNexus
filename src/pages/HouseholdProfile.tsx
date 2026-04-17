@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { CalendarCheck, AlertTriangle, CalendarPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -145,6 +145,7 @@ function AnnualReviewWidget({
 
 export default function HouseholdProfile() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { data: household, isLoading } = useHousehold(id);
   const { data: members = [] } = useHouseholdMembers(id);
   const { data: notes = [] } = useComplianceNotes(id);
@@ -458,7 +459,11 @@ export default function HouseholdProfile() {
                     </TableHeader>
                     <TableBody>
                       {accounts.map((a) => (
-                        <TableRow key={a.id}>
+                        <TableRow
+                          key={a.id}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => navigate(`/accounts/${a.id}`)}
+                        >
                           <TableCell className="text-sm font-medium text-foreground">{a.account_name}</TableCell>
                           <TableCell>
                             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">{a.account_type}</Badge>
