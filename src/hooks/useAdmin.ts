@@ -37,30 +37,54 @@ export function useIsInternal() {
   });
 }
 
-export function useIsGlInternal() {
+export function useGlProfile() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["is_gl_internal", user?.id],
+    queryKey: ["gl_profile", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("is_gl_internal")
+        .select("is_gl_internal, platform_role")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
-      return !!data?.is_gl_internal;
+      return {
+        is_gl_internal: !!data?.is_gl_internal,
+        platform_role: (data?.platform_role ?? null) as string | null,
+      };
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
 }
 
+export function useIsGlInternal() {
+  const { data, isLoading } = useGlProfile();
+  return {
+    data: data?.is_gl_internal ?? false,
+    isLoading,
+  } as { data: boolean; isLoading: boolean };
+}
+
 export function useIsAdmin() {
   const { data: roles = [], isLoading: rolesLoading } = useUserRole();
   const { data: isInternal = false, isLoading: internalLoading } = useIsInternal();
+  const { data: glProfile, isLoading: glLoading } = useGlProfile();
+
+  const glIsAdmin =
+    !!glProfile?.is_gl_internal &&
+    (glProfile.platform_role === "admin" || glProfile.platform_role === "super_admin");
+
+  const isSuperAdmin =
+    !!glProfile?.is_gl_internal && glProfile.platform_role === "super_admin";
+
+  const isGLInternal = !!glProfile?.is_gl_internal;
+
   return {
-    isAdmin: roles.includes("admin") || isInternal,
-    isLoading: rolesLoading || internalLoading,
+    isAdmin: roles.includes("admin") || isInternal || glIsAdmin,
+    isSuperAdmin,
+    isGLInternal,
+    isLoading: rolesLoading || internalLoading || glLoading,
   };
 }
 
