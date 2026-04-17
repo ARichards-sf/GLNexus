@@ -57,7 +57,7 @@ export default function Calendar() {
   const [completeTarget, setCompleteTarget] = useState<CalendarEvent | null>(null);
   const [complianceOpen, setComplianceOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CalendarEvent | null>(null);
-  const [briefEvent, setBriefEvent] = useState<CalendarEvent | null>(null);
+  const { openBrief } = useBrief();
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
