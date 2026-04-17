@@ -13,7 +13,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import ManageStaffFirmsDialog from "@/components/ManageStaffFirmsDialog";
 
-const DEPARTMENTS = ["vpm", "wam", "marketing", "transitions", "compliance", "accounting"] as const;
+const DEPARTMENTS = ["vpm", "wam", "marketing", "transitions", "compliance", "accounting", "operations"] as const;
 const ROLES = ["admin", "super_admin"] as const;
 
 const DEPT_META: Record<string, { label: string; className: string }> = {
@@ -23,7 +23,15 @@ const DEPT_META: Record<string, { label: string; className: string }> = {
   transitions: { label: "Transitions", className: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
   compliance:  { label: "Compliance",  className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
   accounting:  { label: "Accounting",  className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  operations:  { label: "Operations",  className: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" },
 };
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  super_admin: "Super Admin",
+};
+
+const FIRM_OPTIONAL_DEPTS = new Set(["marketing", "transitions", "compliance", "accounting", "operations"]);
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
