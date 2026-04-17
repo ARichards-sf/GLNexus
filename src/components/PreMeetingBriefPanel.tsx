@@ -218,9 +218,6 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
   const eventColor = EVENT_TYPE_COLORS[event.event_type] || EVENT_TYPE_COLORS["Discovery Call"];
   const startingSoon = useMemo(() => isStartingSoon(event.start_time), [event.start_time]);
 
-  const memberSummary = brief.members
-    .map((m) => `${m.first_name} ${m.last_name}${m.age ? ` (${m.age})` : ""}`)
-    .join(", ");
 
   return (
     <div className="space-y-4">
