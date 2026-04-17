@@ -343,6 +343,13 @@ export default function Dashboard() {
         </Card>
       </div>
       <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
+      <CreateHouseholdDialog
+        open={createHouseholdOpen}
+        onOpenChange={(open) => {
+          setCreateHouseholdOpen(open);
+          if (!open) queryClient.invalidateQueries({ queryKey: ["households"] });
+        }}
+      />
     </div>
   );
 }
