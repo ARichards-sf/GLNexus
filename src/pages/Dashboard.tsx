@@ -20,6 +20,7 @@ import {
   Plus,
 } from "lucide-react";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
+import QuickLogNoteDialog from "@/components/QuickLogNoteDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
