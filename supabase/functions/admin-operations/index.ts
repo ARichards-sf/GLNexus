@@ -224,6 +224,132 @@ Deno.serve(async (req) => {
       return json({ logs: data });
     }
 
+    // ── INVITE INTERNAL USER ──
+    if (action === "invite_internal_user") {
+      const { email, password, full_name, platform_role, department } = payload;
+      if (!email) throw new Error("Email is required");
+      if (!password || password.length < 6) throw new Error("Password must be at least 6 characters");
+      if (!["admin", "super_admin"].includes(platform_role)) throw new Error("Invalid platform_role");
+      if (!["vpm", "wam", "marketing", "transitions", "compliance", "accounting"].includes(department)) {
+        throw new Error("Invalid department");
+      }
+
+      // Look up the GL internal firm
+      const { data: glFirm, error: firmErr } = await supabaseAdmin
+        .from("firms").select("id").eq("is_gl_internal", true).maybeSingle();
+      if (firmErr) throw firmErr;
+      if (!glFirm) throw new Error("Good Life Companies firm not found");
+
+      const { data: createData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email, password, email_confirm: true, user_metadata: { full_name: full_name || "" },
+      });
+      if (createErr) throw createErr;
+      const newUser = createData.user;
+
+      const { error: profErr } = await supabaseAdmin.from("profiles").update({
+        full_name: full_name || null,
+        is_gl_internal: true,
+        is_internal: true,
+        platform_role,
+        department,
+        firm_id: glFirm.id,
+      }).eq("user_id", newUser.id);
+      if (profErr) throw profErr;
+
+      return json({ user: newUser });
+    }
+
+    // ── LIST INTERNAL USERS ──
+    if (action === "list_internal_users") {
+      const { data: profiles, error: pErr } = await supabaseAdmin
+        .from("profiles").select("*").eq("is_gl_internal", true).order("created_at", { ascending: false });
+      if (pErr) throw pErr;
+
+      const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
+      const authMap: Record<string, any> = {};
+      (authUsers || []).forEach((u: any) => { authMap[u.id] = u; });
+
+      const userIds = (profiles || []).map((p: any) => p.user_id);
+      const { data: assignments } = await supabaseAdmin
+        .from("internal_user_firm_assignments")
+        .select("internal_user_id, firm_id, firms(id, name, accent_color)")
+        .in("internal_user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
+
+      const assignMap: Record<string, any[]> = {};
+      (assignments || []).forEach((a: any) => {
+        if (!assignMap[a.internal_user_id]) assignMap[a.internal_user_id] = [];
+        assignMap[a.internal_user_id].push({ firm_id: a.firm_id, firm: a.firms });
+      });
+
+      const internal_users = (profiles || []).map((p: any) => ({
+        ...p,
+        last_sign_in_at: authMap[p.user_id]?.last_sign_in_at || null,
+        firm_assignments: assignMap[p.user_id] || [],
+      }));
+
+      return json({ internal_users });
+    }
+
+    // ── UPDATE INTERNAL USER ──
+    if (action === "update_internal_user") {
+      const { user_id, platform_role, department, full_name, office_location } = payload;
+      if (!user_id) throw new Error("user_id required");
+
+      const { data: target, error: tErr } = await supabaseAdmin
+        .from("profiles").select("is_gl_internal").eq("user_id", user_id).maybeSingle();
+      if (tErr) throw tErr;
+      if (!target?.is_gl_internal) throw new Error("Target user is not GL internal");
+
+      if (platform_role !== undefined && platform_role !== null && !["admin", "super_admin"].includes(platform_role)) {
+        throw new Error("Invalid platform_role");
+      }
+      if (department !== undefined && department !== null &&
+          !["vpm", "wam", "marketing", "transitions", "compliance", "accounting"].includes(department)) {
+        throw new Error("Invalid department");
+      }
+
+      const updates: Record<string, any> = {};
+      if (platform_role !== undefined) updates.platform_role = platform_role;
+      if (department !== undefined) updates.department = department;
+      if (full_name !== undefined) updates.full_name = full_name;
+      if (office_location !== undefined) updates.office_location = office_location;
+
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabaseAdmin
+          .from("profiles").update(updates).eq("user_id", user_id).eq("is_gl_internal", true);
+        if (error) throw error;
+      }
+
+      if (full_name !== undefined) {
+        await supabaseAdmin.auth.admin.updateUserById(user_id, { user_metadata: { full_name } });
+      }
+      return json({ success: true });
+    }
+
+    // ── ASSIGN INTERNAL USER FIRMS ──
+    if (action === "assign_internal_user_firms") {
+      const { user_id, firm_ids } = payload;
+      if (!user_id) throw new Error("user_id required");
+      if (!Array.isArray(firm_ids)) throw new Error("firm_ids must be an array");
+
+      const { data: target, error: tErr } = await supabaseAdmin
+        .from("profiles").select("is_gl_internal").eq("user_id", user_id).maybeSingle();
+      if (tErr) throw tErr;
+      if (!target?.is_gl_internal) throw new Error("Target user is not GL internal");
+
+      const { error: delErr } = await supabaseAdmin
+        .from("internal_user_firm_assignments").delete().eq("internal_user_id", user_id);
+      if (delErr) throw delErr;
+
+      if (firm_ids.length > 0) {
+        const rows = firm_ids.map((fid: string) => ({ internal_user_id: user_id, firm_id: fid }));
+        const { error: insErr } = await supabaseAdmin
+          .from("internal_user_firm_assignments").insert(rows);
+        if (insErr) throw insErr;
+      }
+      return json({ success: true });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (err: any) {
     const status = err.status || 500;
