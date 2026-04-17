@@ -1,39 +1,39 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import type { CalendarEvent } from "@/hooks/useCalendarEvents";
 
-export interface BriefContextType {
-  briefEvent: CalendarEvent | null;
-  openBrief: (event: CalendarEvent) => void;
-  closeBrief: () => void;
-  isBriefOpen: boolean;
+export interface InSessionContextType {
+  sessionEvent: CalendarEvent | null;
+  startSession: (event: CalendarEvent) => void;
+  endSession: () => void;
+  isInSession: boolean;
 }
 
-const BriefContext = createContext<BriefContextType | null>(null);
+const InSessionContext = createContext<InSessionContextType | null>(null);
 
-export function BriefProvider({ children }: { children: ReactNode }) {
-  const [briefEvent, setBriefEvent] = useState<CalendarEvent | null>(null);
+export function InSessionProvider({ children }: { children: ReactNode }) {
+  const [sessionEvent, setSessionEvent] = useState<CalendarEvent | null>(null);
 
-  const openBrief = (event: CalendarEvent) => {
-    setBriefEvent(event);
+  const startSession = (event: CalendarEvent) => {
+    setSessionEvent(event);
   };
 
-  const closeBrief = () => {
-    setBriefEvent(null);
+  const endSession = () => {
+    setSessionEvent(null);
   };
 
-  const isBriefOpen = briefEvent !== null;
+  const isInSession = sessionEvent !== null;
 
   return (
-    <BriefContext.Provider value={{ briefEvent, openBrief, closeBrief, isBriefOpen }}>
+    <InSessionContext.Provider value={{ sessionEvent, startSession, endSession, isInSession }}>
       {children}
-    </BriefContext.Provider>
+    </InSessionContext.Provider>
   );
 }
 
-export function useBrief(): BriefContextType {
-  const context = useContext(BriefContext);
+export function useInSession(): InSessionContextType {
+  const context = useContext(InSessionContext);
   if (!context) {
-    throw new Error("useBrief must be used within a BriefProvider");
+    throw new Error("useInSession must be used within an InSessionProvider");
   }
   return context;
 }
