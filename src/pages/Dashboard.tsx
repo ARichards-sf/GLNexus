@@ -17,7 +17,10 @@ import {
   HelpCircle,
   TicketCheck,
   MessageCircle,
+  Plus,
 } from "lucide-react";
+import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
+import { useQueryClient } from "@tanstack/react-query";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
 import { useMyServiceRequests } from "@/hooks/useServiceRequests";
@@ -55,7 +58,9 @@ export default function Dashboard() {
   const { data: unreadSet = new Set<string>() } = useUnreadRequests(requestIds);
   const generateSnapshot = useGenerateSnapshot();
   const [assistOpen, setAssistOpen] = useState(false);
+  const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const totalAUM = households.reduce((sum, h) => sum + Number(h.total_aum), 0);
   const totalHouseholds = households.length;
@@ -113,6 +118,26 @@ export default function Dashboard() {
             {generateSnapshot.isPending ? "Saving…" : "Generate Snapshot"}
           </Button>
         </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mb-6 rounded-lg bg-secondary/40 p-3 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => navigate("/households")}>
+          <FileText className="w-4 h-4 mr-1.5" />
+          Log a Note
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate("/calendar")}>
+          <CalendarDays className="w-4 h-4 mr-1.5" />
+          Schedule Meeting
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setCreateHouseholdOpen(true)}>
+          <Plus className="w-4 h-4 mr-1.5" />
+          Add Household
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setAssistOpen(true)}>
+          <HelpCircle className="w-4 h-4 mr-1.5" />
+          Request GL Assistance
+        </Button>
       </div>
 
       {/* KPI Cards */}
@@ -318,6 +343,13 @@ export default function Dashboard() {
         </Card>
       </div>
       <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
+      <CreateHouseholdDialog
+        open={createHouseholdOpen}
+        onOpenChange={(open) => {
+          setCreateHouseholdOpen(open);
+          if (!open) queryClient.invalidateQueries({ queryKey: ["households"] });
+        }}
+      />
     </div>
   );
 }
