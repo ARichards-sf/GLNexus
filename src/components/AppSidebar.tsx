@@ -30,14 +30,27 @@ export default function AppSidebar() {
   const { user, signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { data: unreadCounts } = useUnreadRequestCounts();
+  const { currentFirm, isLoading: firmLoading } = useFirmContext();
 
   const displayName = user?.user_metadata?.full_name || user?.email || "Advisor";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
 
+  const logoUrl = currentFirm?.logo_url || glLogo;
+  const firmName = currentFirm?.name;
+  const showFirmName = firmName && firmName !== "Good Life Companies";
+
   return (
-    <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card min-h-screen px-4 py-6">
-      <div className="flex items-center gap-2.5 px-3 mb-10">
-        <img src={glLogo} alt="Good Life Companies" className="h-8 w-auto" />
+    <aside 
+      className="hidden lg:flex flex-col w-64 border-r border-border bg-card min-h-screen px-4 py-6"
+      style={currentFirm?.accent_color ? { "--firm-accent": currentFirm.accent_color } as React.CSSProperties : undefined}
+    >
+      <div className="flex flex-col gap-1 px-3 mb-10">
+        <div className="flex items-center gap-2.5">
+          <img src={logoUrl} alt={firmName || "Good Life Companies"} className="h-8 w-auto" />
+        </div>
+        {showFirmName && (
+          <p className="text-xs text-muted-foreground">{firmName}</p>
+        )}
       </div>
 
       <nav className="flex flex-col gap-1 flex-1">
