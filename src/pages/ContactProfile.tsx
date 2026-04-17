@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
-  Edit, Wallet, Plus, HelpCircle,
+  Edit, Wallet, Plus, HelpCircle, ChevronRight,
 } from "lucide-react";
 import { useContact, useContactAccounts } from "@/hooks/useContacts";
 import { formatFullCurrency } from "@/data/sampleData";
@@ -16,6 +16,7 @@ import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 
 export default function ContactProfile() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { data: contact, isLoading } = useContact(id);
   const { data: accounts = [] } = useContactAccounts(id);
   const [editOpen, setEditOpen] = useState(false);
@@ -190,11 +191,16 @@ export default function ContactProfile() {
                         <TableHead>Type</TableHead>
                         <TableHead>Institution</TableHead>
                         <TableHead className="text-right">Balance</TableHead>
+                        <TableHead className="w-8"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {accounts.map((account) => (
-                        <TableRow key={account.id}>
+                        <TableRow
+                          key={account.id}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => navigate(`/accounts/${account.id}`)}
+                        >
                           <TableCell>
                             <div>
                               <p className="text-sm font-medium text-foreground">{account.account_name}</p>
@@ -209,6 +215,9 @@ export default function ContactProfile() {
                           <TableCell className="text-sm text-muted-foreground">{account.institution || "—"}</TableCell>
                           <TableCell className="text-right text-sm font-semibold text-emerald-600">
                             {formatFullCurrency(Number(account.balance))}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
                           </TableCell>
                         </TableRow>
                       ))}
