@@ -122,10 +122,10 @@ function useGoodieBrief(brief: ReturnType<typeof usePreMeetingBrief>) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const triggeredRef = useRef(false);
+  const triggeredRef = useRef<string | null>(null);
 
   const ready =
-    !brief.isLoading && !!brief.household && !!brief.event && !triggeredRef.current;
+    !brief.isLoading && !!brief.household && !!brief.event && triggeredRef.current !== brief.event.id;
 
   useEffect(() => {
     if (!ready) return;
