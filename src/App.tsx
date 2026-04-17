@@ -9,6 +9,7 @@ import { FirmProvider } from "@/contexts/FirmContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import ContactProfile from "./pages/ContactProfile";
+import AccountDetail from "./pages/AccountDetail";
 import Contacts from "./pages/Contacts";
 import AppLayout from "./components/AppLayout";
 import Dashboard from "./pages/Dashboard";
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/household/:id" element={<HouseholdProfile />} />
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/contacts/:id" element={<ContactProfile />} />
+              <Route path="/accounts/:id" element={<AccountDetail />} />
               <Route path="/performance" element={<Performance />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/reports" element={<ComingSoon />} />

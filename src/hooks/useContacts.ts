@@ -52,6 +52,43 @@ export function useContact(id: string | undefined) {
   });
 }
 
+export function useAccount(id: string | undefined) {
+  const { userId } = useTargetAdvisorId();
+  return useQuery({
+    queryKey: ["contact_account", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contact_accounts")
+        .select("*, household_members(id, first_name, last_name, household_id)")
+        .eq("id", id!)
+        .single();
+      if (error) throw error;
+      return data as AccountRow & {
+        household_members: { id: string; first_name: string; last_name: string; household_id: string | null } | null;
+      };
+    },
+    enabled: !!userId && !!id,
+  });
+}
+
+export function useUpdateAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: TablesUpdate<"contact_accounts"> }) => {
+      const { error } = await supabase
+        .from("contact_accounts")
+        .update(data)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["contact_account", vars.id] });
+      queryClient.invalidateQueries({ queryKey: ["contact_accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["household_accounts"] });
+    },
+  });
+}
+
 export function useContactAccounts(memberId: string | undefined) {
   const { userId } = useTargetAdvisorId();
   return useQuery({
