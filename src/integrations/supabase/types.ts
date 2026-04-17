@@ -244,6 +244,65 @@ export type Database = {
         }
         Relationships: []
       }
+      firm_memberships: {
+        Row: {
+          created_at: string
+          firm_id: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          firm_id: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          firm_id?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "firm_memberships_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      firms: {
+        Row: {
+          accent_color: string | null
+          allow_book_sharing: boolean
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+        }
+        Insert: {
+          accent_color?: string | null
+          allow_book_sharing?: boolean
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+        }
+        Update: {
+          accent_color?: string | null
+          allow_book_sharing?: boolean
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
       household_members: {
         Row: {
           advisor_id: string
@@ -538,6 +597,35 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vpm_firm_assignments: {
+        Row: {
+          created_at: string
+          firm_id: string
+          id: string
+          vpm_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          firm_id: string
+          id?: string
+          vpm_user_id: string
+        }
+        Update: {
+          created_at?: string
+          firm_id?: string
+          id?: string
+          vpm_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vpm_firm_assignments_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
