@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bot, CalendarCheck, FileText, MessageCircle, Sparkles, X, type LucideIcon } from "lucide-react";
@@ -8,50 +8,54 @@ import type { HouseholdRow } from "@/hooks/useHouseholds";
 
 type ActionKind = "schedule" | "households" | "logNote";
 
-interface Suggestion {
-  id: string;
-  icon: LucideIcon;
-  iconClass: string;
-  text: string;
-  context: string;
-  action: ActionKind;
-  householdMatch?: string;
+interface NoteLite {
+  household_id: string;
+  date: string;
 }
 
-const SUGGESTIONS: Suggestion[] = [
-  {
-    id: "s1",
-    icon: CalendarCheck,
-    iconClass: "bg-amber-muted text-amber",
-    text: "Schedule annual review for Henderson Family",
-    context: "Last review was 14 months ago — overdue by 2 months",
-    action: "schedule",
-    householdMatch: "Henderson",
-  },
-  {
-    id: "s2",
-    icon: FileText,
-    iconClass: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    text: "3 households have reviews due this month",
-    context: "Smith Family, Johnson Trust, Williams Retirement — all within 30 days",
-    action: "households",
-  },
-  {
-    id: "s3",
-    icon: MessageCircle,
-    iconClass: "bg-emerald-muted text-emerald",
-    text: "Follow up with Davis Family",
-    context: "No contact logged in 45 days — last note was a phone call",
-    action: "logNote",
-    householdMatch: "Davis",
-  },
-];
+interface ScheduleSuggestion {
+  id: "s-schedule";
+  action: "schedule";
+  household: HouseholdRow;
+  text: string;
+  context: string;
+  icon: LucideIcon;
+  iconClass: string;
+}
+
+interface HouseholdsSuggestion {
+  id: "s-households";
+  action: "households";
+  text: string;
+  context: string;
+  icon: LucideIcon;
+  iconClass: string;
+}
+
+interface LogNoteSuggestion {
+  id: "s-lognote";
+  action: "logNote";
+  household: HouseholdRow;
+  text: string;
+  context: string;
+  icon: LucideIcon;
+  iconClass: string;
+}
+
+type Suggestion = ScheduleSuggestion | HouseholdsSuggestion | LogNoteSuggestion;
 
 interface Props {
   households: HouseholdRow[];
+  recentNotes: NoteLite[];
 }
 
-export default function GoodieSuggests({ households }: Props) {
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+const daysBetween = (a: Date, b: Date) =>
+  Math.floor((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
+
+export default function GoodieSuggests({ households, recentNotes }: Props) {
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -59,25 +63,111 @@ export default function GoodieSuggests({ households }: Props) {
   const [scheduleCtx, setScheduleCtx] = useState<{ id?: string; name?: string; title?: string }>({});
   const [logNoteCtx, setLogNoteCtx] = useState<{ id?: string; name?: string }>({});
 
-  const findHousehold = (name: string) =>
-    households.find((h) => h.name.toLowerCase().includes(name.toLowerCase())) ?? households[0] ?? null;
+  const suggestions = useMemo<Suggestion[]>(() => {
+    const out: Suggestion[] = [];
+    const now = new Date();
 
-  const visible = SUGGESTIONS.filter((s) => !dismissed.has(s.id));
+    // --- Suggestion 1: Most urgent annual review ---
+    const withReview = households.filter((h) => !!h.annual_review_date);
+    if (withReview.length > 0) {
+      // Sort by absolute distance from today (overdue + soonest upcoming both bubble up)
+      const sorted = [...withReview].sort((a, b) => {
+        const da = Math.abs(new Date(a.annual_review_date!).getTime() - now.getTime());
+        const db = Math.abs(new Date(b.annual_review_date!).getTime() - now.getTime());
+        return da - db;
+      });
+      const top = sorted[0];
+      out.push({
+        id: "s-schedule",
+        action: "schedule",
+        household: top,
+        text: `Schedule annual review for ${top.name}`,
+        context: `Review due ${formatDate(top.annual_review_date!)}`,
+        icon: CalendarCheck,
+        iconClass: "bg-amber-muted text-amber",
+      });
+    }
+
+    // --- Suggestion 2: Reviews due in next 60 days ---
+    const upcoming = households.filter((h) => {
+      if (!h.annual_review_date) return false;
+      const diff = daysBetween(new Date(h.annual_review_date), now);
+      return diff >= 0 && diff <= 60;
+    });
+    if (upcoming.length > 0) {
+      const sample = upcoming.slice(0, 3).map((h) => h.name).join(", ");
+      out.push({
+        id: "s-households",
+        action: "households",
+        text: `${upcoming.length} household${upcoming.length === 1 ? "" : "s"} have reviews due in 60 days`,
+        context: sample,
+        icon: FileText,
+        iconClass: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+      });
+    }
+
+    // --- Suggestion 3: Least recently contacted ---
+    if (households.length > 0) {
+      // Build map of household_id -> most recent note date
+      const lastNoteByHh = new Map<string, Date>();
+      for (const n of recentNotes) {
+        const d = new Date(n.date);
+        const existing = lastNoteByHh.get(n.household_id);
+        if (!existing || d > existing) lastNoteByHh.set(n.household_id, d);
+      }
+
+      // Find a household with no notes first; otherwise the one with the oldest most-recent note
+      const noNote = households.find((h) => !lastNoteByHh.has(h.id));
+      let target: HouseholdRow | null = null;
+      let contextText = "";
+
+      if (noNote) {
+        target = noNote;
+        contextText = "No notes found";
+      } else {
+        const sorted = [...households].sort((a, b) => {
+          const da = lastNoteByHh.get(a.id)!.getTime();
+          const db = lastNoteByHh.get(b.id)!.getTime();
+          return da - db; // oldest first
+        });
+        const oldest = sorted[0];
+        const daysSince = daysBetween(now, lastNoteByHh.get(oldest.id)!);
+        if (daysSince > 30) {
+          target = oldest;
+          contextText = `Last contact was ${daysSince} days ago`;
+        }
+      }
+
+      if (target) {
+        out.push({
+          id: "s-lognote",
+          action: "logNote",
+          household: target,
+          text: `Log a follow-up for ${target.name}`,
+          context: contextText,
+          icon: MessageCircle,
+          iconClass: "bg-emerald-muted text-emerald",
+        });
+      }
+    }
+
+    return out;
+  }, [households, recentNotes]);
+
+  const visible = suggestions.filter((s) => !dismissed.has(s.id));
 
   const handleAction = (s: Suggestion) => {
     if (s.action === "schedule") {
-      const found = s.householdMatch ? findHousehold(s.householdMatch) : null;
       setScheduleCtx({
-        id: found?.id,
-        name: found?.name,
-        title: found ? `Annual Review — ${found.name}` : undefined,
+        id: s.household.id,
+        name: s.household.name,
+        title: `Annual Review — ${s.household.name}`,
       });
       setScheduleOpen(true);
     } else if (s.action === "households") {
       navigate("/households");
     } else if (s.action === "logNote") {
-      const found = s.householdMatch ? findHousehold(s.householdMatch) : null;
-      setLogNoteCtx({ id: found?.id, name: found?.name });
+      setLogNoteCtx({ id: s.household.id, name: s.household.name });
       setLogNoteOpen(true);
     }
   };
