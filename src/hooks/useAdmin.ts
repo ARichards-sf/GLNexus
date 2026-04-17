@@ -59,11 +59,21 @@ export function useGlProfile() {
 }
 
 export function useIsGlInternal() {
-  const { data, isLoading } = useGlProfile();
-  return {
-    data: data?.is_gl_internal ?? false,
-    isLoading,
-  } as { data: boolean; isLoading: boolean };
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["is_gl_internal", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_gl_internal")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return !!data?.is_gl_internal;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
 }
 
 export function useIsAdmin() {
