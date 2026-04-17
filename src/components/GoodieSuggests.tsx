@@ -46,7 +46,7 @@ type Suggestion = ScheduleSuggestion | HouseholdsSuggestion | LogNoteSuggestion;
 
 interface Props {
   households: HouseholdRow[];
-  recentNotes: NoteLite[];
+  recentNotes?: NoteLite[] | null;
 }
 
 const formatDate = (iso: string) =>
@@ -56,6 +56,7 @@ const daysBetween = (a: Date, b: Date) =>
   Math.floor((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
 
 export default function GoodieSuggests({ households, recentNotes }: Props) {
+  const notes = recentNotes ?? [];
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -110,7 +111,7 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
     if (households.length > 0) {
       // Build map of household_id -> most recent note date
       const lastNoteByHh = new Map<string, Date>();
-      for (const n of recentNotes) {
+      for (const n of notes) {
         const d = new Date(n.date);
         const existing = lastNoteByHh.get(n.household_id);
         if (!existing || d > existing) lastNoteByHh.set(n.household_id, d);
@@ -152,7 +153,7 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
     }
 
     return out;
-  }, [households, recentNotes]);
+  }, [households, notes]);
 
   const visible = suggestions.filter((s) => !dismissed.has(s.id));
 
