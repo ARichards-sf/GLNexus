@@ -33,12 +33,6 @@ const ROLE_LABELS: Record<string, string> = {
 
 const FIRM_OPTIONAL_DEPTS = new Set(["marketing", "transitions", "compliance", "accounting", "operations"]);
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
-  super_admin: "Super Admin",
-};
-
-const FIRM_OPTIONAL_DEPTS = new Set(["marketing", "transitions", "compliance", "accounting"]);
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return "—";
