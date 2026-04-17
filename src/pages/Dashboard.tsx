@@ -100,46 +100,24 @@ export default function Dashboard() {
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
           <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 justify-end">
+          <Button variant="outline" size="sm" onClick={() => setLogNoteOpen(true)}>
+            <FileText className="w-4 h-4 mr-1.5" />
+            Log a Note
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate("/calendar")}>
+            <CalendarDays className="w-4 h-4 mr-1.5" />
+            Schedule Meeting
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setCreateHouseholdOpen(true)}>
+            <Plus className="w-4 h-4 mr-1.5" />
+            Add Household
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setAssistOpen(true)}>
             <HelpCircle className="w-4 h-4 mr-1.5" />
             Request GL Assistance
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              generateSnapshot.mutate(undefined, {
-                onSuccess: (data) => toast.success(`Snapshot saved — ${formatCurrency(data.total_aum)} AUM, ${data.household_count} households.`),
-                onError: () => toast.error("Failed to generate snapshot."),
-              })
-            }
-            disabled={generateSnapshot.isPending}
-          >
-            <Camera className="w-4 h-4 mr-1.5" />
-            {generateSnapshot.isPending ? "Saving…" : "Generate Snapshot"}
-          </Button>
         </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mb-6 rounded-lg bg-secondary/40 p-3 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => setLogNoteOpen(true)}>
-          <FileText className="w-4 h-4 mr-1.5" />
-          Log a Note
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => navigate("/calendar")}>
-          <CalendarDays className="w-4 h-4 mr-1.5" />
-          Schedule Meeting
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setCreateHouseholdOpen(true)}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Add Household
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setAssistOpen(true)}>
-          <HelpCircle className="w-4 h-4 mr-1.5" />
-          Request GL Assistance
-        </Button>
       </div>
 
       {/* KPI Cards */}
