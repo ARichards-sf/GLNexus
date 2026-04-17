@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   DollarSign,
   CalendarCheck,
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
 import QuickLogNoteDialog from "@/components/QuickLogNoteDialog";
+import PreMeetingBriefPanel from "@/components/PreMeetingBriefPanel";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
@@ -62,6 +64,20 @@ export default function Dashboard() {
   const [assistOpen, setAssistOpen] = useState(false);
   const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
   const [logNoteOpen, setLogNoteOpen] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
+
+  const imminentMeeting = useMemo(() => {
+    const now = Date.now();
+    const cutoff = now + 60 * 60 * 1000;
+    return upcomingEvents.find((ev) => {
+      const t = new Date(ev.start_time).getTime();
+      return t >= now && t <= cutoff;
+    }) ?? null;
+  }, [upcomingEvents]);
+
+  const minutesUntilMeeting = imminentMeeting
+    ? Math.max(0, Math.round((new Date(imminentMeeting.start_time).getTime() - Date.now()) / 60000))
+    : 0;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -121,6 +137,46 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Your Next Meeting — only when within 60 minutes */}
+      {imminentMeeting && (
+        <Card className="mb-6 border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/10 shadow-none">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                  </span>
+                  <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-0">
+                    Starting Soon
+                  </Badge>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">
+                    {imminentMeeting.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {imminentMeeting.households?.name || "No household linked"}
+                    {" · "}
+                    {minutesUntilMeeting === 0
+                      ? "Starting now"
+                      : `In ${minutesUntilMeeting} ${minutesUntilMeeting === 1 ? "minute" : "minutes"}`}
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setBriefOpen(true)}
+                disabled={!imminentMeeting.household_id}
+              >
+                View Brief
+                <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -330,6 +386,20 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      <Sheet open={briefOpen} onOpenChange={setBriefOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle>Pre-Meeting Brief</SheetTitle>
+          </SheetHeader>
+          {imminentMeeting && imminentMeeting.household_id && (
+            <PreMeetingBriefPanel
+              event={imminentMeeting}
+              householdId={imminentMeeting.household_id}
+              onClose={() => setBriefOpen(false)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
       <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
       <QuickLogNoteDialog open={logNoteOpen} onOpenChange={setLogNoteOpen} />
       <CreateHouseholdDialog
