@@ -20,6 +20,7 @@ import {
   Plus,
 } from "lucide-react";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
+import QuickLogNoteDialog from "@/components/QuickLogNoteDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
@@ -59,6 +60,7 @@ export default function Dashboard() {
   const generateSnapshot = useGenerateSnapshot();
   const [assistOpen, setAssistOpen] = useState(false);
   const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
+  const [logNoteOpen, setLogNoteOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -122,7 +124,7 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div className="mb-6 rounded-lg bg-secondary/40 p-3 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => navigate("/households")}>
+        <Button variant="outline" size="sm" onClick={() => setLogNoteOpen(true)}>
           <FileText className="w-4 h-4 mr-1.5" />
           Log a Note
         </Button>
@@ -343,6 +345,7 @@ export default function Dashboard() {
         </Card>
       </div>
       <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
+      <QuickLogNoteDialog open={logNoteOpen} onOpenChange={setLogNoteOpen} />
       <CreateHouseholdDialog
         open={createHouseholdOpen}
         onOpenChange={(open) => {
