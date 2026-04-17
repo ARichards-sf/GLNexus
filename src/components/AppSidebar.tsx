@@ -1,13 +1,13 @@
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useIsAdmin } from "@/hooks/useAdmin";
+import { useIsAdmin, useIsGlInternal } from "@/hooks/useAdmin";
 import { useUnreadRequestCounts } from "@/hooks/useUnreadRequestCounts";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound,
 } from "lucide-react";
 import glLogo from "@/assets/gl-logo.png";
 
@@ -26,17 +26,24 @@ const navItems = [
 
 const adminItems = [
   { to: "/admin/advisors", label: "Advisors", icon: ShieldCheck },
-  { to: "/admin/firms", label: "Firms", icon: Building2 },
   { to: "/admin/requests", label: "All Requests", icon: TicketCheck, badgeKey: "allRequests" as const },
+];
+
+const internalItems = [
+  { to: "/admin/staff", label: "GL Staff", icon: UsersRound },
+  { to: "/admin/firms", label: "Firm Management", icon: Building2 },
 ];
 
 export default function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
+  const { data: isGlInternal = false } = useIsGlInternal();
   const { data: unreadCounts } = useUnreadRequestCounts();
   const { currentFirm, allFirms } = useFirmContext();
   const { selectedFirmId, setSelectedFirmId, clearSelectedFirm } = useSelectedFirm();
+
+  const showInternal = isAdmin || isGlInternal;
 
   const displayName = user?.user_metadata?.full_name || user?.email || "Advisor";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -167,6 +174,32 @@ export default function AppSidebar() {
                       </span>
                     )}
                   </span>
+                </RouterNavLink>
+              );
+            })}
+          </>
+        )}
+
+        {showInternal && (
+          <>
+            <div className="mt-6 mb-2 px-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Internal</span>
+            </div>
+            {internalItems.map((item) => {
+              const isActive = location.pathname.startsWith(item.to);
+              return (
+                <RouterNavLink
+                  key={item.label}
+                  to={item.to}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  )}
+                >
+                  <item.icon className="w-[18px] h-[18px]" />
+                  <span className="flex-1">{item.label}</span>
                 </RouterNavLink>
               );
             })}
