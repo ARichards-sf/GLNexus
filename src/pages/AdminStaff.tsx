@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,7 @@ function relativeTime(iso: string | null): string {
 
 export default function AdminStaff() {
   const { data: staff = [], isLoading } = useInternalUsers();
+  const navigate = useNavigate();
   const [inviteOpen, setInviteOpen] = useState(false);
 
   if (isLoading) {
@@ -79,7 +81,7 @@ export default function AdminStaff() {
               const initials = (member.full_name || "?")
                 .split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
               return (
-                <TableRow key={member.id}>
+                <TableRow key={member.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/staff/${member.user_id}`)}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
@@ -110,8 +112,8 @@ export default function AdminStaff() {
                   <TableCell className="text-sm text-muted-foreground">
                     {relativeTime(member.last_sign_in_at)}
                   </TableCell>
-                  <TableCell className="text-center">
-                    <Button variant="ghost" size="sm" className="text-xs h-7">
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate(`/admin/staff/${member.user_id}`)}>
                       <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
                     </Button>
                   </TableCell>
