@@ -420,7 +420,10 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
                     <div className="h-2 w-2 rounded-full bg-primary" />
                     <div className="flex-1 w-px bg-border mt-1" />
                   </div>
-                  <div className="flex-1 space-y-1 pb-1">
+                  <Link
+                    to={`/household/${brief.household!.id}`}
+                    className="flex-1 space-y-1 pb-1 rounded-md -mx-2 px-2 py-1 transition-colors hover:bg-muted/40 hover:text-primary"
+                  >
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="outline"
@@ -437,7 +440,7 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
                         ? `${n.summary.slice(0, 100)}…`
                         : n.summary}
                     </p>
-                  </div>
+                  </Link>
                 </li>
               ))}
             </ol>
