@@ -64,7 +64,7 @@ export default function Dashboard() {
   const [assistOpen, setAssistOpen] = useState(false);
   const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
   const [logNoteOpen, setLogNoteOpen] = useState(false);
-  const [briefOpen, setBriefOpen] = useState(false);
+  const { openBrief } = useBrief();
 
   const imminentMeeting = useMemo(() => {
     const now = Date.now();
