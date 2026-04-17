@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useUnreadRequestCounts } from "@/hooks/useUnreadRequestCounts";
+import { useFirmContext } from "@/hooks/useFirmContext";
 import {
   LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck,
 } from "lucide-react";
