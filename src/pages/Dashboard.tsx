@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
 import {
   DollarSign,
   CalendarCheck,
@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
 import QuickLogNoteDialog from "@/components/QuickLogNoteDialog";
-import PreMeetingBriefPanel from "@/components/PreMeetingBriefPanel";
+import { useBrief } from "@/contexts/BriefContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
@@ -64,7 +64,7 @@ export default function Dashboard() {
   const [assistOpen, setAssistOpen] = useState(false);
   const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
   const [logNoteOpen, setLogNoteOpen] = useState(false);
-  const [briefOpen, setBriefOpen] = useState(false);
+  const { openBrief } = useBrief();
 
   const imminentMeeting = useMemo(() => {
     const now = Date.now();
@@ -167,7 +167,7 @@ export default function Dashboard() {
               </div>
               <Button
                 size="sm"
-                onClick={() => setBriefOpen(true)}
+                onClick={() => imminentMeeting && openBrief(imminentMeeting)}
                 disabled={!imminentMeeting.household_id}
               >
                 View Brief
@@ -386,20 +386,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-      <Sheet open={briefOpen} onOpenChange={setBriefOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
-          <SheetHeader className="mb-4">
-            <SheetTitle>Pre-Meeting Brief</SheetTitle>
-          </SheetHeader>
-          {imminentMeeting && imminentMeeting.household_id && (
-            <PreMeetingBriefPanel
-              event={imminentMeeting}
-              householdId={imminentMeeting.household_id}
-              onClose={() => setBriefOpen(false)}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
+      
       <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
       <QuickLogNoteDialog open={logNoteOpen} onOpenChange={setLogNoteOpen} />
       <CreateHouseholdDialog

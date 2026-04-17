@@ -12,8 +12,7 @@ import {
 import { useCreateComplianceNote } from "@/hooks/useHouseholds";
 import ScheduleEventDialog from "@/components/ScheduleEventDialog";
 import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
-import PreMeetingBriefPanel from "@/components/PreMeetingBriefPanel";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useBrief } from "@/contexts/BriefContext";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -58,7 +57,7 @@ export default function Calendar() {
   const [completeTarget, setCompleteTarget] = useState<CalendarEvent | null>(null);
   const [complianceOpen, setComplianceOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CalendarEvent | null>(null);
-  const [briefEvent, setBriefEvent] = useState<CalendarEvent | null>(null);
+  const { openBrief } = useBrief();
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -264,7 +263,7 @@ export default function Calendar() {
                     size="sm"
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => setBriefEvent(selectedEvent)}
+                    onClick={() => openBrief(selectedEvent)}
                   >
                     <FileText className="w-3.5 h-3.5 mr-1.5" /> View Pre-Meeting Brief
                   </Button>
@@ -276,7 +275,7 @@ export default function Calendar() {
                       size="sm"
                       variant="outline"
                       className="text-xs"
-                      onClick={() => setBriefEvent(selectedEvent)}
+                      onClick={() => openBrief(selectedEvent)}
                     >
                       <Bot className="w-3.5 h-3.5 mr-1.5" /> Pre-Meeting Brief
                     </Button>
@@ -393,41 +392,7 @@ export default function Calendar() {
           householdId={selectedEvent.household_id}
         />
       )}
-      {/* Pre-Meeting Brief Sheet */}
-      <Sheet open={!!briefEvent} onOpenChange={(open) => !open && setBriefEvent(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
-          <SheetHeader className="mb-4">
-            <SheetTitle>Pre-Meeting Brief</SheetTitle>
-          </SheetHeader>
-          {briefEvent && (
-            briefEvent.household_id ? (
-              <PreMeetingBriefPanel
-                event={briefEvent}
-                householdId={briefEvent.household_id}
-                onClose={() => setBriefEvent(null)}
-              />
-            ) : (
-              <div className="space-y-4">
-                <div className="rounded-lg border border-border p-4 space-y-2">
-                  <Badge className={`text-[11px] ${EVENT_TYPE_COLORS[briefEvent.event_type]?.bg || ""} ${EVENT_TYPE_COLORS[briefEvent.event_type]?.text || ""}`}>
-                    {briefEvent.event_type}
-                  </Badge>
-                  <h3 className="text-sm font-semibold text-foreground">{briefEvent.title}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(briefEvent.start_time).toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                  </p>
-                  {briefEvent.description && (
-                    <p className="text-xs text-muted-foreground pt-2 border-t">{briefEvent.description}</p>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground italic">
-                  No household linked to this meeting — link a household to generate a brief.
-                </p>
-              </div>
-            )
-          )}
-        </SheetContent>
-      </Sheet>
+    
     </div>
   );
 }
