@@ -274,6 +274,14 @@ export default function Calendar() {
                   <div className="flex gap-2 pt-2 border-t">
                     <Button
                       size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      onClick={() => setBriefEvent(selectedEvent)}
+                    >
+                      <Bot className="w-3.5 h-3.5 mr-1.5" /> Pre-Meeting Brief
+                    </Button>
+                    <Button
+                      size="sm"
                       className="flex-1 text-xs"
                       onClick={() => handleComplete(selectedEvent)}
                       disabled={completeEvent.isPending}
