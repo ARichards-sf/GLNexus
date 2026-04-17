@@ -179,6 +179,32 @@ export default function AppSidebar() {
             })}
           </>
         )}
+
+        {showInternal && (
+          <>
+            <div className="mt-6 mb-2 px-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Internal</span>
+            </div>
+            {internalItems.map((item) => {
+              const isActive = location.pathname.startsWith(item.to);
+              return (
+                <RouterNavLink
+                  key={item.label}
+                  to={item.to}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  )}
+                >
+                  <item.icon className="w-[18px] h-[18px]" />
+                  <span className="flex-1">{item.label}</span>
+                </RouterNavLink>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       <div className="mt-auto px-3 pt-6 border-t border-border">
