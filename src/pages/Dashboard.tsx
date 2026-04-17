@@ -231,7 +231,7 @@ export default function Dashboard() {
         </Card>
 
         <div className="lg:col-span-1">
-          <GoodieSuggests />
+          <GoodieSuggests households={households} />
         </div>
       </div>
 
