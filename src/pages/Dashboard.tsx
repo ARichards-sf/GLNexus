@@ -345,6 +345,7 @@ export default function Dashboard() {
         </Card>
       </div>
       <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
+      <QuickLogNoteDialog open={logNoteOpen} onOpenChange={setLogNoteOpen} />
       <CreateHouseholdDialog
         open={createHouseholdOpen}
         onOpenChange={(open) => {
