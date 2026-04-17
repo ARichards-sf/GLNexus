@@ -31,6 +31,7 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import { toast } from "sonner";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
+import GoodieSuggests from "@/components/GoodieSuggests";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -119,6 +120,9 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Goodie Suggests */}
+      <GoodieSuggests />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
