@@ -263,7 +263,7 @@ export default function Calendar() {
                     size="sm"
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => setBriefEvent(selectedEvent)}
+                    onClick={() => openBrief(selectedEvent)}
                   >
                     <FileText className="w-3.5 h-3.5 mr-1.5" /> View Pre-Meeting Brief
                   </Button>
