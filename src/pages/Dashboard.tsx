@@ -124,7 +124,7 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div className="mb-6 rounded-lg bg-secondary/40 p-3 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => navigate("/households")}>
+        <Button variant="outline" size="sm" onClick={() => setLogNoteOpen(true)}>
           <FileText className="w-4 h-4 mr-1.5" />
           Log a Note
         </Button>
