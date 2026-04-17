@@ -51,7 +51,9 @@ Deno.serve(async (req) => {
     // ── LIST ADVISORS ──
     if (action === "list_advisors") {
       const { data: profiles, error: pErr } = await supabaseAdmin
-        .from("profiles").select("*").order("created_at", { ascending: false });
+        .from("profiles").select("*")
+        .eq("is_gl_internal", false)
+        .order("created_at", { ascending: false });
       if (pErr) throw pErr;
 
       const { data: aumData } = await supabaseAdmin.from("households").select("advisor_id, total_aum");
