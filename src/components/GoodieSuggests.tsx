@@ -56,7 +56,8 @@ export default function GoodieSuggests({ households }: Props) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [logNoteOpen, setLogNoteOpen] = useState(false);
-  const [scheduleHouseholdId, setScheduleHouseholdId] = useState<string | undefined>(undefined);
+  const [scheduleCtx, setScheduleCtx] = useState<{ id?: string; name?: string; title?: string }>({});
+  const [logNoteCtx, setLogNoteCtx] = useState<{ id?: string; name?: string }>({});
 
   const findHousehold = (name: string) =>
     households.find((h) => h.name.toLowerCase().includes(name.toLowerCase())) ?? households[0] ?? null;
@@ -66,12 +67,17 @@ export default function GoodieSuggests({ households }: Props) {
   const handleAction = (s: Suggestion) => {
     if (s.action === "schedule") {
       const found = s.householdMatch ? findHousehold(s.householdMatch) : null;
-      setScheduleHouseholdId(found?.id);
+      setScheduleCtx({
+        id: found?.id,
+        name: found?.name,
+        title: found ? `Annual Review — ${found.name}` : undefined,
+      });
       setScheduleOpen(true);
     } else if (s.action === "households") {
       navigate("/households");
     } else if (s.action === "logNote") {
-      // Dialog does not support household pre-population; open as-is.
+      const found = s.householdMatch ? findHousehold(s.householdMatch) : null;
+      setLogNoteCtx({ id: found?.id, name: found?.name });
       setLogNoteOpen(true);
     }
   };
@@ -148,10 +154,17 @@ export default function GoodieSuggests({ households }: Props) {
       <ScheduleEventDialog
         open={scheduleOpen}
         onOpenChange={setScheduleOpen}
-        defaultHouseholdId={scheduleHouseholdId}
-        defaultType="Annual Review"
+        defaultHouseholdId={scheduleCtx.id}
+        defaultHouseholdName={scheduleCtx.name}
+        defaultEventType="Annual Review"
+        defaultTitle={scheduleCtx.title}
       />
-      <QuickLogNoteDialog open={logNoteOpen} onOpenChange={setLogNoteOpen} />
+      <QuickLogNoteDialog
+        open={logNoteOpen}
+        onOpenChange={setLogNoteOpen}
+        defaultHouseholdId={logNoteCtx.id}
+        defaultHouseholdName={logNoteCtx.name}
+      />
     </>
   );
 }

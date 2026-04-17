@@ -16,19 +16,33 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   defaultDate?: string; // YYYY-MM-DD
   defaultHouseholdId?: string;
+  defaultHouseholdName?: string;
+  defaultEventType?: string;
+  /** @deprecated use defaultEventType */
   defaultType?: string;
+  defaultTitle?: string;
 }
 
-export default function ScheduleEventDialog({ open, onOpenChange, defaultDate, defaultHouseholdId, defaultType }: Props) {
-  const [title, setTitle] = useState("");
+export default function ScheduleEventDialog({
+  open,
+  onOpenChange,
+  defaultDate,
+  defaultHouseholdId,
+  defaultHouseholdName,
+  defaultEventType,
+  defaultType,
+  defaultTitle,
+}: Props) {
+  const resolvedDefaultType = defaultEventType ?? defaultType ?? "";
+  const [title, setTitle] = useState(defaultTitle || "");
   const [description, setDescription] = useState("");
-  const [eventType, setEventType] = useState(defaultType || "");
+  const [eventType, setEventType] = useState(resolvedDefaultType);
   const [householdId, setHouseholdId] = useState(defaultHouseholdId || "");
   const [date, setDate] = useState(defaultDate || "");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("10:00");
 
-  // Search-mode state (only used when defaultHouseholdId is not provided)
+  // Search-mode is only when no defaultHouseholdId is provided
   const searchMode = !defaultHouseholdId;
   const [householdSearch, setHouseholdSearch] = useState("");
   const [selectedHousehold, setSelectedHousehold] = useState<HouseholdRow | null>(null);
@@ -36,6 +50,10 @@ export default function ScheduleEventDialog({ open, onOpenChange, defaultDate, d
 
   const createEvent = useCreateCalendarEvent();
   const { data: households = [] } = useHouseholds();
+
+  // Pre-selected household (when defaultHouseholdId is passed)
+  const preSelectedName =
+    defaultHouseholdName ?? households.find((h) => h.id === defaultHouseholdId)?.name ?? "Selected household";
 
   const filteredHouseholds = useMemo(() => {
     if (!householdSearch.trim()) return [];
@@ -46,9 +64,9 @@ export default function ScheduleEventDialog({ open, onOpenChange, defaultDate, d
   // Reset on open change
   const handleOpenChange = (isOpen: boolean) => {
     if (isOpen) {
-      setTitle("");
+      setTitle(defaultTitle || "");
       setDescription("");
-      setEventType(defaultType || "");
+      setEventType(resolvedDefaultType);
       setHouseholdId(defaultHouseholdId || "");
       setDate(defaultDate || "");
       setStartTime("09:00");
@@ -108,7 +126,7 @@ export default function ScheduleEventDialog({ open, onOpenChange, defaultDate, d
           <DialogTitle>Schedule Meeting</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {searchMode && (
+          {searchMode ? (
             <div className="space-y-2">
               <Label>Household</Label>
               {selectedHousehold ? (
@@ -153,6 +171,15 @@ export default function ScheduleEventDialog({ open, onOpenChange, defaultDate, d
                 </div>
               )}
             </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Household</Label>
+              <div>
+                <Badge variant="secondary" className="gap-1.5 py-1 pl-2.5 pr-2.5 text-sm">
+                  {preSelectedName}
+                </Badge>
+              </div>
+            </div>
           )}
 
           <div className="space-y-2">
@@ -177,20 +204,6 @@ export default function ScheduleEventDialog({ open, onOpenChange, defaultDate, d
                 </SelectContent>
               </Select>
             </div>
-
-            {!searchMode && (
-              <div className="space-y-2">
-                <Label>Household</Label>
-                <Select value={householdId} onValueChange={setHouseholdId}>
-                  <SelectTrigger><SelectValue placeholder="Link household" /></SelectTrigger>
-                  <SelectContent>
-                    {households.map((h) => (
-                      <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
 
           <div className="grid grid-cols-3 gap-4">

@@ -15,18 +15,36 @@ const NOTE_TYPES = ["Annual Review", "Phone Call", "Email", "Prospecting", "Comp
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultHouseholdId?: string;
+  defaultHouseholdName?: string;
 }
 
-export default function QuickLogNoteDialog({ open, onOpenChange }: Props) {
+export default function QuickLogNoteDialog({ open, onOpenChange, defaultHouseholdId, defaultHouseholdName }: Props) {
   const { data: households = [] } = useHouseholds();
   const createNote = useCreateComplianceNote();
 
+  const preSelected = useMemo(() => {
+    if (!defaultHouseholdId) return null;
+    const name =
+      defaultHouseholdName ?? households.find((h) => h.id === defaultHouseholdId)?.name ?? "Selected household";
+    return { id: defaultHouseholdId, name };
+  }, [defaultHouseholdId, defaultHouseholdName, households]);
+
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
+  const [selected, setSelected] = useState<{ id: string; name: string } | null>(preSelected);
   const [showResults, setShowResults] = useState(false);
   const [type, setType] = useState("");
   const [summary, setSummary] = useState("");
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Sync pre-selection when the dialog opens with new props
+  useEffect(() => {
+    if (open) {
+      setSelected(preSelected);
+      setSearch("");
+      setShowResults(false);
+    }
+  }, [open, preSelected]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return [];
@@ -46,7 +64,7 @@ export default function QuickLogNoteDialog({ open, onOpenChange }: Props) {
 
   const reset = () => {
     setSearch("");
-    setSelected(null);
+    setSelected(preSelected);
     setShowResults(false);
     setType("");
     setSummary("");
@@ -71,6 +89,8 @@ export default function QuickLogNoteDialog({ open, onOpenChange }: Props) {
     );
   };
 
+  const isLocked = !!defaultHouseholdId;
+
   return (
     <Dialog
       open={open}
@@ -89,17 +109,19 @@ export default function QuickLogNoteDialog({ open, onOpenChange }: Props) {
             {selected ? (
               <Badge variant="secondary" className="text-sm py-1.5 pl-3 pr-1.5 gap-1.5">
                 {selected.name}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelected(null);
-                    setSearch("");
-                  }}
-                  className="rounded-full hover:bg-background/60 p-0.5"
-                  aria-label="Clear selection"
-                >
-                  <X className="w-3 h-3" />
-                </button>
+                {!isLocked && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelected(null);
+                      setSearch("");
+                    }}
+                    className="rounded-full hover:bg-background/60 p-0.5"
+                    aria-label="Clear selection"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
               </Badge>
             ) : (
               <div className="relative">
