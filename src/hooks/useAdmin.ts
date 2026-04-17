@@ -224,3 +224,62 @@ export function useRunSnapshots() {
     },
   });
 }
+
+export interface InternalUserRecord {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  platform_role: string | null;
+  department: string | null;
+  office_location: string | null;
+  is_gl_internal: boolean;
+  last_sign_in_at: string | null;
+  created_at: string;
+  firm_assignments: { firm_id: string; firm: { id: string; name: string; accent_color: string | null } | null }[];
+}
+
+export function useInternalUsers() {
+  const { isAdmin } = useIsAdmin();
+  return useQuery({
+    queryKey: ["internal_users"],
+    queryFn: async () => {
+      const data = await callAdmin("list_internal_users");
+      return data.internal_users as InternalUserRecord[];
+    },
+    enabled: isAdmin,
+  });
+}
+
+export function useInviteInternalUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { email: string; password: string; full_name: string; platform_role: string; department: string }) =>
+      callAdmin("invite_internal_user", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["internal_users"] });
+    },
+  });
+}
+
+export function useUpdateInternalUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { user_id: string; platform_role?: string; department?: string; full_name?: string; office_location?: string }) =>
+      callAdmin("update_internal_user", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["internal_users"] });
+    },
+  });
+}
+
+export function useAssignInternalUserFirms() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { user_id: string; firm_ids: string[] }) =>
+      callAdmin("assign_internal_user_firms", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["internal_users"] });
+    },
+  });
+}
