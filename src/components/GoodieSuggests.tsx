@@ -153,7 +153,7 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
     }
 
     return out;
-  }, [households, recentNotes]);
+  }, [households, notes]);
 
   const visible = suggestions.filter((s) => !dismissed.has(s.id));
 
