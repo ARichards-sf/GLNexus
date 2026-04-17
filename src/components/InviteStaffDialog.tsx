@@ -52,7 +52,13 @@ export default function InviteStaffDialog({ open, onOpenChange }: Props) {
 
   const onSubmit = async (values: Values) => {
     try {
-      await invite.mutateAsync(values);
+      await invite.mutateAsync({
+        full_name: values.full_name,
+        email: values.email,
+        password: values.password,
+        department: values.department,
+        platform_role: values.platform_role,
+      });
       toast({
         title: "Staff member invited",
         description: `${values.full_name} has been added.`,
