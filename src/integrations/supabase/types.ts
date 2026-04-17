@@ -449,6 +449,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
+          firm_id: string | null
           full_name: string | null
           id: string
           is_internal: boolean
@@ -461,6 +462,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email?: string | null
+          firm_id?: string | null
           full_name?: string | null
           id?: string
           is_internal?: boolean
@@ -473,6 +475,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string | null
+          firm_id?: string | null
           full_name?: string | null
           id?: string
           is_internal?: boolean
@@ -482,7 +485,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_request_messages: {
         Row: {
