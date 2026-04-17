@@ -17,7 +17,10 @@ import {
   HelpCircle,
   TicketCheck,
   MessageCircle,
+  Plus,
 } from "lucide-react";
+import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
+import { useQueryClient } from "@tanstack/react-query";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
 import { useMyServiceRequests } from "@/hooks/useServiceRequests";
