@@ -276,7 +276,12 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <div className="flex items-center justify-between md:col-span-2">
-                <span className="font-semibold text-base">{brief.household.name}</span>
+                <Link
+                  to={`/household/${brief.household.id}`}
+                  className="font-semibold text-base hover:underline transition-colors hover:text-primary"
+                >
+                  {brief.household.name}
+                </Link>
                 <Badge variant="secondary">{brief.household.status}</Badge>
               </div>
               <div className="flex justify-between">
@@ -298,12 +303,31 @@ export default function PreMeetingBriefPanel({ event, householdId, onClose }: Pr
                   {brief.household.investment_objective || "—"}
                 </span>
               </div>
-              {memberSummary && (
+              {brief.members.length > 0 && (
                 <div className="md:col-span-2 pt-2 border-t">
                   <span className="text-muted-foreground">Members: </span>
-                  <span className="font-medium">{memberSummary}</span>
+                  {brief.members.map((m, i) => (
+                    <span key={m.id}>
+                      <Link
+                        to={`/contacts/${m.id}`}
+                        className="font-medium text-foreground hover:underline transition-colors hover:text-primary"
+                      >
+                        {m.first_name} {m.last_name}
+                        {m.age ? ` (${m.age})` : ""}
+                      </Link>
+                      {i < brief.members.length - 1 && <span>, </span>}
+                    </span>
+                  ))}
                 </div>
               )}
+              <div className="md:col-span-2">
+                <Link to={`/household/${brief.household.id}`}>
+                  <Button variant="outline" size="sm" className="w-full mt-3">
+                    View Full Profile
+                    <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
         </CardContent>
