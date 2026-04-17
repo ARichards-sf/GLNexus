@@ -121,8 +121,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Goodie Suggests */}
-      <GoodieSuggests />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -163,73 +161,79 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Support Requests Widget */}
-      <Card className="border-border shadow-none mb-6">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <TicketCheck className="w-4 h-4" />
-              Active Support Requests
-            </CardTitle>
-            <Link to="/my-requests">
-              <Button variant="ghost" size="sm" className="text-xs h-7">
-                View All <ArrowRight className="w-3 h-3 ml-1" />
-              </Button>
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {myRequests.filter((r) => r.status === "open" || r.status === "in-progress").length === 0 ? (
-            <div className="text-center py-6">
-              <TicketCheck className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">No active support requests</p>
+      {/* Support Requests + Goodie Suggests */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <Card className="lg:col-span-2 border-border shadow-none">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <TicketCheck className="w-4 h-4" />
+                Active Support Requests
+              </CardTitle>
+              <Link to="/my-requests">
+                <Button variant="ghost" size="sm" className="text-xs h-7">
+                  View All <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
+              </Link>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {myRequests.filter((r) => r.status === "open" || r.status === "in-progress").slice(0, 5).map((req) => {
-                const hasUnread = unreadSet.has(req.id);
-                return (
-                  <div
-                    key={req.id}
-                    onClick={() => navigate(`/my-requests/${req.id}`)}
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <p className={`text-sm truncate ${hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground"}`}>
-                          {req.category}
-                        </p>
-                        <Badge
-                          variant="secondary"
-                          className={`text-[10px] px-1.5 py-0 font-medium shrink-0 ${
-                            req.status === "open"
-                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                              : req.status === "in-progress"
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                          }`}
-                        >
-                          {req.status}
-                        </Badge>
-                        {hasUnread && (
-                          <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary shrink-0">
-                            <MessageCircle className="w-3 h-3" />
-                            New
-                          </span>
-                        )}
+          </CardHeader>
+          <CardContent>
+            {myRequests.filter((r) => r.status === "open" || r.status === "in-progress").length === 0 ? (
+              <div className="text-center py-6">
+                <TicketCheck className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">No active support requests</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {myRequests.filter((r) => r.status === "open" || r.status === "in-progress").slice(0, 5).map((req) => {
+                  const hasUnread = unreadSet.has(req.id);
+                  return (
+                    <div
+                      key={req.id}
+                      onClick={() => navigate(`/my-requests/${req.id}`)}
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors cursor-pointer group"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className={`text-sm truncate ${hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground"}`}>
+                            {req.category}
+                          </p>
+                          <Badge
+                            variant="secondary"
+                            className={`text-[10px] px-1.5 py-0 font-medium shrink-0 ${
+                              req.status === "open"
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                : req.status === "in-progress"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            }`}
+                          >
+                            {req.status}
+                          </Badge>
+                          {hasUnread && (
+                            <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary shrink-0">
+                              <MessageCircle className="w-3 h-3" />
+                              New
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{req.description}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{req.description}</p>
+                      <span className="text-[11px] text-muted-foreground shrink-0">
+                        {new Date(req.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
                     </div>
-                    <span className="text-[11px] text-muted-foreground shrink-0">
-                      {new Date(req.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="lg:col-span-1">
+          <GoodieSuggests />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Upcoming Meetings */}
