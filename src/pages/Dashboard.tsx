@@ -386,20 +386,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-      <Sheet open={briefOpen} onOpenChange={setBriefOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
-          <SheetHeader className="mb-4">
-            <SheetTitle>Pre-Meeting Brief</SheetTitle>
-          </SheetHeader>
-          {imminentMeeting && imminentMeeting.household_id && (
-            <PreMeetingBriefPanel
-              event={imminentMeeting}
-              householdId={imminentMeeting.household_id}
-              onClose={() => setBriefOpen(false)}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
+      
       <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
       <QuickLogNoteDialog open={logNoteOpen} onOpenChange={setLogNoteOpen} />
       <CreateHouseholdDialog
