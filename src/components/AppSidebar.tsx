@@ -4,10 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useUnreadRequestCounts } from "@/hooks/useUnreadRequestCounts";
 import { useFirmContext } from "@/hooks/useFirmContext";
+import { useSelectedFirm } from "@/contexts/FirmContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X,
 } from "lucide-react";
 import glLogo from "@/assets/gl-logo.png";
+
+const DEFAULT_FIRM_VALUE = "__default__";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -31,21 +35,27 @@ export default function AppSidebar() {
   const { user, signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { data: unreadCounts } = useUnreadRequestCounts();
-  const { currentFirm, isLoading: firmLoading } = useFirmContext();
+  const { currentFirm, allFirms } = useFirmContext();
+  const { selectedFirmId, setSelectedFirmId, clearSelectedFirm } = useSelectedFirm();
 
   const displayName = user?.user_metadata?.full_name || user?.email || "Advisor";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
 
-  const logoUrl = currentFirm?.logo_url || glLogo;
-  const firmName = currentFirm?.name;
+  const isVpm = allFirms.length > 1;
+  const selectedFirm = selectedFirmId ? allFirms.find((f) => f.id === selectedFirmId) ?? null : null;
+
+  // Branding follows the selected firm (VPM scoped view), else current firm
+  const brandingFirm = selectedFirm ?? currentFirm;
+  const logoUrl = brandingFirm?.logo_url || glLogo;
+  const firmName = brandingFirm?.name;
   const showFirmName = firmName && firmName !== "Good Life Companies";
 
   return (
-    <aside 
+    <aside
       className="hidden lg:flex flex-col w-64 border-r border-border bg-card min-h-screen px-4 py-6"
-      style={currentFirm?.accent_color ? { "--firm-accent": currentFirm.accent_color } as React.CSSProperties : undefined}
+      style={brandingFirm?.accent_color ? { "--firm-accent": brandingFirm.accent_color } as React.CSSProperties : undefined}
     >
-      <div className="flex flex-col gap-1 px-3 mb-10">
+      <div className="flex flex-col gap-1 px-3 mb-4">
         <div className="flex items-center gap-2.5">
           <img src={logoUrl} alt={firmName || "Good Life Companies"} className="h-8 w-auto" />
         </div>
@@ -53,6 +63,50 @@ export default function AppSidebar() {
           <p className="text-xs text-muted-foreground">{firmName}</p>
         )}
       </div>
+
+      {isVpm && (
+        <div className="px-3 mb-3">
+          <Select
+            value={selectedFirmId ?? DEFAULT_FIRM_VALUE}
+            onValueChange={(val) => {
+              if (val === DEFAULT_FIRM_VALUE) clearSelectedFirm();
+              else setSelectedFirmId(val);
+            }}
+          >
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder="Select firm" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={DEFAULT_FIRM_VALUE}>Good Life Companies</SelectItem>
+              {allFirms.map((firm) => (
+                <SelectItem key={firm.id} value={firm.id}>
+                  {firm.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {selectedFirm && (
+        <div
+          className="mx-3 mb-4 px-2.5 py-1.5 rounded-md flex items-center justify-between gap-2 text-xs font-medium border"
+          style={{
+            backgroundColor: selectedFirm.accent_color ? `${selectedFirm.accent_color}15` : undefined,
+            borderColor: selectedFirm.accent_color ? `${selectedFirm.accent_color}40` : undefined,
+            color: selectedFirm.accent_color ?? undefined,
+          }}
+        >
+          <span className="truncate">Viewing: {selectedFirm.name}</span>
+          <button
+            onClick={clearSelectedFirm}
+            className="shrink-0 opacity-70 hover:opacity-100 transition-opacity"
+            title="Clear firm view"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       <nav className="flex flex-col gap-1 flex-1">
         {navItems.map((item) => {
