@@ -230,8 +230,9 @@ Deno.serve(async (req) => {
       if (!email) throw new Error("Email is required");
       if (!password || password.length < 6) throw new Error("Password must be at least 6 characters");
       if (!["admin", "super_admin"].includes(platform_role)) throw new Error("Invalid platform_role");
-      if (!["vpm", "wam", "marketing", "transitions", "compliance", "accounting", "operations"].includes(department)) {
-        throw new Error("Invalid department");
+      const VALID_DEPARTMENTS = ["vpm", "wam", "marketing", "transitions", "compliance", "accounting", "operations"];
+      if (!VALID_DEPARTMENTS.includes(department)) {
+        throw new Error(`Invalid department: ${department}`);
       }
 
       // Look up the GL internal firm
