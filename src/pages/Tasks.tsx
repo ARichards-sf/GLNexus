@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CheckSquare, Plus, AlertCircle, MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,22 +63,36 @@ interface TaskRowProps {
 }
 
 function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelete }: TaskRowProps) {
+  const navigate = useNavigate();
   const completeTask = useCompleteTask();
   const uncompleteTask = useUncompleteTask();
   const isDone = task.status === "done";
   const overdue = isOverdue(task.due_date, task.status);
-  const assigneeInitials =
-    task.assigned_to === currentUserId
-      ? "Me"
-      : task.assigned_to.slice(0, 2).toUpperCase();
-  const showAssignee = task.assigned_to !== currentUserId;
+  const isAssignedToSelf = task.assigned_to === currentUserId;
+  const assigneeInitials = isAssignedToSelf
+    ? "Me"
+    : task.assigned_to.slice(0, 2).toUpperCase();
   const isCreator = task.created_by === currentUserId;
 
+  const handleRowClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('[role="checkbox"]') ||
+      target.closest('[data-no-nav]')
+    ) {
+      return;
+    }
+    navigate(`/tasks/${task.id}`);
+  };
+
   return (
-    <div className={cn(
-      "flex items-start gap-3 px-4 py-3 border-b border-border last:border-b-0 transition-colors hover:bg-secondary/30",
-      isDone && "opacity-60"
-    )}>
+    <div
+      onClick={handleRowClick}
+      className={cn(
+        "flex items-start gap-3 px-4 py-3 border-b border-border last:border-b-0 transition-colors hover:bg-secondary/30 cursor-pointer",
+        isDone && "opacity-60"
+      )}
+    >
       <Checkbox
         checked={isDone}
         onCheckedChange={() => isDone ? uncompleteTask.mutate(task.id) : completeTask.mutate(task.id)}
@@ -102,13 +116,12 @@ function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelet
         {task.households && (
           <Link
             to={`/household/${task.households.id}`}
+            data-no-nav
+            onClick={(e) => e.stopPropagation()}
             className="inline-block mt-0.5 text-xs text-muted-foreground hover:text-primary transition-colors"
           >
             {task.households.name}
           </Link>
-        )}
-        {task.description && !isDone && (
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
         )}
       </div>
 
@@ -118,45 +131,58 @@ function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelet
         </Badge>
 
         {task.due_date && (
-          <div className={cn(
-            "flex items-center gap-1 text-xs",
-            overdue ? "text-red-600 dark:text-red-400 font-medium" : "text-muted-foreground"
-          )}>
-            {overdue && <AlertCircle className="w-3.5 h-3.5" />}
-            <span>{formatDate(task.due_date)}</span>
+          <div className="flex items-center gap-1.5">
+            {overdue && (
+              <Badge className="bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 text-[10px] border-0 hover:bg-red-100">
+                Overdue
+              </Badge>
+            )}
+            <span className={cn(
+              "text-xs",
+              overdue ? "text-red-600 dark:text-red-400 font-medium" : "text-muted-foreground"
+            )}>
+              {formatDate(task.due_date)}
+            </span>
           </div>
         )}
 
-        {showAssignee && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-semibold text-foreground">
-                {assigneeInitials}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>Assigned</TooltipContent>
-          </Tooltip>
-        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold",
+                isAssignedToSelf
+                  ? "bg-primary/10 text-primary"
+                  : "bg-secondary text-foreground"
+              )}
+            >
+              {assigneeInitials}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>{isAssignedToSelf ? "Assigned to you" : "Assigned"}</TooltipContent>
+        </Tooltip>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(task)}>Edit</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onReassign(task)}>Reassign</DropdownMenuItem>
-            {(isCreator || task.advisor_id === currentUserId) && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(task)}>
-                  Delete
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div data-no-nav onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(task)}>Edit</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onReassign(task)}>Reassign</DropdownMenuItem>
+              {(isCreator || task.advisor_id === currentUserId) && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(task)}>
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   );
