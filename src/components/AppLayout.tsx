@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 function LayoutInner() {
-  const { sessionEvent, isInSession, endSession } = useInSession();
+  const { sessionEvent, isInSession, endSession, isProspectSession } = useInSession();
   const { user } = useAuth();
   const { pathname } = useLocation();
   const createTask = useCreateTask();
@@ -33,7 +33,12 @@ function LayoutInner() {
 
   const hidePanel = pathname.startsWith("/admin") || pathname === "/settings";
   const showPanel = !hidePanel && !!user;
-  const householdName = sessionEvent?.households?.name;
+  const sessionName = isInSession
+    ? (sessionEvent?.households?.name ||
+        (sessionEvent?.prospects
+          ? `${sessionEvent.prospects.first_name} ${sessionEvent.prospects.last_name}`
+          : "Session"))
+    : null;
 
   const handleEndSession = () => {
     if (user && sessionEvent && sessionEvent.household_id) {
@@ -113,8 +118,8 @@ function LayoutInner() {
                   <div className="flex items-center gap-2 min-w-0">
                     <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                     <h2 className="text-sm font-semibold truncate">
-                      {isInSession && householdName
-                        ? `In Session · ${householdName}`
+                      {isInSession && sessionName
+                        ? `In Session · ${sessionName}`
                         : "Goodie"}
                     </h2>
                   </div>
@@ -143,11 +148,11 @@ function LayoutInner() {
                 </div>
 
                 <div className="flex-1 overflow-hidden flex flex-col">
-                  {isInSession && sessionEvent?.household_id ? (
+                  {isInSession && sessionEvent && (sessionEvent.household_id || sessionEvent.prospect_id) ? (
                     <div className="flex-1 overflow-y-auto p-4">
                       <InSessionPanel
                         event={sessionEvent}
-                        householdId={sessionEvent.household_id}
+                        householdId={sessionEvent.household_id ?? undefined}
                       />
                     </div>
                   ) : (

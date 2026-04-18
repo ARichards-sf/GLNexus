@@ -7,8 +7,10 @@ export interface CalendarEvent {
   id: string;
   advisor_id: string;
   household_id: string | null;
+  prospect_id: string | null;
   title: string;
   description: string | null;
+  meeting_context?: string | null;
   start_time: string;
   end_time: string;
   event_type: string;
@@ -16,6 +18,14 @@ export interface CalendarEvent {
   created_at: string;
   updated_at: string;
   households?: { name: string } | null;
+  prospects?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    company: string | null;
+    pipeline_stage: string;
+    estimated_aum: number | null;
+  } | null;
 }
 
 function useTargetAdvisorId() {
@@ -32,7 +42,7 @@ export function useCalendarEvents(month?: Date) {
     queryFn: async () => {
       let query = supabase
         .from("calendar_events")
-        .select("*, households(name)")
+        .select("*, households(name), prospects(id, first_name, last_name, company, pipeline_stage, estimated_aum)")
         .eq("advisor_id", advisorId!)
         .order("start_time", { ascending: true });
 
@@ -57,7 +67,7 @@ export function useUpcomingEvents(limit = 5) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("calendar_events")
-        .select("*, households(name)")
+        .select("*, households(name), prospects(id, first_name, last_name, company, pipeline_stage, estimated_aum)")
         .eq("advisor_id", advisorId!)
         .eq("status", "scheduled")
         .gte("start_time", new Date().toISOString())
