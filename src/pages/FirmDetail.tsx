@@ -243,6 +243,8 @@ export default function FirmDetail() {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     },
   });
+
+  if (firmLoading || !firm) {
     return (
       <div className="p-6 lg:p-10 max-w-6xl">
         <div className="animate-pulse space-y-4">
