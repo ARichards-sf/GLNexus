@@ -47,6 +47,7 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
     crd_number?: string | null
     notes?: string | null
     founded_year?: number | null
+    secondary_color?: string | null
   };
 
   // New field states
@@ -62,6 +63,7 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
   const [crdNumber, setCrdNumber] = useState(f.crd_number || "");
   const [notes, setNotes] = useState(f.notes || "");
   const [foundedYear, setFoundedYear] = useState(f.founded_year ? String(f.founded_year) : "");
+  const [secondaryColor, setSecondaryColor] = useState(f.secondary_color || "");
 
   // Re-sync state if firm prop changes
   useEffect(() => {
@@ -84,6 +86,7 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
     setCrdNumber(f.crd_number || "");
     setNotes(f.notes || "");
     setFoundedYear(f.founded_year ? String(f.founded_year) : "");
+    setSecondaryColor(f.secondary_color || "");
   }, [firm]);
 
   const validHex = HEX_RE.test(accentColor);
@@ -141,6 +144,7 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
         .update({
           name: name.trim(),
           accent_color: accentColor || null,
+          secondary_color: secondaryColor.trim() || null,
           allow_book_sharing: allowBookSharing,
           logo_url: logoUrl,
           phone: phone.trim() || null,
@@ -268,6 +272,32 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
               <div
                 className="w-9 h-9 rounded-md border border-border shrink-0"
                 style={{ backgroundColor: validHex ? accentColor : "transparent" }}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-secondary-color">Secondary color</Label>
+            <p className="text-xs text-muted-foreground -mt-1">
+              Used for subtle page accents and highlights
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                id="edit-secondary-color"
+                value={secondaryColor}
+                onChange={(e) => setSecondaryColor(e.target.value)}
+                placeholder="#C9A96E (optional)"
+                className="font-mono"
+              />
+              <div
+                className="w-9 h-9 rounded-md border border-border shrink-0"
+                style={{ 
+                  backgroundColor: 
+                    /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(
+                      secondaryColor
+                    ) 
+                    ? secondaryColor 
+                    : "transparent" 
+                }}
               />
             </div>
           </div>
