@@ -6,6 +6,7 @@ export type Firm = Tables<"firms">;
 
 export interface FirmWithCounts extends Firm {
   advisor_count: number;
+  total_aum: number;
 }
 
 export function useFirms() {
@@ -20,19 +21,54 @@ export function useFirms() {
 
       const { data: memberships, error: mErr } = await supabase
         .from("firm_memberships")
-        .select("firm_id, role")
+        .select("firm_id, user_id, role")
         .eq("role", "advisor");
       if (mErr) throw mErr;
 
+      // advisor counts + advisor->firm mapping
       const counts = new Map<string, number>();
+      const advisorsByFirm = new Map<string, string[]>();
       memberships?.forEach((m) => {
         counts.set(m.firm_id, (counts.get(m.firm_id) || 0) + 1);
+        const arr = advisorsByFirm.get(m.firm_id) || [];
+        arr.push(m.user_id);
+        advisorsByFirm.set(m.firm_id, arr);
       });
 
-      return (firms || []).map((f) => ({
-        ...f,
-        advisor_count: counts.get(f.id) || 0,
-      })) as FirmWithCounts[];
+      // Fetch all relevant households once
+      const allAdvisorIds = Array.from(
+        new Set((memberships || []).map((m) => m.user_id)),
+      );
+
+      let householdsByAdvisor = new Map<string, number>();
+      if (allAdvisorIds.length > 0) {
+        const { data: households, error: hErr } = await supabase
+          .from("households")
+          .select("advisor_id, total_aum")
+          .in("advisor_id", allAdvisorIds)
+          .is("archived_at", null);
+        if (hErr) throw hErr;
+
+        households?.forEach((h) => {
+          householdsByAdvisor.set(
+            h.advisor_id,
+            (householdsByAdvisor.get(h.advisor_id) || 0) + Number(h.total_aum),
+          );
+        });
+      }
+
+      return (firms || []).map((f) => {
+        const advisorIds = advisorsByFirm.get(f.id) || [];
+        const total_aum = advisorIds.reduce(
+          (sum, aid) => sum + (householdsByAdvisor.get(aid) || 0),
+          0,
+        );
+        return {
+          ...f,
+          advisor_count: counts.get(f.id) || 0,
+          total_aum,
+        };
+      }) as FirmWithCounts[];
     },
   });
 }
