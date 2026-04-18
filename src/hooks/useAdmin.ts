@@ -162,7 +162,7 @@ export function useAdvisorDetail(userId: string | undefined) {
 export function useInviteAdvisor() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { email: string; password: string; full_name?: string; office_location?: string }) =>
+    mutationFn: (payload: { email: string; password: string; full_name?: string; office_location?: string; firm_id?: string }) =>
       callAdmin("invite_advisor", payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin_advisors"] });

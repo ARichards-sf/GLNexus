@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
 
     // ── INVITE ADVISOR ──
     if (action === "invite_advisor") {
-      const { email, password, full_name, office_location } = payload;
+      const { email, password, full_name, office_location, firm_id } = payload;
       if (!email) throw new Error("Email is required");
       if (!password || password.length < 6) throw new Error("Password must be at least 6 characters");
 
@@ -146,6 +146,29 @@ Deno.serve(async (req) => {
         await supabaseAdmin.from("profiles").update({ office_location }).eq("user_id", newUser.id);
       }
       await supabaseAdmin.from("user_roles").insert({ user_id: newUser.id, role: "user" });
+
+      // Assign to firm
+      if (firm_id) {
+        const { error: firmErr } = await supabaseAdmin
+          .from("firm_memberships")
+          .insert({
+            firm_id,
+            user_id: newUser.id,
+            role: "advisor",
+            is_lead_advisor: false,
+          });
+        if (firmErr) {
+          console.error("Firm assignment failed:", firmErr);
+          // Don't throw — user was created successfully, just log the error
+        }
+
+        // Also update profile firm_id
+        await supabaseAdmin
+          .from("profiles")
+          .update({ firm_id })
+          .eq("user_id", newUser.id);
+      }
+
       return json({ user: newUser });
     }
 
