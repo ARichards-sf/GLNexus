@@ -95,9 +95,9 @@ Deno.serve(async (req) => {
         .from("profiles").select("*").eq("user_id", user_id).maybeSingle();
       if (pErr) throw pErr;
 
-      // Look up auth user (needed for last_sign_in_at and as a fallback)
-      const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
-      const authUser = (authUsers || []).find((u: any) => u.id === user_id);
+      // Look up auth user directly by id (avoids pagination issues with listUsers)
+      const { data: authUserData } = await supabaseAdmin.auth.admin.getUserById(user_id);
+      const authUser = authUserData?.user || null;
 
       // Self-heal: if profile is missing but the auth user exists, create it
       if (!profile) {
