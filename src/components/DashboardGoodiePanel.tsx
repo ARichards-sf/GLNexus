@@ -1,21 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bot, Send, Loader2, PhoneOff } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { useInSession } from "@/contexts/InSessionContext";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
 import { useAiActions, type ParsedToolCall } from "@/hooks/useAiActions";
-import { useCreateTask } from "@/hooks/useTasks";
 import { buildContextSnapshot, streamChat, type AiMsg } from "@/lib/aiChat";
 import ActionCard from "@/components/ActionCard";
-import InSessionPanel from "@/components/InSessionPanel";
 
 export default function DashboardGoodiePanel() {
   const { user } = useAuth();
-  const { sessionEvent, isInSession, endSession } = useInSession();
-  const createTask = useCreateTask();
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
 
   const [messages, setMessages] = useState<AiMsg[]>([
@@ -137,76 +132,8 @@ export default function DashboardGoodiePanel() {
     }
   }, [input, isLoading, messages, households, recentNotes]);
 
-  const handleEndSession = () => {
-    if (user && sessionEvent && sessionEvent.household_id) {
-      const name = sessionEvent.households?.name ?? "client";
-      createTask.mutate(
-        {
-          title: `Send follow-up email — ${name}`,
-          description: `Review and send the Goodie-drafted follow-up email after your session with ${name}.`,
-          due_date: new Date().toISOString().split("T")[0],
-          priority: "high",
-          household_id: sessionEvent.household_id,
-          task_type: "follow_up_email",
-          assigned_to: user.id,
-          advisor_id: user.id,
-          status: "todo",
-          metadata: {
-            session_event_id: sessionEvent.id,
-            household_name: name,
-            event_type: sessionEvent.event_type,
-          },
-        },
-        {
-          onSuccess: () => {
-            toast.success("Session ended · Follow-up task added to your Tasks");
-          },
-        }
-      );
-    }
-    endSession();
-  };
-
-  // STATE B — In Session
-  if (isInSession && sessionEvent && sessionEvent.household_id) {
-    const householdName = sessionEvent.households?.name;
-    return (
-      <>
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background sticky top-0 z-10">
-          <div className="flex items-center gap-2 min-w-0">
-            <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <h2 className="text-sm font-semibold truncate">
-              {householdName ? `In Session · ${householdName}` : "In Session"}
-            </h2>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleEndSession}
-            className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
-          >
-            <PhoneOff className="w-3.5 h-3.5 mr-1.5" />
-            End Session
-          </Button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          <InSessionPanel event={sessionEvent} householdId={sessionEvent.household_id} />
-        </div>
-      </>
-    );
-  }
-
-  // STATE A — Default
   return (
     <>
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-background sticky top-0 z-10">
-        <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold leading-tight">Goodie</h2>
-          <p className="text-[11px] text-muted-foreground leading-tight">GL Nexus AI</p>
-        </div>
-      </div>
-
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.map((m, i) => (
           <div key={i}>

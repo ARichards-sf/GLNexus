@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 export default function AiAssistant() {
   const { user } = useAuth();
   const { pathname } = useLocation();
+  const hideOnPage = pathname.startsWith("/admin") || pathname === "/settings";
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
@@ -113,6 +114,8 @@ export default function AiAssistant() {
     }
   }, [input, isLoading, messages, households, recentNotes]);
 
+  if (hideOnPage) return null;
+
   return (
     <Sheet open={open} onOpenChange={setOpen} modal={false}>
       <SheetTrigger asChild>
@@ -120,7 +123,7 @@ export default function AiAssistant() {
           size="icon"
           className={cn(
             "fixed bottom-6 right-6 h-12 w-12 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90",
-            pathname === "/" && "2xl:hidden"
+            "2xl:hidden"
           )}
         >
           <Bot className="h-5 w-5" />

@@ -1,9 +1,11 @@
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Bot, Bell, PhoneOff } from "lucide-react";
+import { useState } from "react";
+import { Bot, Bell, PhoneOff, ChevronLeft, ChevronRight } from "lucide-react";
 import AppSidebar from "./AppSidebar";
 import ImpersonationBar from "./ImpersonationBar";
 import AiAssistant from "./AiAssistant";
 import InSessionPanel from "./InSessionPanel";
+import DashboardGoodiePanel from "./DashboardGoodiePanel";
 import { Button } from "@/components/ui/button";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { InSessionProvider, useInSession } from "@/contexts/InSessionContext";
@@ -51,10 +53,21 @@ function LayoutInner() {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const createTask = useCreateTask();
-  const showPanel = isInSession && sessionEvent && sessionEvent.household_id;
-  const isDashboard = pathname === "/";
+
+  const [panelCollapsed, setPanelCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("goodie-panel-collapsed") === "true";
+  });
+
+  const togglePanel = () => {
+    const next = !panelCollapsed;
+    setPanelCollapsed(next);
+    localStorage.setItem("goodie-panel-collapsed", String(next));
+  };
+
+  const hidePanel = pathname.startsWith("/admin") || pathname === "/settings";
+  const showPanel = !hidePanel && !!user;
   const householdName = sessionEvent?.households?.name;
-  const headerTitle = householdName ? `In Session · ${householdName}` : "In Session";
 
   const handleEndSession = () => {
     if (user && sessionEvent && sessionEvent.household_id) {
@@ -96,36 +109,89 @@ function LayoutInner() {
           <main
             className={cn(
               "flex-1 overflow-y-auto transition-all duration-300",
-              showPanel && !isDashboard && "lg:mr-[480px]"
+              showPanel && !panelCollapsed && "2xl:mr-[360px] 3xl:mr-[480px]",
+              showPanel && panelCollapsed && "2xl:mr-[48px]"
             )}
           >
             <Outlet />
           </main>
         </div>
-        {showPanel && !isDashboard && (
-          <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[480px] border-l border-border bg-background shadow-lg z-40 flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background sticky top-0 z-10">
-              <div className="flex items-center gap-2 min-w-0">
-                <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                <h2 className="text-sm font-semibold truncate">{headerTitle}</h2>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleEndSession}
-                className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
-              >
-                <PhoneOff className="w-3.5 h-3.5 mr-1.5" />
-                End Session
-              </Button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              <InSessionPanel
-                event={sessionEvent}
-                householdId={sessionEvent.household_id!}
-              />
-            </div>
-          </aside>
+
+        {showPanel && (
+          <>
+            {/* Collapsed strip */}
+            {panelCollapsed && (
+              <aside className="hidden 2xl:flex fixed right-0 top-0 bottom-0 w-[48px] border-l border-border bg-card/30 z-40 flex-col items-center py-3 gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={togglePanel}
+                  title="Expand Goodie panel"
+                  className="h-8 w-8"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                {isInSession && (
+                  <span className="relative flex h-2 w-2 mt-1">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                )}
+              </aside>
+            )}
+
+            {/* Expanded panel */}
+            {!panelCollapsed && (
+              <aside className="hidden 2xl:flex fixed right-0 top-0 bottom-0 w-[360px] 3xl:w-[480px] border-l border-border bg-background shadow-lg z-40 flex-col">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background sticky top-0 z-10">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <h2 className="text-sm font-semibold truncate">
+                      {isInSession && householdName
+                        ? `In Session · ${householdName}`
+                        : "Goodie"}
+                    </h2>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {isInSession && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleEndSession}
+                        className="border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
+                      >
+                        <PhoneOff className="w-3.5 h-3.5 mr-1.5" />
+                        End Session
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={togglePanel}
+                      title="Collapse panel"
+                      className="h-8 w-8"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  {isInSession && sessionEvent?.household_id ? (
+                    <div className="flex-1 overflow-y-auto p-4">
+                      <InSessionPanel
+                        event={sessionEvent}
+                        householdId={sessionEvent.household_id}
+                      />
+                    </div>
+                  ) : (
+                    <DashboardGoodiePanel />
+                  )}
+                </div>
+              </aside>
+            )}
+          </>
         )}
       </div>
       <AiAssistant />
