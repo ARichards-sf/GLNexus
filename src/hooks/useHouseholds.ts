@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { useIsAdmin } from "@/hooks/useAdmin";
 
 export interface HouseholdRow {
   id: string;
@@ -55,6 +56,7 @@ export function useHouseholds() {
         .from("households")
         .select("*")
         .eq("advisor_id", advisorId!)
+        .is("archived_at", null)
         .order("name");
       if (error) throw error;
       return data as HouseholdRow[];
@@ -310,25 +312,71 @@ export function useGenerateSnapshot() {
   });
 }
 
-export function useDeleteHousehold() {
+export function useArchiveHousehold() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { targetAdvisorId } = useImpersonation();
 
   return useMutation({
-    mutationFn: async (householdId: string) => {
+    mutationFn: async ({ householdId, reason }: { householdId: string; reason?: string }) => {
       const advisorId = user ? targetAdvisorId(user.id) : user!.id;
       const { error } = await supabase
         .from("households")
-        .delete()
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_reason: reason || "Archived by advisor",
+          status: "Inactive",
+        })
         .eq("id", householdId)
         .eq("advisor_id", advisorId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["households"] });
+      queryClient.invalidateQueries({ queryKey: ["households_archived"] });
       queryClient.invalidateQueries({ queryKey: ["all_compliance_notes"] });
     },
+  });
+}
+
+export function useDeleteHouseholdAdmin() {
+  const queryClient = useQueryClient();
+  const { isAdmin } = useIsAdmin();
+
+  return useMutation({
+    mutationFn: async (householdId: string) => {
+      if (!isAdmin) throw new Error("Unauthorized");
+      const { error } = await supabase
+        .from("households")
+        .delete()
+        .eq("id", householdId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["households"] });
+      queryClient.invalidateQueries({ queryKey: ["households_archived"] });
+    },
+  });
+}
+
+export function useArchivedHouseholds() {
+  const { user } = useAuth();
+  const { targetAdvisorId } = useImpersonation();
+  const advisorId = user ? targetAdvisorId(user.id) : undefined;
+
+  return useQuery({
+    queryKey: ["households_archived", advisorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("households")
+        .select("*")
+        .eq("advisor_id", advisorId!)
+        .not("archived_at", "is", null)
+        .order("archived_at", { ascending: false });
+      if (error) throw error;
+      return data as HouseholdRow[];
+    },
+    enabled: !!advisorId,
   });
 }
 
@@ -336,9 +384,23 @@ export function useDeleteHouseholdMember() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (memberId: string) => {
+      // Check if member has accounts first
+      const { data: accounts } = await supabase
+        .from("contact_accounts")
+        .select("id")
+        .eq("member_id", memberId)
+        .limit(1);
+
+      if (accounts && accounts.length > 0) {
+        throw new Error(
+          "Cannot delete a contact who has financial accounts. Delete their accounts first."
+        );
+      }
+
+      // Soft delete — set archived_at
       const { error } = await supabase
         .from("household_members")
-        .delete()
+        .update({ archived_at: new Date().toISOString() })
         .eq("id", memberId);
       if (error) throw error;
     },
