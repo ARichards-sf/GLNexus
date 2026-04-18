@@ -14,16 +14,25 @@ import glLogo from "@/assets/gl-logo.png";
 
 const DEFAULT_FIRM_VALUE = "__default__";
 
-const navItems = [
+const clientServiceItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/households", label: "Households", icon: Users },
   { to: "/contacts", label: "Contacts", icon: UserRound },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
-  { to: "/my-requests", label: "My Requests", icon: TicketCheck, badgeKey: "myRequests" as const },
+];
+
+const activityItems = [
   { to: "/tasks", label: "Tasks", icon: CheckSquare, badgeKey: "tasks" as const },
+  { to: "/my-requests", label: "My Requests", icon: TicketCheck, badgeKey: "myRequests" as const },
+];
+
+const insightsItems = [
   { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/performance", label: "Performance", icon: TrendingUp },
-  { to: "/settings", label: "Settings", icon: Settings },
+];
+
+const bdItems = [
+  { to: "/pipeline", label: "Pipeline", icon: TrendingUp },
 ];
 
 const adminItems = [
@@ -31,9 +40,6 @@ const adminItems = [
   { to: "/admin/requests", label: "All Requests", icon: TicketCheck, badgeKey: "allRequests" as const },
 ];
 
-const bdItems = [
-  { to: "/pipeline", label: "Pipeline", icon: TrendingUp },
-];
 
 const internalItems = [
   { to: "/admin/staff", label: "GL Staff", icon: UsersRound },
@@ -126,7 +132,34 @@ export default function AppSidebar() {
       )}
 
       <nav className="flex flex-col gap-1 flex-1">
-        {navItems.map((item) => {
+        {/* GROUP 1 — Client Service */}
+        <div className="mb-1 px-3">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Client Service</span>
+        </div>
+        {clientServiceItems.map((item) => {
+          const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
+          return (
+            <RouterNavLink
+              key={item.label}
+              to={item.to}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-secondary text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+              )}
+            >
+              <item.icon className="w-[18px] h-[18px]" />
+              <span className="flex-1">{item.label}</span>
+            </RouterNavLink>
+          );
+        })}
+
+        {/* GROUP 2 — Activity */}
+        <div className="mt-4 mb-1 px-3">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Activity</span>
+        </div>
+        {activityItems.map((item) => {
           const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
           const badgeCount = item.badgeKey === "tasks"
             ? taskNotifCount
@@ -155,7 +188,31 @@ export default function AppSidebar() {
           );
         })}
 
-        <div className="mt-6 mb-2 px-3">
+        {/* GROUP 3 — Insights */}
+        <div className="mt-4 mb-1 px-3">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Insights</span>
+        </div>
+        {insightsItems.map((item) => {
+          const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
+          return (
+            <RouterNavLink
+              key={item.label}
+              to={item.to}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-secondary text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+              )}
+            >
+              <item.icon className="w-[18px] h-[18px]" />
+              <span className="flex-1">{item.label}</span>
+            </RouterNavLink>
+          );
+        })}
+
+        {/* GROUP 4 — Business Development */}
+        <div className="mt-4 mb-2 px-3">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Business Development</span>
         </div>
         {bdItems.map((item) => {
@@ -242,6 +299,22 @@ export default function AppSidebar() {
             })}
           </>
         )}
+
+        {/* Settings - standalone at bottom */}
+        <div className="mt-auto pt-4 border-t border-border">
+          <RouterNavLink
+            to="/settings"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              location.pathname === "/settings"
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+            )}
+          >
+            <Settings className="w-[18px] h-[18px]" />
+            <span className="flex-1">Settings</span>
+          </RouterNavLink>
+        </div>
       </nav>
 
       <div className="mt-auto px-3 pt-6 border-t border-border">
