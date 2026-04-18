@@ -1,14 +1,20 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
-  Edit, Wallet, Plus, HelpCircle, ChevronRight,
+  Edit, Wallet, Plus, HelpCircle, ChevronRight, Trash2,
 } from "lucide-react";
-import { useContact, useContactAccounts } from "@/hooks/useContacts";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
+import { useDeleteHouseholdMember } from "@/hooks/useHouseholds";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
 import AddAccountDialog from "@/components/AddAccountDialog";
@@ -22,6 +28,10 @@ export default function ContactProfile() {
   const [editOpen, setEditOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
+  const [deleteContactOpen, setDeleteContactOpen] = useState(false);
+  const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+  const deleteMember = useDeleteHouseholdMember();
+  const deleteAccount = useDeleteAccount();
 
   if (isLoading) {
     return (
@@ -85,6 +95,14 @@ export default function ContactProfile() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
               <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Contact
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-destructive/40 text-destructive hover:bg-destructive/5"
+              onClick={() => setDeleteContactOpen(true)}
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete Contact
             </Button>
           </div>
         </div>
@@ -198,7 +216,7 @@ export default function ContactProfile() {
                       {accounts.map((account) => (
                         <TableRow
                           key={account.id}
-                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          className="cursor-pointer hover:bg-muted/50 transition-colors group"
                           onClick={() => navigate(`/accounts/${account.id}`)}
                         >
                           <TableCell>
@@ -217,7 +235,20 @@ export default function ContactProfile() {
                             {formatFullCurrency(Number(account.balance))}
                           </TableCell>
                           <TableCell className="text-right">
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteAccountId(account.id);
+                                }}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -242,6 +273,74 @@ export default function ContactProfile() {
           householdId: contact.household_id || undefined,
         }}
       />
+
+      {/* Delete Contact Confirmation */}
+      <AlertDialog open={deleteContactOpen} onOpenChange={setDeleteContactOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {contact.first_name} {contact.last_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this contact and all their financial accounts.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                try {
+                  await deleteMember.mutateAsync(contact.id);
+                  toast.success("Contact deleted");
+                  navigate(contact.household_id ? `/household/${contact.household_id}` : "/contacts");
+                } catch (e: any) {
+                  toast.error(e?.message || "Failed to delete contact");
+                }
+              }}
+            >
+              Delete Contact
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Account Confirmation */}
+      <AlertDialog open={!!deleteAccountId} onOpenChange={(o) => !o && setDeleteAccountId(null)}>
+        <AlertDialogContent>
+          {(() => {
+            const a = accounts.find((x) => x.id === deleteAccountId);
+            const name = a?.account_name || "this account";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete this account. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      if (!deleteAccountId) return;
+                      try {
+                        await deleteAccount.mutateAsync(deleteAccountId);
+                        toast.success(`${name} deleted`);
+                        setDeleteAccountId(null);
+                      } catch (e: any) {
+                        toast.error(e?.message || "Failed to delete account");
+                      }
+                    }}
+                  >
+                    Delete Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
