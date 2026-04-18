@@ -249,6 +249,8 @@ export default function Tasks() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const deleteTask = useDeleteTask();
+  const [activeTab, setActiveTab] = useState<TaskFilter>("mine");
+  const { data: tasks = [], isLoading } = useTasks(activeTab);
   const markRead = useMarkNotificationsRead();
 
   useEffect(() => {
@@ -312,7 +314,7 @@ export default function Tasks() {
         </Button>
       </div>
 
-      <Tabs defaultValue="mine" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TaskFilter)} className="space-y-6">
         <TabsList>
           <TabsTrigger value="mine">Assigned to Me</TabsTrigger>
           <TabsTrigger value="created">Created by Me</TabsTrigger>
