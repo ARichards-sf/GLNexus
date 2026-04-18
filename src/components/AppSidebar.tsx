@@ -84,7 +84,12 @@ export default function AppSidebar() {
           <img src={logoUrl} alt={firmName || "Good Life Companies"} className="h-8 w-auto" />
         </div>
         {showFirmName && (
-          <p className="text-xs text-muted-foreground">{firmName}</p>
+          <p
+            className="text-xs font-medium"
+            style={{ color: brandingFirm?.accent_color || "hsl(var(--muted-foreground))" }}
+          >
+            {firmName}
+          </p>
         )}
       </div>
 

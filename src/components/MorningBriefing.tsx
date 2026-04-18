@@ -65,6 +65,7 @@ interface MorningBriefingProps {
   pendingTasks: any[];
   firstName: string;
   userId: string;
+  accentColor?: string;
 }
 
 interface PromptData {
@@ -186,6 +187,7 @@ export default function MorningBriefing({
   pendingTasks,
   firstName,
   userId,
+  accentColor,
 }: MorningBriefingProps) {
   const currentPeriod = getCurrentPeriod();
   const periodConfig = PERIODS[currentPeriod];
@@ -353,7 +355,10 @@ export default function MorningBriefing({
   const PeriodIcon = periodConfig.Icon;
 
   return (
-    <Card className={`mb-6 shadow-none ${periodConfig.cardBorder} ${periodConfig.cardBg}`}>
+    <Card
+      className={`mb-6 shadow-none ${periodConfig.cardBorder} ${periodConfig.cardBg}`}
+      style={{ borderColor: accentColor ? `${accentColor}60` : undefined }}
+    >
       <CardContent className="pt-5 pb-5">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2.5 min-w-0">

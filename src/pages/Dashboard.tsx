@@ -35,6 +35,9 @@ import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import GoodieSuggests from "@/components/GoodieSuggests";
 import MorningBriefing from "@/components/MorningBriefing";
 import { useTasks } from "@/hooks/useTasks";
+import { useFirmContext } from "@/hooks/useFirmContext";
+import { useSelectedFirm } from "@/contexts/FirmContext";
+import { useFirms } from "@/hooks/useFirms";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -65,6 +68,15 @@ export default function Dashboard() {
   const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
   const [logNoteOpen, setLogNoteOpen] = useState(false);
   const { startSession } = useInSession();
+
+  // Firm branding
+  const { currentFirm } = useFirmContext();
+  const { selectedFirmId } = useSelectedFirm();
+  const { data: firms = [] } = useFirms();
+  const brandingFirm = selectedFirmId
+    ? firms.find((f) => f.id === selectedFirmId) ?? currentFirm
+    : currentFirm;
+  const firmAccentColor = (brandingFirm as any)?.accent_color || undefined;
 
   const openRequests = useMemo(() => {
     return myRequests.filter(r => r.status !== "resolved" && r.status !== "closed");
@@ -120,7 +132,10 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 lg:p-8">
-      <div className="mb-6">
+      <div
+        className="mb-6 pl-4 border-l-2"
+        style={{ borderColor: "var(--firm-accent, hsl(var(--primary)))" }}
+      >
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
         <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
       </div>
@@ -163,6 +178,7 @@ export default function Dashboard() {
         pendingTasks={myTasks as any}
         firstName={firstName}
         userId={user?.id || "anonymous"}
+        accentColor={firmAccentColor}
       />
 
       {/* Your Next Meeting — only when within 60 minutes */}
@@ -211,7 +227,13 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <Card className="border-border shadow-none">
+        <Card
+          className="border-border shadow-none"
+          style={{
+            borderTopColor: "var(--firm-accent, hsl(var(--primary)))",
+            borderTopWidth: "2px",
+          }}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-muted-foreground font-medium">Total Book of Business</span>
@@ -225,7 +247,13 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-border shadow-none">
+        <Card
+          className="border-border shadow-none"
+          style={{
+            borderTopColor: "var(--firm-accent, hsl(var(--primary)))",
+            borderTopWidth: "2px",
+          }}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-muted-foreground font-medium">Households</span>
@@ -236,7 +264,13 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-border shadow-none">
+        <Card
+          className="border-border shadow-none"
+          style={{
+            borderTopColor: "var(--firm-accent, hsl(var(--primary)))",
+            borderTopWidth: "2px",
+          }}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-muted-foreground font-medium">Upcoming Reviews</span>

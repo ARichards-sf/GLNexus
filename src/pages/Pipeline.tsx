@@ -241,7 +241,10 @@ export default function Pipeline() {
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div
+          className="pl-4 border-l-2"
+          style={{ borderColor: "var(--firm-accent, hsl(var(--primary)))" }}
+        >
           <div className="flex items-center gap-2">
             <TrendingUp className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-semibold">Pipeline</h1>
