@@ -14,15 +14,28 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User, AlertTriangle, Trash2,
 } from "lucide-react";
 import {
   useAdvisorDetail, useUpdateAdvisorProfile, useResetAdvisorPassword,
   useUpdateAdvisorRole, useToggleInternal, useToggleAdvisorStatus,
-  useIsAdmin,
+  useIsAdmin, useGlProfile,
 } from "@/hooks/useAdmin";
+import { useDeleteHouseholdAdmin } from "@/hooks/useHouseholds";
 import { formatFullCurrency } from "@/data/sampleData";
 import { useToast } from "@/hooks/use-toast";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import FirmAssignmentCard from "@/components/FirmAssignmentCard";
 
 export default function AdvisorDetail() {
