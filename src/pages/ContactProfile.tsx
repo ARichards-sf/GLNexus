@@ -13,6 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
 import { useDeleteHouseholdMember } from "@/hooks/useHouseholds";
 import { formatFullCurrency } from "@/data/sampleData";
@@ -95,14 +96,6 @@ export default function ContactProfile() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
               <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Contact
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-destructive/40 text-destructive hover:bg-destructive/5"
-              onClick={() => setDeleteContactOpen(true)}
-            >
-              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete Contact
             </Button>
           </div>
         </div>
@@ -263,6 +256,42 @@ export default function ContactProfile() {
         </div>
       </div>
 
+      {/* Danger Zone */}
+      <div className="mt-8 pt-6 border-t border-border">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-foreground">Remove Contact</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Remove this contact from the household.
+              {accounts.length > 0 && " Delete all accounts first."}
+            </p>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={accounts.length > 0}
+                    className="border-destructive/40 text-destructive hover:bg-destructive/5 shrink-0 disabled:opacity-50"
+                    onClick={() => setDeleteContactOpen(true)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    Remove Contact
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {accounts.length > 0 && (
+                <TooltipContent>
+                  Delete all financial accounts before removing this contact
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+
       <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
       <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} memberId={contact.id} />
       <RequestAssistanceDialog
@@ -274,14 +303,13 @@ export default function ContactProfile() {
         }}
       />
 
-      {/* Delete Contact Confirmation */}
+      {/* Remove Contact Confirmation */}
       <AlertDialog open={deleteContactOpen} onOpenChange={setDeleteContactOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {contact.first_name} {contact.last_name}?</AlertDialogTitle>
+            <AlertDialogTitle>Remove {contact.first_name} {contact.last_name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this contact and all their financial accounts.
-              This cannot be undone.
+              This contact will be removed from {householdName || "the household"}. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -291,14 +319,14 @@ export default function ContactProfile() {
               onClick={async () => {
                 try {
                   await deleteMember.mutateAsync(contact.id);
-                  toast.success("Contact deleted");
+                  toast.success("Contact removed");
                   navigate(contact.household_id ? `/household/${contact.household_id}` : "/contacts");
                 } catch (e: any) {
-                  toast.error(e?.message || "Failed to delete contact");
+                  toast.error(e?.message || "Failed to remove contact");
                 }
               }}
             >
-              Delete Contact
+              Remove Contact
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -315,7 +343,7 @@ export default function ContactProfile() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete this account. This cannot be undone.
+                    This financial account will be permanently deleted.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
