@@ -353,6 +353,203 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
+    // ── RETENTION REVIEW ──
+    if (action === "retention_review") {
+      const { cutoff_iso } = payload;
+      if (!cutoff_iso) throw new Error("cutoff_iso required");
+
+      // Eligible accounts: archived contact_accounts older than cutoff
+      const { data: accountsRaw, error: aErr } = await supabaseAdmin
+        .from("contact_accounts")
+        .select("*")
+        .not("archived_at", "is", null)
+        .lte("archived_at", cutoff_iso)
+        .order("archived_at", { ascending: true });
+      if (aErr) throw aErr;
+
+      // Eligible members: archived household_members older than cutoff
+      const { data: membersRaw, error: mErr } = await supabaseAdmin
+        .from("household_members")
+        .select("*")
+        .not("archived_at", "is", null)
+        .lte("archived_at", cutoff_iso)
+        .order("archived_at", { ascending: true });
+      if (mErr) throw mErr;
+
+      // Eligible households
+      const { data: householdsRaw, error: hErr } = await supabaseAdmin
+        .from("households")
+        .select("*")
+        .not("archived_at", "is", null)
+        .lte("archived_at", cutoff_iso)
+        .order("archived_at", { ascending: true });
+      if (hErr) throw hErr;
+
+      // Build lookup maps for context
+      const memberIds = Array.from(new Set((accountsRaw || []).map((a: any) => a.member_id).filter(Boolean)));
+      const { data: memberLookup } = memberIds.length
+        ? await supabaseAdmin.from("household_members")
+            .select("id, first_name, last_name, household_id").in("id", memberIds)
+        : { data: [] as any[] };
+      const memberMap: Record<string, any> = {};
+      (memberLookup || []).forEach((m: any) => { memberMap[m.id] = m; });
+
+      const householdIds = Array.from(new Set([
+        ...(membersRaw || []).map((m: any) => m.household_id).filter(Boolean),
+        ...Object.values(memberMap).map((m: any) => m.household_id).filter(Boolean),
+      ]));
+      const { data: householdLookup } = householdIds.length
+        ? await supabaseAdmin.from("households").select("id, name").in("id", householdIds)
+        : { data: [] as any[] };
+      const householdMap: Record<string, any> = {};
+      (householdLookup || []).forEach((h: any) => { householdMap[h.id] = h; });
+
+      const advisorIds = Array.from(new Set([
+        ...(accountsRaw || []).map((a: any) => a.advisor_id),
+        ...(membersRaw || []).map((m: any) => m.advisor_id),
+        ...(householdsRaw || []).map((h: any) => h.advisor_id),
+      ].filter(Boolean)));
+      const { data: advisorLookup } = advisorIds.length
+        ? await supabaseAdmin.from("profiles").select("user_id, full_name").in("user_id", advisorIds)
+        : { data: [] as any[] };
+      const advisorMap: Record<string, string> = {};
+      (advisorLookup || []).forEach((p: any) => { advisorMap[p.user_id] = p.full_name || "—"; });
+
+      const eligible_accounts = (accountsRaw || []).map((a: any) => {
+        const member = memberMap[a.member_id];
+        const household = member ? householdMap[member.household_id] : null;
+        return {
+          id: a.id,
+          account_name: a.account_name,
+          account_type: a.account_type,
+          balance: a.balance,
+          archived_at: a.archived_at,
+          contact_name: member ? `${member.first_name} ${member.last_name}` : "—",
+          household_name: household?.name || "—",
+          advisor_name: advisorMap[a.advisor_id] || "—",
+        };
+      });
+
+      const eligible_members = (membersRaw || []).map((m: any) => ({
+        id: m.id,
+        name: `${m.first_name} ${m.last_name}`,
+        relationship: m.relationship,
+        household_name: m.household_id ? (householdMap[m.household_id]?.name || "—") : "—",
+        archived_at: m.archived_at,
+        archived_reason: m.archived_reason || "—",
+        advisor_name: advisorMap[m.advisor_id] || "—",
+      }));
+
+      const eligible_households = (householdsRaw || []).map((h: any) => ({
+        id: h.id,
+        name: h.name,
+        total_aum: h.total_aum,
+        archived_at: h.archived_at,
+        archived_reason: h.archived_reason || "—",
+        advisor_name: advisorMap[h.advisor_id] || "—",
+      }));
+
+      return json({
+        eligible_accounts,
+        eligible_members,
+        eligible_households,
+        total_count: eligible_accounts.length + eligible_members.length + eligible_households.length,
+      });
+    }
+
+    // ── EXECUTE PURGE ──
+    if (action === "execute_purge") {
+      const { account_ids = [], member_ids = [], household_ids = [], caller_id } = payload;
+      if (!Array.isArray(account_ids) || !Array.isArray(member_ids) || !Array.isArray(household_ids)) {
+        throw new Error("account_ids, member_ids, household_ids must be arrays");
+      }
+
+      // Verify caller is GL super_admin
+      const authHeader = req.headers.get("Authorization")!;
+      const token = authHeader.replace("Bearer ", "");
+      const anonClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: claimsData } = await anonClient.auth.getClaims(token);
+      const callerUserId = claimsData?.claims?.sub as string;
+
+      const { data: callerProfile } = await supabaseAdmin
+        .from("profiles").select("is_gl_internal, platform_role")
+        .eq("user_id", callerUserId).maybeSingle();
+
+      if (!callerProfile?.is_gl_internal || callerProfile?.platform_role !== "super_admin") {
+        throw { status: 403, message: "Forbidden: GL super_admin required" };
+      }
+
+      const errors: string[] = [];
+      let purged_count = 0;
+      const deletedBy = `admin:${callerUserId}`;
+
+      // Purge accounts
+      for (const id of account_ids) {
+        try {
+          const { data: rec } = await supabaseAdmin
+            .from("contact_accounts").select("*").eq("id", id).maybeSingle();
+          if (!rec) { errors.push(`account ${id}: not found`); continue; }
+          await supabaseAdmin.from("deletion_audit_log").insert({
+            record_type: "contact_account",
+            record_id: id,
+            advisor_id: rec.advisor_id,
+            deletion_reason: "retention_policy_6yr",
+            record_snapshot: rec,
+            deleted_by: deletedBy,
+          });
+          const { error: delErr } = await supabaseAdmin.from("contact_accounts").delete().eq("id", id);
+          if (delErr) { errors.push(`account ${id}: ${delErr.message}`); continue; }
+          purged_count++;
+        } catch (e: any) { errors.push(`account ${id}: ${e.message}`); }
+      }
+
+      // Purge members
+      for (const id of member_ids) {
+        try {
+          const { data: rec } = await supabaseAdmin
+            .from("household_members").select("*").eq("id", id).maybeSingle();
+          if (!rec) { errors.push(`member ${id}: not found`); continue; }
+          await supabaseAdmin.from("deletion_audit_log").insert({
+            record_type: "household_member",
+            record_id: id,
+            advisor_id: rec.advisor_id,
+            deletion_reason: "retention_policy_6yr",
+            record_snapshot: rec,
+            deleted_by: deletedBy,
+          });
+          const { error: delErr } = await supabaseAdmin.from("household_members").delete().eq("id", id);
+          if (delErr) { errors.push(`member ${id}: ${delErr.message}`); continue; }
+          purged_count++;
+        } catch (e: any) { errors.push(`member ${id}: ${e.message}`); }
+      }
+
+      // Purge households
+      for (const id of household_ids) {
+        try {
+          const { data: rec } = await supabaseAdmin
+            .from("households").select("*").eq("id", id).maybeSingle();
+          if (!rec) { errors.push(`household ${id}: not found`); continue; }
+          await supabaseAdmin.from("deletion_audit_log").insert({
+            record_type: "household",
+            record_id: id,
+            advisor_id: rec.advisor_id,
+            deletion_reason: "retention_policy_6yr",
+            record_snapshot: rec,
+            deleted_by: deletedBy,
+          });
+          const { error: delErr } = await supabaseAdmin.from("households").delete().eq("id", id);
+          if (delErr) { errors.push(`household ${id}: ${delErr.message}`); continue; }
+          purged_count++;
+        } catch (e: any) { errors.push(`household ${id}: ${e.message}`); }
+      }
+
+      return json({ purged_count, errors });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (err: any) {
     const status = err.status || 500;
