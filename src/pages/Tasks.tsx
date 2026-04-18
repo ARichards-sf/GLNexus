@@ -21,7 +21,7 @@ import { useIsLeadAdvisor } from "@/hooks/useIsLeadAdvisor";
 import {
   useTasks, useCompleteTask, useUncompleteTask, useDeleteTask,
   useMarkNotificationsRead,
-  type Task,
+  type Task, type TaskFilter,
 } from "@/hooks/useTasks";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
