@@ -53,6 +53,7 @@ export default function AiAssistant() {
 
   const { data: households = [] } = useHouseholds();
   const { data: recentNotes = [] } = useAllComplianceNotes();
+  const { data: prospects = [] } = useProspects();
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
