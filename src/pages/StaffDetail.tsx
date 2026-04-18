@@ -6,15 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Pencil, Building2, Clock, Calendar, Info } from "lucide-react";
+import { ArrowLeft, Pencil, Building2, Clock, Calendar, Info, AlertTriangle } from "lucide-react";
 import {
-  useInternalUsers, useUpdateInternalUser, useToggleAdvisorStatus,
+  useInternalUsers, useUpdateInternalUser, useToggleAdvisorStatus, useGlProfile,
 } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
 import ManageStaffFirmsDialog from "@/components/ManageStaffFirmsDialog";
 
 const DEPARTMENTS = ["vpm", "wam", "marketing", "transitions", "compliance", "accounting", "operations"] as const;
-const ROLES = ["admin", "super_admin"] as const;
+const ROLES = ["admin", "super_admin", "developer"] as const;
 
 const DEPT_META: Record<string, { label: string; className: string }> = {
   vpm:         { label: "VPM",         className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
@@ -29,6 +29,7 @@ const DEPT_META: Record<string, { label: string; className: string }> = {
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
   super_admin: "Super Admin",
+  developer: "Developer",
 };
 
 const FIRM_OPTIONAL_DEPTS = new Set(["marketing", "transitions", "compliance", "accounting", "operations"]);
@@ -44,6 +45,9 @@ export default function StaffDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: staff = [], isLoading } = useInternalUsers();
+  const { data: myProfile } = useGlProfile();
+  const isSuperAdmin = myProfile?.platform_role === "super_admin";
+  const availableRoles = isSuperAdmin ? ROLES : ROLES.filter((r) => r !== "developer");
   const updateUser = useUpdateInternalUser();
   const toggleStatus = useToggleAdvisorStatus();
 
@@ -222,11 +226,17 @@ export default function StaffDetail() {
                   <Select value={formRole} onValueChange={setFormRole}>
                     <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
                     <SelectContent>
-                      {ROLES.map((r) => (
+                      {availableRoles.map((r) => (
                         <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {formRole === "developer" && (
+                    <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      Developer role grants full data deletion access. Assign with caution.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
