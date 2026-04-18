@@ -120,6 +120,34 @@ export function useAiActions() {
         return `Account "${args.account_name}" added for ${args.member_name || "member"}.`;
       }
 
+      case "create_task": {
+        const { error } = await supabase.from("tasks").insert({
+          advisor_id: advisorId,
+          created_by: advisorId,
+          assigned_to: advisorId,
+          title: args.title,
+          description: args.description || null,
+          due_date: args.due_date || null,
+          priority: args.priority || "medium",
+          status: "todo",
+          task_type: "manual",
+          household_id: args.household_id || null,
+        });
+        if (error) throw error;
+
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        queryClient.invalidateQueries({ queryKey: ["task_notification_count"] });
+        return `Task created: "${args.title}"${
+          args.due_date
+            ? ` — due ${new Date(args.due_date + "T00:00:00").toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              })}`
+            : ""
+        }${args.household_name ? ` (linked to ${args.household_name})` : ""}`;
+      }
+
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -148,6 +176,23 @@ export function getActionDescription(name: string, args: Record<string, any>): s
     }
     case "add_financial_account":
       return `Add **${args.account_type}** account "${args.account_name}" for **${args.member_name}**\nBalance: $${Number(args.balance || 0).toLocaleString()}${args.institution ? ` at ${args.institution}` : ""}`;
+    case "create_task": {
+      const dateStr = args.due_date
+        ? new Date(args.due_date + "T00:00:00").toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          })
+        : null;
+      const priorityLabel = args.priority && args.priority !== "medium" ? ` · ${args.priority} priority` : "";
+      return [
+        `Create task: **"${args.title}"**`,
+        args.description ? `_${args.description}_` : null,
+        dateStr ? `Due: ${dateStr}` : null,
+        args.household_name ? `Linked to: **${args.household_name}**` : null,
+        priorityLabel ? `Priority: ${args.priority}` : null,
+      ].filter(Boolean).join("\n");
+    }
     default:
       return `Execute action: ${name}`;
   }
