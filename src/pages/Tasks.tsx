@@ -307,6 +307,74 @@ export default function Tasks() {
   const [reassignTask, setReassignTask] = useState<Task | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<Task | null>(null);
 
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [dueDateFilter, setDueDateFilter] = useState("all");
+
+  useEffect(() => {
+    if (activeTab !== "all") {
+      setAssigneeFilter("all");
+      setDueDateFilter("all");
+    }
+  }, [activeTab]);
+
+  const uniqueAssignees = useMemo(() => {
+    if (activeTab !== "all") return [];
+    return Array.from(new Set(tasks.map((t) => t.assigned_to)));
+  }, [tasks, activeTab]);
+
+  const activeFilterCount = [assigneeFilter !== "all", dueDateFilter !== "all"].filter(Boolean).length;
+
+  const clearFirmFilters = () => {
+    setAssigneeFilter("all");
+    setDueDateFilter("all");
+  };
+
+  const filteredTasks = useMemo(() => {
+    if (activeTab !== "all") return tasks;
+
+    let result = [...tasks];
+
+    if (assigneeFilter !== "all") {
+      result = result.filter((t) => t.assigned_to === assigneeFilter);
+    }
+
+    if (dueDateFilter !== "all") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+      result = result.filter((t) => {
+        if (dueDateFilter === "overdue") {
+          if (!t.due_date || t.status === "done") return false;
+          return new Date(t.due_date + "T00:00:00") < today;
+        }
+        if (dueDateFilter === "today") {
+          if (!t.due_date) return false;
+          const d = new Date(t.due_date + "T00:00:00");
+          return d.getTime() === today.getTime();
+        }
+        if (dueDateFilter === "week") {
+          if (!t.due_date) return false;
+          const d = new Date(t.due_date + "T00:00:00");
+          return d >= today && d <= endOfWeek;
+        }
+        if (dueDateFilter === "month") {
+          if (!t.due_date) return false;
+          const d = new Date(t.due_date + "T00:00:00");
+          return d >= today && d <= endOfMonth;
+        }
+        if (dueDateFilter === "none") {
+          return !t.due_date;
+        }
+        return true;
+      });
+    }
+
+    return result;
+  }, [tasks, activeTab, assigneeFilter, dueDateFilter]);
+
   const handleEditSubmit = async (values: EditableValues) => {
     if (!editTask) return;
     const { error } = await (supabase as any)
