@@ -107,8 +107,14 @@ function LayoutInner() {
                 <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <h2 className="text-sm font-semibold truncate">{headerTitle}</h2>
               </div>
-              <Button variant="ghost" size="icon" onClick={handleEndSession} className="h-7 w-7">
-                <X className="h-4 w-4" />
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleEndSession}
+                className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
+              >
+                <PhoneOff className="w-3.5 h-3.5 mr-1.5" />
+                End Session
               </Button>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
