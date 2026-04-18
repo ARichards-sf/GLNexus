@@ -597,17 +597,48 @@ export default function HouseholdProfile() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteAccountId(a.id);
-                              }}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal className="w-3.5 h-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setCloseReason("");
+                                    setCloseAccountId(a.id);
+                                  }}
+                                >
+                                  <X className="w-3.5 h-3.5 mr-2" /> Close Account
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setArchiveAccountId(a.id)}>
+                                  <Archive className="w-3.5 h-3.5 mr-2" /> Archive Account
+                                </DropdownMenuItem>
+                                {(() => {
+                                  const createdToday = a.created_at
+                                    ? new Date(a.created_at).toDateString() === new Date().toDateString()
+                                    : false;
+                                  if (!createdToday) return null;
+                                  return (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive"
+                                        onClick={() => setDeleteAccountId(a.id)}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
+                                      </DropdownMenuItem>
+                                    </>
+                                  );
+                                })()}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))}
