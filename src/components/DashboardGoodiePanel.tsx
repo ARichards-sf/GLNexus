@@ -115,7 +115,7 @@ export default function DashboardGoodiePanel() {
       setMessages((prev) => [...prev, userMsg]);
       setIsLoading(true);
 
-      const context = buildContextSnapshot(households, recentNotes);
+      const context = buildContextSnapshot(households, recentNotes, prospects);
       let assistantSoFar = "";
       const apiMessages = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
 
