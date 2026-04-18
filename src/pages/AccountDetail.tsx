@@ -48,6 +48,20 @@ export default function AccountDetail() {
   const { id } = useParams();
   const { data: account, isLoading } = useAccount(id);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const deleteAccount = useDeleteAccount();
+  const navigate = useNavigate();
+
+  const handleDelete = async () => {
+    if (!id || !account) return;
+    try {
+      await deleteAccount.mutateAsync(id);
+      toast.success("Account deleted");
+      navigate(`/contacts/${account.member_id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete account");
+    }
+  };
 
   if (isLoading) {
     return (
