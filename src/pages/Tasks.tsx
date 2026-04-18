@@ -443,8 +443,53 @@ export default function Tasks() {
         </TabsContent>
         {showFirmView && (
           <TabsContent value="all">
-            <TaskList tasks={activeTab === "all" ? tasks : []} isLoading={activeTab === "all" && isLoading} showAdvisor currentUserId={user.id}
-              onEdit={setEditTask} onReassign={setReassignTask} onDelete={setDeleteCandidate} />
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
+              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                <SelectTrigger className="w-[180px] h-9">
+                  <SelectValue placeholder="Assigned to" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Assignees</SelectItem>
+                  {uniqueAssignees.map((uid) => (
+                    <SelectItem key={uid} value={uid}>
+                      {uid === user.id ? "Me" : uid.slice(0, 8) + "..."}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
+                <SelectTrigger className="w-[180px] h-9">
+                  <SelectValue placeholder="Due date" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dates</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="today">Due Today</SelectItem>
+                  <SelectItem value="week">Due This Week</SelectItem>
+                  <SelectItem value="month">Due This Month</SelectItem>
+                  <SelectItem value="none">No Due Date</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {activeFilterCount > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearFirmFilters} className="h-9">
+                  <X className="w-3.5 h-3.5 mr-1" />
+                  Clear {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
+                </Button>
+              )}
+            </div>
+            <TaskList
+              tasks={activeTab === "all" ? filteredTasks : []}
+              isLoading={activeTab === "all" && isLoading}
+              showAdvisor
+              currentUserId={user.id}
+              onEdit={setEditTask}
+              onReassign={setReassignTask}
+              onDelete={setDeleteCandidate}
+              onClearFilters={clearFirmFilters}
+              isFiltered={activeFilterCount > 0}
+            />
           </TabsContent>
         )}
       </Tabs>
