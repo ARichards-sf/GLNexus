@@ -318,7 +318,7 @@ export default function ContactProfile() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={async () => {
                 try {
-                  await deleteMember.mutateAsync(contact.id);
+                  await deleteMember.mutateAsync({ memberId: contact.id, force: true });
                   toast.success("Contact removed");
                   navigate(contact.household_id ? `/household/${contact.household_id}` : "/contacts");
                 } catch (e: any) {
@@ -353,7 +353,7 @@ export default function ContactProfile() {
                     onClick={async () => {
                       if (!deleteAccountId) return;
                       try {
-                        await deleteAccount.mutateAsync(deleteAccountId);
+                        await deleteAccount.mutateAsync({ accountId: deleteAccountId, action: "delete" });
                         toast.success(`${name} deleted`);
                         setDeleteAccountId(null);
                       } catch (e: any) {

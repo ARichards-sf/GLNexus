@@ -722,7 +722,7 @@ export default function HouseholdProfile() {
                     onClick={async () => {
                       if (!deleteMemberId) return;
                       try {
-                        await deleteMember.mutateAsync(deleteMemberId);
+                        await deleteMember.mutateAsync({ memberId: deleteMemberId, force: true });
                         toast.success(`${name} removed`);
                         setDeleteMemberId(null);
                       } catch (e: any) {
@@ -760,7 +760,7 @@ export default function HouseholdProfile() {
                     onClick={async () => {
                       if (!deleteAccountId) return;
                       try {
-                        await deleteAccount.mutateAsync(deleteAccountId);
+                        await deleteAccount.mutateAsync({ accountId: deleteAccountId, action: "delete" });
                         toast.success(`${name} deleted`);
                         setDeleteAccountId(null);
                       } catch (e: any) {

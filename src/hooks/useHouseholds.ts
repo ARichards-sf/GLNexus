@@ -90,9 +90,28 @@ export function useHouseholdMembers(householdId: string | undefined) {
       const { data, error } = await supabase
         .from("household_members")
         .select("*")
-        .eq("household_id", householdId!);
+        .eq("household_id", householdId!)
+        .is("archived_at", null);
       if (error) throw error;
       return data as MemberRow[];
+    },
+    enabled: !!userId && !!householdId,
+  });
+}
+
+export function useArchivedHouseholdMembers(householdId: string | undefined) {
+  const { userId } = useTargetAdvisorId();
+  return useQuery({
+    queryKey: ["archived_members", householdId, userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("household_members")
+        .select("*")
+        .eq("household_id", householdId!)
+        .not("archived_at", "is", null)
+        .order("archived_at", { ascending: false });
+      if (error) throw error;
+      return data as (MemberRow & { archived_at: string; archived_reason: string | null })[];
     },
     enabled: !!userId && !!householdId,
   });
@@ -383,31 +402,88 @@ export function useArchivedHouseholds() {
 export function useDeleteHouseholdMember() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (memberId: string) => {
-      // Check if member has accounts first
-      const { data: accounts } = await supabase
+    mutationFn: async ({
+      memberId,
+      force = false,
+    }: {
+      memberId: string;
+      force?: boolean;
+    }) => {
+      // Check for active accounts
+      const { data: activeAccounts } = await supabase
+        .from("contact_accounts")
+        .select("id")
+        .eq("member_id", memberId)
+        .eq("status", "active")
+        .limit(1);
+
+      if (activeAccounts && activeAccounts.length > 0 && !force) {
+        throw new Error("HAS_ACTIVE_ACCOUNTS");
+      }
+
+      // Check for any account history (including closed/archived)
+      const { data: allAccounts } = await supabase
         .from("contact_accounts")
         .select("id")
         .eq("member_id", memberId)
         .limit(1);
 
-      if (accounts && accounts.length > 0) {
-        throw new Error(
-          "Cannot delete a contact who has financial accounts. Delete their accounts first."
-        );
-      }
+      const hasHistory = allAccounts && allAccounts.length > 0;
 
-      // Soft delete — set archived_at
+      if (hasHistory && !force) {
+        // Archive instead of hard delete to preserve history
+        const { error } = await supabase
+          .from("household_members")
+          .update({
+            archived_at: new Date().toISOString(),
+            archived_reason: "Archived by advisor",
+          })
+          .eq("id", memberId);
+        if (error) throw error;
+        return { action: "archived" as const };
+      } else {
+        // Hard delete — no account history
+        const { error } = await supabase
+          .from("household_members")
+          .delete()
+          .eq("id", memberId);
+        if (error) throw error;
+        return { action: "deleted" as const };
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["household_members"] });
+      queryClient.invalidateQueries({ queryKey: ["archived_members"] });
+      queryClient.invalidateQueries({ queryKey: ["household_accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["all_contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    },
+  });
+}
+
+export function useArchiveContact() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      memberId,
+      reason,
+    }: {
+      memberId: string;
+      reason?: string;
+    }) => {
       const { error } = await supabase
         .from("household_members")
-        .update({ archived_at: new Date().toISOString() })
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_reason: reason || "Archived by advisor",
+        })
         .eq("id", memberId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["household_members"] });
-      queryClient.invalidateQueries({ queryKey: ["household_accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["archived_members"] });
+      queryClient.invalidateQueries({ queryKey: ["all_contacts"] });
     },
   });
 }

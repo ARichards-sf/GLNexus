@@ -55,7 +55,7 @@ export default function AccountDetail() {
   const handleDelete = async () => {
     if (!id || !account) return;
     try {
-      await deleteAccount.mutateAsync(id);
+      await deleteAccount.mutateAsync({ accountId: id, action: "delete" });
       toast.success("Account deleted");
       navigate(`/contacts/${account.member_id}`);
     } catch (err) {
