@@ -312,41 +312,6 @@ export default function ContactProfile() {
         </div>
       </div>
 
-      {/* Danger Zone */}
-      <div className="mt-8 pt-6 border-t border-border">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-medium text-foreground">Remove Contact</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Remove this contact from the household.
-              {accounts.length > 0 && " Delete all accounts first."}
-            </p>
-          </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={accounts.length > 0}
-                    className="border-destructive/40 text-destructive hover:bg-destructive/5 shrink-0 disabled:opacity-50"
-                    onClick={() => setDeleteContactOpen(true)}
-                  >
-                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                    Remove Contact
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {accounts.length > 0 && (
-                <TooltipContent>
-                  Delete all financial accounts before removing this contact
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
 
       <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
       <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} memberId={contact.id} />
