@@ -14,15 +14,28 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User, AlertTriangle, Trash2,
 } from "lucide-react";
 import {
   useAdvisorDetail, useUpdateAdvisorProfile, useResetAdvisorPassword,
   useUpdateAdvisorRole, useToggleInternal, useToggleAdvisorStatus,
-  useIsAdmin,
+  useIsAdmin, useGlProfile,
 } from "@/hooks/useAdmin";
+import { useDeleteHouseholdAdmin } from "@/hooks/useHouseholds";
 import { formatFullCurrency } from "@/data/sampleData";
 import { useToast } from "@/hooks/use-toast";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import FirmAssignmentCard from "@/components/FirmAssignmentCard";
 
 export default function AdvisorDetail() {
@@ -44,6 +57,26 @@ export default function AdvisorDetail() {
   const updateRole = useUpdateAdvisorRole();
   const toggleInternal = useToggleInternal();
   const toggleStatus = useToggleAdvisorStatus();
+  const deleteHouseholdAdmin = useDeleteHouseholdAdmin();
+  const { data: glProfile } = useGlProfile();
+  const showDangerZone = isAdmin && glProfile?.is_gl_internal === true;
+
+  // Danger zone state
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [confirmText, setConfirmText] = useState("");
+
+  const handleHardDelete = async () => {
+    if (!pendingDelete) return;
+    if (confirmText !== pendingDelete.name) return;
+    try {
+      await deleteHouseholdAdmin.mutateAsync(pendingDelete.id);
+      toast({ title: `${pendingDelete.name} permanently deleted` });
+      setPendingDelete(null);
+      setConfirmText("");
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e.message, variant: "destructive" });
+    }
+  };
 
   if (isLoading || !advisor) {
     return (
@@ -362,6 +395,93 @@ export default function AdvisorDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* GL Internal Admin — Danger Zone */}
+      {showDangerZone && (
+        <div className="mt-12 border border-destructive/30 rounded-lg overflow-hidden">
+          <div className="bg-destructive/5 border-b border-destructive/20 px-5 py-3 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-destructive" />
+            <h3 className="text-sm font-semibold text-destructive">Danger Zone — GL Internal Only</h3>
+          </div>
+          <div className="p-5 space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Permanently delete households belonging to this advisor. This is intended only for cleaning up test data
+              and is fully irreversible. All compliance notes, accounts, and contacts will also be deleted.
+            </p>
+            {(advisor.households || []).length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2">This advisor has no households.</p>
+            ) : (
+              <div className="rounded-md border border-border divide-y divide-border">
+                {(advisor.households || []).map((h) => (
+                  <div key={h.id} className="flex items-center justify-between px-4 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{h.name}</p>
+                      <p className="text-xs text-muted-foreground">{formatFullCurrency(h.total_aum)}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-destructive/40 text-destructive hover:bg-destructive/5 shrink-0"
+                      onClick={() => {
+                        setPendingDelete({ id: h.id, name: h.name });
+                        setConfirmText("");
+                      }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingDelete(null);
+            setConfirmText("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Permanently delete {pendingDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will <strong>PERMANENTLY</strong> delete this household and ALL associated data including
+              compliance notes, financial accounts, and contacts. This is irreversible and should only be used to
+              remove test data. This action is logged.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">
+              Type <span className="font-mono text-foreground">{pendingDelete?.name}</span> to confirm:
+            </Label>
+            <Input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={pendingDelete?.name}
+              autoComplete="off"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleHardDelete}
+              disabled={
+                !pendingDelete ||
+                confirmText !== pendingDelete.name ||
+                deleteHouseholdAdmin.isPending
+              }
+              className={cn(buttonVariants({ variant: "destructive" }))}
+            >
+              {deleteHouseholdAdmin.isPending ? "Deleting..." : "Delete Permanently"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
