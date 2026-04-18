@@ -5,9 +5,10 @@ import { useIsAdmin, useIsGlInternal } from "@/hooks/useAdmin";
 import { useUnreadRequestCounts } from "@/hooks/useUnreadRequestCounts";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
+import { useTaskNotificationCount } from "@/hooks/useTasks";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare,
 } from "lucide-react";
 import glLogo from "@/assets/gl-logo.png";
 
@@ -19,6 +20,7 @@ const navItems = [
   { to: "/contacts", label: "Contacts", icon: UserRound },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/my-requests", label: "My Requests", icon: TicketCheck, badgeKey: "myRequests" as const },
+  { to: "/tasks", label: "Tasks", icon: CheckSquare, badgeKey: "tasks" as const },
   { to: "/reports", label: "Reports", icon: FileText },
   { to: "/performance", label: "Performance", icon: TrendingUp },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -40,6 +42,7 @@ export default function AppSidebar() {
   const { isAdmin } = useIsAdmin();
   const { data: isGlInternal = false } = useIsGlInternal();
   const { data: unreadCounts } = useUnreadRequestCounts();
+  const { data: taskNotifCount = 0 } = useTaskNotificationCount();
   const { currentFirm, allFirms } = useFirmContext();
   const { selectedFirmId, setSelectedFirmId, clearSelectedFirm } = useSelectedFirm();
 
@@ -118,7 +121,11 @@ export default function AppSidebar() {
       <nav className="flex flex-col gap-1 flex-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
-          const badgeCount = item.badgeKey && unreadCounts ? unreadCounts[item.badgeKey] : 0;
+          const badgeCount = item.badgeKey === "tasks"
+            ? taskNotifCount
+            : item.badgeKey && unreadCounts
+              ? (unreadCounts as any)[item.badgeKey]
+              : 0;
           return (
             <RouterNavLink
               key={item.label}
