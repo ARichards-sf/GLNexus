@@ -18,16 +18,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Wallet, Lock, Edit, Trash2, Archive, X, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Wallet, Lock, Edit, Archive, X, MoreHorizontal } from "lucide-react";
 import { useAccount, useDeleteAccount } from "@/hooks/useContacts";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditAccountSheet from "@/components/EditAccountSheet";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
