@@ -500,13 +500,14 @@ export default function HouseholdProfile() {
                         <TableHead>Institution</TableHead>
                         <TableHead className="text-right">Balance</TableHead>
                         <TableHead className="text-right">30d Trend</TableHead>
+                        <TableHead className="w-10" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {accounts.map((a) => (
                         <TableRow
                           key={a.id}
-                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          className="cursor-pointer hover:bg-muted/50 transition-colors group"
                           onClick={() => navigate(`/accounts/${a.id}`)}
                         >
                           <TableCell className="text-sm font-medium text-foreground">{a.account_name}</TableCell>
@@ -520,6 +521,19 @@ export default function HouseholdProfile() {
                             <div className="flex justify-end">
                               <AccountSparkline data={accountSparkData[a.id] || []} />
                             </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteAccountId(a.id);
+                              }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
