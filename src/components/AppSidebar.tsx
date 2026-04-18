@@ -15,7 +15,6 @@ import glLogo from "@/assets/gl-logo.png";
 const DEFAULT_FIRM_VALUE = "__default__";
 
 const clientServiceItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/households", label: "Households", icon: Users },
   { to: "/contacts", label: "Contacts", icon: UserRound },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
@@ -132,8 +131,23 @@ export default function AppSidebar() {
       )}
 
       <nav className="flex flex-col gap-1 flex-1">
+        {/* Dashboard - standalone at top */}
+        <RouterNavLink
+          to="/"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+            location.pathname === "/"
+              ? "bg-secondary text-foreground"
+              : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+          )}
+        >
+          <LayoutDashboard className="w-[18px] h-[18px]" />
+          <span className="flex-1">Dashboard</span>
+        </RouterNavLink>
+        <div className="mx-3 my-2 border-b border-border/50" />
+
         {/* GROUP 1 — Client Service */}
-        <div className="mb-1 px-3">
+        <div className="mt-4 mb-1 px-3">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Client Service</span>
         </div>
         {clientServiceItems.map((item) => {
