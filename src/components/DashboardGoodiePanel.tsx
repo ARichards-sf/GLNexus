@@ -159,7 +159,7 @@ export default function DashboardGoodiePanel() {
         setIsLoading(false);
       }
     },
-    [isLoading, messages, households, recentNotes]
+    [isLoading, messages, households, recentNotes, prospects]
   );
 
   const send = useCallback(() => sendWithText(input), [input, sendWithText]);
