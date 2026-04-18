@@ -578,6 +578,9 @@ export default function Pipeline() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Prospect Dialog */}
+      <AddProspectDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }
