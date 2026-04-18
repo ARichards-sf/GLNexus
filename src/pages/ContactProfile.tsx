@@ -13,6 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
 import { useDeleteHouseholdMember } from "@/hooks/useHouseholds";
 import { formatFullCurrency } from "@/data/sampleData";
@@ -95,14 +96,6 @@ export default function ContactProfile() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
               <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Contact
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-destructive/40 text-destructive hover:bg-destructive/5"
-              onClick={() => setDeleteContactOpen(true)}
-            >
-              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete Contact
             </Button>
           </div>
         </div>
