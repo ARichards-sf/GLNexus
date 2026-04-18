@@ -561,7 +561,7 @@ export default function FirmDetail() {
       </Card>
 
       <EditFirmDialog open={editOpen} onOpenChange={setEditOpen} firm={firm} />
-      <InviteAdvisorDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+      <InviteAdvisorDialog open={inviteOpen} onOpenChange={setInviteOpen} defaultFirmId={id} />
     </div>
   );
 }
