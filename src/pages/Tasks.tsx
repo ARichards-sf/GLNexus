@@ -275,25 +275,6 @@ export default function Tasks() {
     toast({ title: "Task updated" });
   };
 
-  const handleReassign = async (newAssigneeId: string) => {
-    if (!reassignTask) return;
-    const { error } = await (supabase as any)
-      .from("tasks")
-      .update({ assigned_to: newAssigneeId })
-      .eq("id", reassignTask.id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-      return;
-    }
-    if (newAssigneeId !== user?.id) {
-      await (supabase as any).from("task_notifications").insert({
-        task_id: reassignTask.id, user_id: newAssigneeId,
-      });
-    }
-    queryClient.invalidateQueries({ queryKey: ["tasks"] });
-    queryClient.invalidateQueries({ queryKey: ["task_notification_count"] });
-    toast({ title: "Task reassigned" });
-  };
 
   const handleConfirmDelete = async () => {
     if (!deleteCandidate) return;
@@ -361,7 +342,6 @@ export default function Tasks() {
         open={!!reassignTask}
         onOpenChange={(o) => !o && setReassignTask(null)}
         task={reassignTask}
-        onReassign={handleReassign}
       />
 
       <AlertDialog open={!!deleteCandidate} onOpenChange={(o) => !o && setDeleteCandidate(null)}>
