@@ -69,6 +69,10 @@ export default function Dashboard() {
     return myRequests.filter(r => r.status !== "resolved" && r.status !== "closed");
   }, [myRequests]);
 
+  const pendingTasks = useMemo(() => {
+    return myTasks.filter(t => t.status === "todo").slice(0, 3);
+  }, [myTasks]);
+
   const imminentMeeting = useMemo(() => {
     const now = Date.now();
     const cutoff = now + 60 * 60 * 1000;
@@ -115,12 +119,14 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 lg:p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
-          <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 justify-end">
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
+        <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
+      </div>
+
+      {/* Quick Actions bar */}
+      <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-secondary/40 mb-6">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={() => setLogNoteOpen(true)}>
             <FileText className="w-4 h-4 mr-1.5" />
             Log a Note
@@ -138,11 +144,17 @@ export default function Dashboard() {
             Request GL Assistance
           </Button>
         </div>
+        {openRequests.length > 0 && (
+          <Link
+            to="/my-requests"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-amber-200 bg-amber-50/60 dark:border-amber-800/40 dark:bg-amber-950/20 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100/60 transition-colors shrink-0"
+          >
+            <TicketCheck className="w-3.5 h-3.5" />
+            {openRequests.length} open {openRequests.length === 1 ? "request" : "requests"}
+          </Link>
+        )}
       </div>
 
-      {/* Your Next Meeting — only when within 60 minutes */}
-      {imminentMeeting && (
-        <Card className="mb-6 border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/10 shadow-none">
           <CardContent className="pt-5 pb-5">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4 min-w-0">
