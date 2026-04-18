@@ -179,18 +179,6 @@ export default function AccountDetail() {
                   <Archive className="w-4 h-4 mr-2" />
                   Archive Account
                 </DropdownMenuItem>
-                {isNewAccount && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => setDeleteOpen(true)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Account
-                    </DropdownMenuItem>
-                  </>
-                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
