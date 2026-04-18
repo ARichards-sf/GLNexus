@@ -34,7 +34,6 @@ import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import { toast } from "sonner";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import GoodieSuggests from "@/components/GoodieSuggests";
-import DashboardGoodiePanel from "@/components/DashboardGoodiePanel";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -112,8 +111,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-full">
-      <div className="flex-1 p-6 lg:p-8 overflow-auto min-w-0">
+    <div className="p-6 lg:p-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
@@ -355,12 +353,6 @@ export default function Dashboard() {
           if (!open) queryClient.invalidateQueries({ queryKey: ["households"] });
         }}
       />
-      </div>
-
-      {/* Right Goodie panel — hidden below 2xl */}
-      <div className="hidden 2xl:flex 2xl:w-[360px] 3xl:w-[480px] shrink-0 border-l border-border bg-card/30 flex-col">
-        <DashboardGoodiePanel />
-      </div>
     </div>
   );
 }
