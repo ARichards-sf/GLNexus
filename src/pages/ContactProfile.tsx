@@ -263,17 +263,55 @@ export default function ContactProfile() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteAccountId(account.id);
-                                }}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCloseAccountId(account.id);
+                                      setCloseReason("");
+                                    }}
+                                  >
+                                    <X className="w-4 h-4 mr-2" />
+                                    Close Account
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setArchiveAccountId(account.id);
+                                    }}
+                                  >
+                                    <Archive className="w-4 h-4 mr-2" />
+                                    Archive Account
+                                  </DropdownMenuItem>
+                                  {account.created_at &&
+                                    new Date(account.created_at).toDateString() === new Date().toDateString() && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          className="text-destructive focus:text-destructive"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeleteAccountId(account.id);
+                                          }}
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          Delete
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                               <ChevronRight className="w-4 h-4 text-muted-foreground" />
                             </div>
                           </TableCell>
