@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CheckSquare, Plus, AlertCircle, MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react";
+import { CheckSquare, Plus, AlertCircle, MoreHorizontal, ChevronDown, ChevronRight, Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
@@ -196,9 +197,11 @@ interface TaskListProps {
   onEdit: (t: Task) => void;
   onReassign: (t: Task) => void;
   onDelete: (t: Task) => void;
+  onClearFilters?: () => void;
+  isFiltered?: boolean;
 }
 
-function TaskList({ tasks, isLoading, showAdvisor, currentUserId, onEdit, onReassign, onDelete }: TaskListProps) {
+function TaskList({ tasks, isLoading, showAdvisor, currentUserId, onEdit, onReassign, onDelete, onClearFilters, isFiltered }: TaskListProps) {
   const [showDone, setShowDone] = useState(false);
 
   const todoTasks = useMemo(() => tasks.filter((t) => t.status === "todo"), [tasks]);
@@ -213,6 +216,19 @@ function TaskList({ tasks, isLoading, showAdvisor, currentUserId, onEdit, onReas
   }
 
   if (tasks.length === 0) {
+    if (isFiltered && onClearFilters) {
+      return (
+        <Card className="border-border shadow-none">
+          <CardContent className="py-16 text-center">
+            <Filter className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
+            <h3 className="text-base font-semibold text-foreground">No tasks match the current filters</h3>
+            <Button variant="outline" size="sm" className="mt-4" onClick={onClearFilters}>
+              Clear filters
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
     return (
       <Card className="border-border shadow-none">
         <CardContent className="py-16 text-center">
@@ -291,6 +307,74 @@ export default function Tasks() {
   const [reassignTask, setReassignTask] = useState<Task | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<Task | null>(null);
 
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [dueDateFilter, setDueDateFilter] = useState("all");
+
+  useEffect(() => {
+    if (activeTab !== "all") {
+      setAssigneeFilter("all");
+      setDueDateFilter("all");
+    }
+  }, [activeTab]);
+
+  const uniqueAssignees = useMemo(() => {
+    if (activeTab !== "all") return [];
+    return Array.from(new Set(tasks.map((t) => t.assigned_to)));
+  }, [tasks, activeTab]);
+
+  const activeFilterCount = [assigneeFilter !== "all", dueDateFilter !== "all"].filter(Boolean).length;
+
+  const clearFirmFilters = () => {
+    setAssigneeFilter("all");
+    setDueDateFilter("all");
+  };
+
+  const filteredTasks = useMemo(() => {
+    if (activeTab !== "all") return tasks;
+
+    let result = [...tasks];
+
+    if (assigneeFilter !== "all") {
+      result = result.filter((t) => t.assigned_to === assigneeFilter);
+    }
+
+    if (dueDateFilter !== "all") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+      result = result.filter((t) => {
+        if (dueDateFilter === "overdue") {
+          if (!t.due_date || t.status === "done") return false;
+          return new Date(t.due_date + "T00:00:00") < today;
+        }
+        if (dueDateFilter === "today") {
+          if (!t.due_date) return false;
+          const d = new Date(t.due_date + "T00:00:00");
+          return d.getTime() === today.getTime();
+        }
+        if (dueDateFilter === "week") {
+          if (!t.due_date) return false;
+          const d = new Date(t.due_date + "T00:00:00");
+          return d >= today && d <= endOfWeek;
+        }
+        if (dueDateFilter === "month") {
+          if (!t.due_date) return false;
+          const d = new Date(t.due_date + "T00:00:00");
+          return d >= today && d <= endOfMonth;
+        }
+        if (dueDateFilter === "none") {
+          return !t.due_date;
+        }
+        return true;
+      });
+    }
+
+    return result;
+  }, [tasks, activeTab, assigneeFilter, dueDateFilter]);
+
   const handleEditSubmit = async (values: EditableValues) => {
     if (!editTask) return;
     const { error } = await (supabase as any)
@@ -359,8 +443,53 @@ export default function Tasks() {
         </TabsContent>
         {showFirmView && (
           <TabsContent value="all">
-            <TaskList tasks={activeTab === "all" ? tasks : []} isLoading={activeTab === "all" && isLoading} showAdvisor currentUserId={user.id}
-              onEdit={setEditTask} onReassign={setReassignTask} onDelete={setDeleteCandidate} />
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
+              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                <SelectTrigger className="w-[180px] h-9">
+                  <SelectValue placeholder="Assigned to" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Assignees</SelectItem>
+                  {uniqueAssignees.map((uid) => (
+                    <SelectItem key={uid} value={uid}>
+                      {uid === user.id ? "Me" : uid.slice(0, 8) + "..."}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
+                <SelectTrigger className="w-[180px] h-9">
+                  <SelectValue placeholder="Due date" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dates</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="today">Due Today</SelectItem>
+                  <SelectItem value="week">Due This Week</SelectItem>
+                  <SelectItem value="month">Due This Month</SelectItem>
+                  <SelectItem value="none">No Due Date</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {activeFilterCount > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearFirmFilters} className="h-9">
+                  <X className="w-3.5 h-3.5 mr-1" />
+                  Clear {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
+                </Button>
+              )}
+            </div>
+            <TaskList
+              tasks={activeTab === "all" ? filteredTasks : []}
+              isLoading={activeTab === "all" && isLoading}
+              showAdvisor
+              currentUserId={user.id}
+              onEdit={setEditTask}
+              onReassign={setReassignTask}
+              onDelete={setDeleteCandidate}
+              onClearFilters={clearFirmFilters}
+              isFiltered={activeFilterCount > 0}
+            />
           </TabsContent>
         )}
       </Tabs>
