@@ -156,3 +156,20 @@ export function useCreateAccount() {
     },
   });
 }
+
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (accountId: string) => {
+      const { error } = await supabase
+        .from("contact_accounts")
+        .delete()
+        .eq("id", accountId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["household_accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["contact_accounts"] });
+    },
+  });
+}

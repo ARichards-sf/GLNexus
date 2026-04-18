@@ -309,3 +309,43 @@ export function useGenerateSnapshot() {
     },
   });
 }
+
+export function useDeleteHousehold() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { targetAdvisorId } = useImpersonation();
+
+  return useMutation({
+    mutationFn: async (householdId: string) => {
+      const advisorId = user ? targetAdvisorId(user.id) : user!.id;
+      const { error } = await supabase
+        .from("households")
+        .delete()
+        .eq("id", householdId)
+        .eq("advisor_id", advisorId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["households"] });
+      queryClient.invalidateQueries({ queryKey: ["all_compliance_notes"] });
+    },
+  });
+}
+
+export function useDeleteHouseholdMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (memberId: string) => {
+      const { error } = await supabase
+        .from("household_members")
+        .delete()
+        .eq("id", memberId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["household_members"] });
+      queryClient.invalidateQueries({ queryKey: ["household_accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    },
+  });
+}
