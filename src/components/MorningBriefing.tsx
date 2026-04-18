@@ -29,7 +29,7 @@ export default function MorningBriefing({
   firstName,
   userId,
 }: MorningBriefingProps) {
-  const STORAGE_KEY = `goodie_morning_briefing_${userId}`;
+  const STORAGE_KEY = `goodie_morning_briefing_${userId}_v2`;
   const today = new Date().toISOString().split("T")[0];
 
   const initialCache: BriefingCache | null = (() => {
