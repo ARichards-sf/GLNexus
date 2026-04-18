@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Bot, Send, Loader2, Mic, MicOff, DollarSign, CalendarCheck, Users, Bell } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
+import { useProspects } from "@/hooks/useProspects";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { ParsedToolCall, useAiActions } from "@/hooks/useAiActions";
@@ -52,6 +53,7 @@ export default function AiAssistant() {
 
   const { data: households = [] } = useHouseholds();
   const { data: recentNotes = [] } = useAllComplianceNotes();
+  const { data: prospects = [] } = useProspects();
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -97,7 +99,7 @@ export default function AiAssistant() {
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
-    const context = buildContextSnapshot(households, recentNotes);
+    const context = buildContextSnapshot(households, recentNotes, prospects);
     let assistantSoFar = "";
 
     const apiMessages = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
@@ -134,7 +136,7 @@ export default function AiAssistant() {
       toast.error("Failed to reach the AI assistant.");
       setIsLoading(false);
     }
-  }, [isLoading, messages, households, recentNotes]);
+  }, [isLoading, messages, households, recentNotes, prospects]);
 
   const send = useCallback(() => sendWithText(input), [input, sendWithText]);
 

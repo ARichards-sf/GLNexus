@@ -4,7 +4,7 @@ import type { ParsedToolCall } from "@/hooks/useAiActions";
 
 export type AiMsg = { role: "user" | "assistant"; content: string; toolCalls?: ParsedToolCall[] };
 
-export function buildContextSnapshot(households: any[], notes: any[]): string {
+export function buildContextSnapshot(households: any[], notes: any[], prospects?: any[]): string {
   const totalAUM = households.reduce((s, h) => s + Number(h.total_aum), 0);
   const active = households.filter((h) => h.status === "Active").length;
   const now = new Date();
@@ -40,6 +40,22 @@ export function buildContextSnapshot(households: any[], notes: any[]): string {
     ctx += "\nRECENT ACTIVITY:\n";
     notes.slice(0, 8).forEach((n: any) => {
       ctx += `- [${n.type}] ${(n as any).households?.name || "Household"}: ${n.summary.slice(0, 120)} (${new Date(n.date).toLocaleDateString()})\n`;
+    });
+  }
+
+  const activeProspects = (prospects || []).filter(
+    (p) => p.pipeline_stage !== "converted" && p.pipeline_stage !== "lost"
+  );
+  if (activeProspects.length > 0) {
+    ctx += "\nPROSPECT PIPELINE:\n";
+    ctx += `${activeProspects.length} active prospects\n`;
+    activeProspects.forEach((p: any) => {
+      ctx += `- ${p.first_name} ${p.last_name}`;
+      if (p.company) ctx += ` (${p.company})`;
+      ctx += ` | Stage: ${p.pipeline_stage}`;
+      if (p.estimated_aum) ctx += ` | Est. AUM: $${Number(p.estimated_aum).toLocaleString()}`;
+      if (p.source) ctx += ` | Source: ${p.source}`;
+      ctx += "\n";
     });
   }
 
