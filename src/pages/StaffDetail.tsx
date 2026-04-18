@@ -226,11 +226,17 @@ export default function StaffDetail() {
                   <Select value={formRole} onValueChange={setFormRole}>
                     <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
                     <SelectContent>
-                      {ROLES.map((r) => (
+                      {availableRoles.map((r) => (
                         <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {formRole === "developer" && (
+                    <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      Developer role grants full data deletion access. Assign with caution.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
