@@ -8,7 +8,7 @@ import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useTaskNotificationCount } from "@/hooks/useTasks";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal,
 } from "lucide-react";
 import glLogo from "@/assets/gl-logo.png";
 
@@ -44,6 +44,7 @@ const internalItems = [
   { to: "/admin/staff", label: "GL Staff", icon: UsersRound },
   { to: "/admin/firms", label: "Firm Management", icon: Building2 },
   { to: "/admin/retention", label: "Data Retention", icon: Database, requireSuperAdmin: true as const },
+  { to: "/admin/developer", label: "Developer Tools", icon: Terminal, requireDeveloper: true as const },
 ];
 
 export default function AppSidebar() {
@@ -53,6 +54,7 @@ export default function AppSidebar() {
   const { data: isGlInternal = false } = useIsGlInternal();
   const { data: glProfile } = useGlProfile();
   const isSuperAdmin = !!glProfile?.is_gl_internal && glProfile?.platform_role === "super_admin";
+  const isDeveloper = !!glProfile?.is_gl_internal && (glProfile?.platform_role === "developer" || glProfile?.platform_role === "super_admin");
   const { data: unreadCounts } = useUnreadRequestCounts();
   const { data: taskNotifCount = 0 } = useTaskNotificationCount();
   const { currentFirm, allFirms } = useFirmContext();
@@ -309,6 +311,7 @@ export default function AppSidebar() {
             </div>
             {internalItems.map((item) => {
               if ((item as any).requireSuperAdmin && !isSuperAdmin) return null;
+              if ((item as any).requireDeveloper && !isDeveloper) return null;
               const isActive = location.pathname.startsWith(item.to);
               return (
                 <RouterNavLink

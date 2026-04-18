@@ -41,12 +41,103 @@ async function verifyAdmin(req: Request) {
   return { supabaseAdmin, callerId };
 }
 
+async function verifyDeveloper(req: Request) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  if (!supabaseUrl || !serviceRoleKey) throw { status: 500, message: "Server configuration error" };
+
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) throw { status: 401, message: "Unauthorized" };
+
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const callerClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsErr } = await callerClient.auth.getClaims(token);
+  if (claimsErr || !claimsData?.claims?.sub) throw { status: 401, message: "Unauthorized" };
+  const callerId = claimsData.claims.sub as string;
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("is_gl_internal, platform_role")
+    .eq("user_id", callerId)
+    .maybeSingle();
+
+  const allowed = !!profile?.is_gl_internal && (profile?.platform_role === "developer" || profile?.platform_role === "super_admin");
+  if (!allowed) throw { status: 403, message: "Developer role required" };
+
+  return { supabaseAdmin, callerId };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    // Peek the action so developer-only actions skip the strict admin check
+    const reqClone = req.clone();
+    const body = await reqClone.json().catch(() => ({}));
+    const peekAction = (body as any)?.action;
+    const DEV_ACTIONS = ["dev_delete", "dev_delete_user"];
+
+    if (DEV_ACTIONS.includes(peekAction)) {
+      const { supabaseAdmin, callerId } = await verifyDeveloper(req);
+      const { action, ...payload } = body as any;
+
+      if (action === "dev_delete") {
+        const { table, ids } = payload as { table: string; ids: string[] };
+        const ALLOWED_TABLES = ["households", "prospects", "compliance_notes", "tasks", "firms", "deletion_audit_log"];
+        if (!ALLOWED_TABLES.includes(table)) throw new Error(`Table ${table} not allowed`);
+        if (!Array.isArray(ids) || ids.length === 0) throw new Error("ids required");
+
+        if (table !== "deletion_audit_log") {
+          const { data: records } = await supabaseAdmin.from(table).select("*").in("id", ids);
+          if (records?.length) {
+            await supabaseAdmin.from("deletion_audit_log").insert(
+              records.map((r: any) => ({
+                record_type: table,
+                record_id: r.id,
+                advisor_id: r.advisor_id || null,
+                deletion_reason: "developer_delete",
+                record_snapshot: r,
+                deleted_by: `developer:${callerId}`,
+              }))
+            );
+          }
+        }
+
+        const { error } = await supabaseAdmin.from(table).delete().in("id", ids);
+        if (error) throw error;
+        return json({ deleted: ids.length, table });
+      }
+
+      if (action === "dev_delete_user") {
+        const { user_id } = payload as { user_id: string };
+        if (!user_id) throw new Error("user_id required");
+
+        const { data: profile } = await supabaseAdmin
+          .from("profiles").select("*").eq("user_id", user_id).maybeSingle();
+
+        if (profile) {
+          await supabaseAdmin.from("deletion_audit_log").insert({
+            record_type: "user",
+            record_id: user_id,
+            deletion_reason: "developer_delete",
+            record_snapshot: profile,
+            deleted_by: `developer:${callerId}`,
+          });
+        }
+
+        const { error } = await supabaseAdmin.auth.admin.deleteUser(user_id);
+        if (error) throw error;
+        return json({ deleted: true });
+      }
+    }
+
     const { supabaseAdmin } = await verifyAdmin(req);
-    const { action, ...payload } = await req.json();
+    const { action, ...payload } = body as any;
 
     // ── LIST ADVISORS ──
     if (action === "list_advisors") {
