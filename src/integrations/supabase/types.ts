@@ -423,6 +423,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          secondary_color: string | null
           state: string | null
           total_aum: number | null
           website: string | null
@@ -445,6 +446,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          secondary_color?: string | null
           state?: string | null
           total_aum?: number | null
           website?: string | null
@@ -467,6 +469,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          secondary_color?: string | null
           state?: string | null
           total_aum?: number | null
           website?: string | null
