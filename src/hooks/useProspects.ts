@@ -215,6 +215,20 @@ export function useConvertProspect() {
         .single();
       if (hhErr) throw hhErr;
 
+      // 1b. Create household member from prospect data
+      const { error: memberErr } = await supabase
+        .from("household_members")
+        .insert({
+          household_id: household.id,
+          advisor_id: advisorId,
+          first_name: prospect.first_name,
+          last_name: prospect.last_name,
+          relationship: "Primary",
+          email: prospect.email || null,
+          phone: prospect.phone || null,
+        });
+      if (memberErr) throw memberErr;
+
       // 2. Update the prospect
       const { error: updErr } = await supabase
         .from("prospects")
