@@ -58,6 +58,7 @@ export default function Dashboard() {
   const { data: recentNotes = [] } = useAllComplianceNotes();
   const { data: upcomingEvents = [] } = useUpcomingEvents(20);
   const { data: myRequests = [] } = useMyServiceRequests();
+  const { data: myTasks = [] } = useTasks("mine");
   const generateSnapshot = useGenerateSnapshot();
   const [assistOpen, setAssistOpen] = useState(false);
   const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
