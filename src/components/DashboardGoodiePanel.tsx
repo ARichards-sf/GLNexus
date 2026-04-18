@@ -51,6 +51,7 @@ export default function DashboardGoodiePanel() {
 
   const { data: households = [] } = useHouseholds();
   const { data: recentNotes = [] } = useAllComplianceNotes();
+  const { data: prospects = [] } = useProspects();
   const { executeAction } = useAiActions();
 
   useEffect(() => {
