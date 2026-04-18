@@ -27,6 +27,9 @@ function LayoutInner() {
     return localStorage.getItem("goodie-panel-collapsed") === "true";
   });
 
+  const [laneDialogOpen, setLaneDialogOpen] = useState(false);
+  const sessionSnapshot = useRef<CalendarEvent | null>(null);
+
   const togglePanel = () => {
     const next = !panelCollapsed;
     setPanelCollapsed(next);
@@ -43,22 +46,34 @@ function LayoutInner() {
     : null;
 
   const handleEndSession = () => {
-    if (user && sessionEvent && sessionEvent.household_id) {
-      const name = sessionEvent.households?.name ?? "client";
+    // Snapshot before ending
+    sessionSnapshot.current = sessionEvent;
+
+    const wasProspectSession =
+      !!sessionEvent?.prospect_id && !sessionEvent?.household_id;
+
+    if (user && sessionEvent && (sessionEvent.household_id || sessionEvent.prospect_id)) {
+      const name =
+        sessionEvent.households?.name ||
+        (sessionEvent.prospects
+          ? `${sessionEvent.prospects.first_name} ${sessionEvent.prospects.last_name}`
+          : "client");
+
       createTask.mutate(
         {
           title: `Send follow-up email — ${name}`,
           description: `Review and send the Goodie-drafted follow-up email after your session with ${name}.`,
           due_date: new Date().toISOString().split("T")[0],
           priority: "high",
-          household_id: sessionEvent.household_id,
+          household_id: sessionEvent.household_id ?? undefined,
           task_type: "follow_up_email",
           assigned_to: user.id,
           advisor_id: user.id,
           status: "todo",
           metadata: {
             session_event_id: sessionEvent.id,
-            household_name: name,
+            name,
+            prospect_id: sessionEvent.prospect_id ?? undefined,
             event_type: sessionEvent.event_type,
           },
         },
@@ -69,7 +84,12 @@ function LayoutInner() {
         }
       );
     }
+
     endSession();
+
+    if (wasProspectSession) {
+      setLaneDialogOpen(true);
+    }
   };
 
   return (
