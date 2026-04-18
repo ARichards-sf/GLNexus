@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { CalendarCheck, AlertTriangle, CalendarPlus, Trash2, MoreHorizontal } from "lucide-react";
+import { CalendarCheck, AlertTriangle, CalendarPlus, Trash2, MoreHorizontal, Archive } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -462,7 +462,7 @@ export default function HouseholdProfile() {
                           className="text-destructive focus:text-destructive"
                           onClick={() => setDeleteMemberId(member.id)}
                         >
-                          <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete Member
+                          <Trash2 className="w-3.5 h-3.5 mr-2" /> Remove Contact
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -612,16 +612,23 @@ export default function HouseholdProfile() {
 
       {/* Danger Zone */}
       <div className="mt-8 pt-6 border-t border-border">
-        <h3 className="text-sm font-medium text-muted-foreground mb-3">Danger Zone</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-destructive/40 text-destructive hover:bg-destructive/5"
-          onClick={() => setDeleteHouseholdOpen(true)}
-        >
-          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-          Archive Household
-        </Button>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-foreground">Archive Household</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Removes this household from your active book. All data is retained for compliance.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-destructive/40 text-destructive hover:bg-destructive/5 shrink-0"
+            onClick={() => setDeleteHouseholdOpen(true)}
+          >
+            <Archive className="w-3.5 h-3.5 mr-1.5" />
+            Archive Household
+          </Button>
+        </div>
       </div>
 
       <AddMemberDialog open={addMemberOpen} onOpenChange={setAddMemberOpen} householdId={household.id} />
@@ -648,8 +655,9 @@ export default function HouseholdProfile() {
           <AlertDialogHeader>
             <AlertDialogTitle>Archive {household.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This household will be archived and hidden from your active list. Its data — contacts,
-              financial accounts, and compliance notes — will be preserved and can be restored later.
+              This household will be removed from your active book of business. All compliance notes,
+              accounts, and client data will be retained as required by regulations. You can view
+              archived households in Reports.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -659,25 +667,29 @@ export default function HouseholdProfile() {
               onClick={async () => {
                 try {
                   await archiveHousehold.mutateAsync({ householdId: household.id });
-                  toast.success(`${household.name} archived`);
+                  toast.success(`${household.name} has been archived`);
                   navigate("/households");
                 } catch (e: any) {
                   toast.error(e?.message || "Failed to archive household");
                 }
               }}
             >
-              Archive Household
+              Archive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Member Confirmation */}
+      {/* Remove Member Confirmation */}
       <AlertDialog open={!!deleteMemberId} onOpenChange={(o) => !o && setDeleteMemberId(null)}>
         <AlertDialogContent>
           {(() => {
             const m = members.find((x) => x.id === deleteMemberId);
             const name = m ? `${m.first_name} ${m.last_name}` : "this contact";
+            const memberAccountCount = m
+              ? accounts.filter((a: any) => a.member_id === m.id).length
+              : 0;
+            const hasAccounts = memberAccountCount > 0;
             return (
               <>
                 <AlertDialogHeader>
