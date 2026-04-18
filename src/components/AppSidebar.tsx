@@ -31,6 +31,10 @@ const adminItems = [
   { to: "/admin/requests", label: "All Requests", icon: TicketCheck, badgeKey: "allRequests" as const },
 ];
 
+const bdItems = [
+  { to: "/pipeline", label: "Pipeline", icon: TrendingUp },
+];
+
 const internalItems = [
   { to: "/admin/staff", label: "GL Staff", icon: UsersRound },
   { to: "/admin/firms", label: "Firm Management", icon: Building2 },
