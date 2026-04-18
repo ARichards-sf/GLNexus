@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
-  Edit, Wallet, Plus, HelpCircle, ChevronRight, Trash2,
+  Edit, Wallet, Plus, HelpCircle, ChevronRight,
   Archive, ArrowRightLeft, MoreHorizontal, X,
 } from "lucide-react";
 import {
@@ -18,10 +18,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
-import { useDeleteHouseholdMember, useArchiveContact } from "@/hooks/useHouseholds";
+import { useArchiveContact } from "@/hooks/useHouseholds";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
 import AddAccountDialog from "@/components/AddAccountDialog";
