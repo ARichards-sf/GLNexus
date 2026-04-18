@@ -42,7 +42,7 @@ export function useCalendarEvents(month?: Date) {
     queryFn: async () => {
       let query = supabase
         .from("calendar_events")
-        .select("*, households(name)")
+        .select("*, households(name), prospects(id, first_name, last_name, company, pipeline_stage, estimated_aum)")
         .eq("advisor_id", advisorId!)
         .order("start_time", { ascending: true });
 
@@ -67,7 +67,7 @@ export function useUpcomingEvents(limit = 5) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("calendar_events")
-        .select("*, households(name)")
+        .select("*, households(name), prospects(id, first_name, last_name, company, pipeline_stage, estimated_aum)")
         .eq("advisor_id", advisorId!)
         .eq("status", "scheduled")
         .gte("start_time", new Date().toISOString())
