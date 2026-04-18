@@ -98,6 +98,24 @@ export function useContactAccounts(memberId: string | undefined) {
         .from("contact_accounts")
         .select("*")
         .eq("member_id", memberId!)
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as AccountRow[];
+    },
+    enabled: !!userId && !!memberId,
+  });
+}
+
+export function useAllContactAccounts(memberId: string | undefined) {
+  const { userId } = useTargetAdvisorId();
+  return useQuery({
+    queryKey: ["all_contact_accounts", memberId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contact_accounts")
+        .select("*")
+        .eq("member_id", memberId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as AccountRow[];
@@ -160,16 +178,46 @@ export function useCreateAccount() {
 export function useDeleteAccount() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (accountId: string) => {
-      const { error } = await supabase
-        .from("contact_accounts")
-        .delete()
-        .eq("id", accountId);
-      if (error) throw error;
+    mutationFn: async ({
+      accountId,
+      action,
+      reason,
+    }: {
+      accountId: string;
+      action: "close" | "archive" | "delete";
+      reason?: string;
+    }) => {
+      if (action === "close") {
+        const { error } = await supabase
+          .from("contact_accounts")
+          .update({
+            status: "closed",
+            closed_at: new Date().toISOString(),
+            closed_reason: reason || "Closed by advisor",
+          })
+          .eq("id", accountId);
+        if (error) throw error;
+      } else if (action === "archive") {
+        const { error } = await supabase
+          .from("contact_accounts")
+          .update({
+            status: "archived",
+            archived_at: new Date().toISOString(),
+          })
+          .eq("id", accountId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("contact_accounts")
+          .delete()
+          .eq("id", accountId);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["household_accounts"] });
       queryClient.invalidateQueries({ queryKey: ["contact_accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["all_contact_accounts"] });
     },
   });
 }

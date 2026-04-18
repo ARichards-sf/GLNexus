@@ -24,6 +24,7 @@ export function useHouseholdAccounts(householdId: string | undefined) {
         .from("contact_accounts")
         .select("*")
         .in("member_id", memberIds)
+        .eq("status", "active")
         .order("balance", { ascending: false });
       if (aErr) throw aErr;
 
