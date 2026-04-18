@@ -109,6 +109,8 @@ export type Database = {
           event_type: string
           household_id: string | null
           id: string
+          meeting_context: string | null
+          prospect_id: string | null
           start_time: string
           status: string
           title: string
@@ -122,6 +124,8 @@ export type Database = {
           event_type?: string
           household_id?: string | null
           id?: string
+          meeting_context?: string | null
+          prospect_id?: string | null
           start_time: string
           status?: string
           title: string
@@ -135,6 +139,8 @@ export type Database = {
           event_type?: string
           household_id?: string | null
           id?: string
+          meeting_context?: string | null
+          prospect_id?: string | null
           start_time?: string
           status?: string
           title?: string
@@ -146,6 +152,13 @@ export type Database = {
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
             referencedColumns: ["id"]
           },
         ]
