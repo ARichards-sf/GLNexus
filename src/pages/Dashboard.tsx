@@ -355,6 +355,12 @@ export default function Dashboard() {
           if (!open) queryClient.invalidateQueries({ queryKey: ["households"] });
         }}
       />
+      </div>
+
+      {/* Right Goodie panel — hidden below 2xl */}
+      <div className="hidden 2xl:flex 2xl:w-[360px] 3xl:w-[480px] shrink-0 border-l border-border bg-card/30 flex-col">
+        <DashboardGoodiePanel />
+      </div>
     </div>
   );
 }
