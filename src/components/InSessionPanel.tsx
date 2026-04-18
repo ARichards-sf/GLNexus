@@ -18,9 +18,11 @@ import { formatFullCurrency } from "@/data/sampleData";
 import { EVENT_TYPE_COLORS, type CalendarEvent } from "@/hooks/useCalendarEvents";
 import { supabase } from "@/integrations/supabase/client";
 
+import { useProspect, PIPELINE_STAGES } from "@/hooks/useProspects";
+
 interface Props {
   event: CalendarEvent;
-  householdId: string;
+  householdId?: string;
   onClose?: () => void;
 }
 
@@ -212,6 +214,16 @@ function useGoodieBrief(brief: ReturnType<typeof usePreMeetingBrief>) {
 }
 
 export default function InSessionPanel({ event, householdId, onClose }: Props) {
+  const isProspectSession = !!event.prospect_id && !event.household_id;
+
+  if (isProspectSession) {
+    return <ProspectSessionPanel event={event} onClose={onClose} />;
+  }
+
+  return <HouseholdSessionPanel event={event} householdId={householdId!} onClose={onClose} />;
+}
+
+function HouseholdSessionPanel({ event, householdId, onClose }: { event: CalendarEvent; householdId: string; onClose?: () => void }) {
   const brief = usePreMeetingBrief(event, householdId);
   const goodie = useGoodieBrief(brief);
 
