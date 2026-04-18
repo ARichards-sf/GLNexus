@@ -91,10 +91,29 @@ Deno.serve(async (req) => {
       const { user_id } = payload;
       if (!user_id) throw new Error("user_id required");
 
-      const { data: profile, error: pErr } = await supabaseAdmin
+      let { data: profile, error: pErr } = await supabaseAdmin
         .from("profiles").select("*").eq("user_id", user_id).maybeSingle();
       if (pErr) throw pErr;
-      if (!profile) throw new Error("Advisor not found");
+
+      // Look up auth user (needed for last_sign_in_at and as a fallback)
+      const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
+      const authUser = (authUsers || []).find((u: any) => u.id === user_id);
+
+      // Self-heal: if profile is missing but the auth user exists, create it
+      if (!profile) {
+        if (!authUser) throw new Error("Advisor not found");
+        const fullName =
+          (authUser.user_metadata as any)?.full_name ||
+          authUser.email?.split("@")[0] ||
+          "Advisor";
+        const { data: created, error: insErr } = await supabaseAdmin
+          .from("profiles")
+          .insert({ user_id, email: authUser.email, full_name: fullName })
+          .select("*")
+          .maybeSingle();
+        if (insErr) throw insErr;
+        profile = created;
+      }
 
       const { data: aumData } = await supabaseAdmin
         .from("households").select("id, name, total_aum").eq("advisor_id", user_id).order("total_aum", { ascending: false });
@@ -103,9 +122,6 @@ Deno.serve(async (req) => {
 
       const { data: roles } = await supabaseAdmin
         .from("user_roles").select("role").eq("user_id", user_id);
-
-      const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
-      const authUser = (authUsers || []).find((u: any) => u.id === user_id);
 
       return json({
         advisor: {
