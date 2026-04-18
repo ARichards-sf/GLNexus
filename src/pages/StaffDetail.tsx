@@ -29,6 +29,7 @@ const DEPT_META: Record<string, { label: string; className: string }> = {
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
   super_admin: "Super Admin",
+  developer: "Developer",
 };
 
 const FIRM_OPTIONAL_DEPTS = new Set(["marketing", "transitions", "compliance", "accounting", "operations"]);
