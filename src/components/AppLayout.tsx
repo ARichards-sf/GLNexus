@@ -167,6 +167,20 @@ function LayoutInner() {
         )}
       </div>
       <AiAssistant />
+
+      {laneDialogOpen && sessionSnapshot.current?.prospect_id && (
+        <ExecutionLaneDialog
+          open={laneDialogOpen}
+          onOpenChange={setLaneDialogOpen}
+          prospectId={sessionSnapshot.current.prospect_id}
+          prospectName={
+            sessionSnapshot.current.prospects
+              ? `${sessionSnapshot.current.prospects.first_name} ${sessionSnapshot.current.prospects.last_name}`
+              : "this prospect"
+          }
+          onLaneSelected={() => setLaneDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }
