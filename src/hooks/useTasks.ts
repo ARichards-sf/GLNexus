@@ -19,8 +19,6 @@ export interface Task {
   created_at: string;
   completed_at: string | null;
   households?: { id: string; name: string } | null;
-  assigned_profile?: { full_name: string | null; user_id: string } | null;
-  created_profile?: { full_name: string | null; user_id: string } | null;
 }
 
 export type TaskFilter = "mine" | "created" | "all";
@@ -54,9 +52,7 @@ export function useTasks(filter: TaskFilter = "all") {
         .select(
           `
           *,
-          households:household_id ( id, name ),
-          assigned_profile:profiles!tasks_assigned_to_fkey ( full_name, user_id ),
-          created_profile:profiles!tasks_created_by_fkey ( full_name, user_id )
+          households:household_id ( id, name )
         `
         );
 

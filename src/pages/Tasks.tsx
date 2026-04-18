@@ -67,8 +67,10 @@ function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelet
   const uncompleteTask = useUncompleteTask();
   const isDone = task.status === "done";
   const overdue = isOverdue(task.due_date, task.status);
-  const assigneeName = task.assigned_profile?.full_name || "Unknown";
-  const advisorName = task.created_profile?.full_name || null;
+  const assigneeInitials =
+    task.assigned_to === currentUserId
+      ? "Me"
+      : task.assigned_to.slice(0, 2).toUpperCase();
   const showAssignee = task.assigned_to !== currentUserId;
   const isCreator = task.created_by === currentUserId;
 
@@ -84,8 +86,8 @@ function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelet
       />
 
       <div className="flex-1 min-w-0">
-        {showAdvisor && advisorName && (
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-0.5">{advisorName}</p>
+        {showAdvisor && (
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-0.5">Task</p>
         )}
         <div className="flex items-center gap-2 flex-wrap">
           <p className={cn("text-sm font-medium text-foreground", isDone && "line-through text-muted-foreground")}>
@@ -129,10 +131,10 @@ function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelet
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-semibold text-foreground">
-                {initialsOf(assigneeName)}
+                {assigneeInitials}
               </div>
             </TooltipTrigger>
-            <TooltipContent>{assigneeName}</TooltipContent>
+            <TooltipContent>Assigned</TooltipContent>
           </Tooltip>
         )}
 
