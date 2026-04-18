@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -180,8 +180,8 @@ export default function AdminFirms() {
             {firms.map((firm) => {
               const isOpen = expanded.has(firm.id);
               return (
-                <>
-                  <TableRow key={firm.id}>
+                <Fragment key={firm.id}>
+                  <TableRow>
                     <TableCell className="w-10">
                       <Button
                         variant="ghost"
@@ -224,13 +224,13 @@ export default function AdminFirms() {
                     </TableCell>
                   </TableRow>
                   {isOpen && (
-                    <TableRow key={`${firm.id}-advisors`} className="bg-muted/30 hover:bg-muted/30">
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableCell colSpan={6} className="p-0">
                         <FirmAdvisorsList firmId={firm.id} />
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               );
             })}
             {firms.length === 0 && (
