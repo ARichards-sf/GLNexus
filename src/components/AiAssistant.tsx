@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
-import { Bot, Send, Loader2, Mic, MicOff } from "lucide-react";
+import { Bot, Send, Loader2, Mic, MicOff, DollarSign, CalendarCheck, Users, Bell } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,28 @@ import { buildContextSnapshot, streamChat, type AiMsg as Msg } from "@/lib/aiCha
 import { cn } from "@/lib/utils";
 import { useSpeechInput } from "@/hooks/useSpeechInput";
 
+const PROMPT_CHIPS = [
+  {
+    icon: DollarSign,
+    label: "What's my total AUM?",
+    prompt: "What is my total AUM?",
+  },
+  {
+    icon: CalendarCheck,
+    label: "Which clients need a review?",
+    prompt: "Which of my clients have annual reviews coming up or overdue?",
+  },
+  {
+    icon: Users,
+    label: "Show me my top households",
+    prompt: "Show me my top 5 households by AUM",
+  },
+  {
+    icon: Bell,
+    label: "Remind me to follow up...",
+    prompt: "Remind me to follow up with ",
+  },
+];
 
 export default function AiAssistant() {
   const { user } = useAuth();

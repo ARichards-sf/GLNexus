@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Send, Loader2, Mic, MicOff } from "lucide-react";
+import { Send, Loader2, Mic, MicOff, DollarSign, CalendarCheck, Users, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -10,6 +10,29 @@ import { buildContextSnapshot, streamChat, type AiMsg } from "@/lib/aiChat";
 import ActionCard from "@/components/ActionCard";
 import { useSpeechInput } from "@/hooks/useSpeechInput";
 import { cn } from "@/lib/utils";
+
+const PROMPT_CHIPS = [
+  {
+    icon: DollarSign,
+    label: "What's my total AUM?",
+    prompt: "What is my total AUM?",
+  },
+  {
+    icon: CalendarCheck,
+    label: "Which clients need a review?",
+    prompt: "Which of my clients have annual reviews coming up or overdue?",
+  },
+  {
+    icon: Users,
+    label: "Show me my top households",
+    prompt: "Show me my top 5 households by AUM",
+  },
+  {
+    icon: Bell,
+    label: "Remind me to follow up...",
+    prompt: "Remind me to follow up with ",
+  },
+];
 
 export default function DashboardGoodiePanel() {
   const { user } = useAuth();
