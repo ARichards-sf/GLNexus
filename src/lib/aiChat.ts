@@ -43,6 +43,22 @@ export function buildContextSnapshot(households: any[], notes: any[], prospects?
     });
   }
 
+  const activeProspects = (prospects || []).filter(
+    (p) => p.pipeline_stage !== "converted" && p.pipeline_stage !== "lost"
+  );
+  if (activeProspects.length > 0) {
+    ctx += "\nPROSPECT PIPELINE:\n";
+    ctx += `${activeProspects.length} active prospects\n`;
+    activeProspects.forEach((p: any) => {
+      ctx += `- ${p.first_name} ${p.last_name}`;
+      if (p.company) ctx += ` (${p.company})`;
+      ctx += ` | Stage: ${p.pipeline_stage}`;
+      if (p.estimated_aum) ctx += ` | Est. AUM: $${Number(p.estimated_aum).toLocaleString()}`;
+      if (p.source) ctx += ` | Source: ${p.source}`;
+      ctx += "\n";
+    });
+  }
+
   return ctx;
 }
 
