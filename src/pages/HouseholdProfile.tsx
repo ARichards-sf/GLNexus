@@ -690,13 +690,29 @@ export default function HouseholdProfile() {
               ? accounts.filter((a: any) => a.member_id === m.id).length
               : 0;
             const hasAccounts = memberAccountCount > 0;
+            if (hasAccounts) {
+              return (
+                <>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cannot remove {name}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {name} has {memberAccountCount} financial{" "}
+                      {memberAccountCount === 1 ? "account" : "accounts"}. Please delete their
+                      accounts before removing this contact.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogAction onClick={() => setDeleteMemberId(null)}>OK</AlertDialogAction>
+                  </AlertDialogFooter>
+                </>
+              );
+            }
             return (
               <>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
+                  <AlertDialogTitle>Remove {name}?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete this contact and all their financial accounts.
-                    This cannot be undone.
+                    This contact will be removed from the household.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -707,14 +723,14 @@ export default function HouseholdProfile() {
                       if (!deleteMemberId) return;
                       try {
                         await deleteMember.mutateAsync(deleteMemberId);
-                        toast.success(`${name} deleted`);
+                        toast.success(`${name} removed`);
                         setDeleteMemberId(null);
                       } catch (e: any) {
-                        toast.error(e?.message || "Failed to delete contact");
+                        toast.error(e?.message || "Failed to remove contact");
                       }
                     }}
                   >
-                    Delete Member
+                    Remove
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </>
@@ -734,7 +750,7 @@ export default function HouseholdProfile() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete this account. This cannot be undone.
+                    This financial account will be permanently deleted.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
