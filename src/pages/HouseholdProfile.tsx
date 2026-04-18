@@ -1,13 +1,18 @@
 import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { CalendarCheck, AlertTriangle, CalendarPlus, Trash2, MoreHorizontal, Archive } from "lucide-react";
+import {
+  CalendarCheck, AlertTriangle, CalendarPlus, Trash2, MoreHorizontal, Archive,
+  ArrowRightLeft, ChevronDown, ChevronUp, X,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   ArrowLeft, DollarSign, Shield, Target, Users, Mail, Phone,
   FileText, Lightbulb, UserPlus, Briefcase, Plus, Lock, Search, HelpCircle,
@@ -21,11 +26,13 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   useHousehold, useHouseholdMembers, useComplianceNotes, useHouseholdSnapshots,
   useAccountSnapshots, useArchiveHousehold, useDeleteHouseholdMember,
+  useArchiveContact, useArchivedHouseholdMembers,
+  type MemberRow,
 } from "@/hooks/useHouseholds";
 import { useDeleteAccount } from "@/hooks/useContacts";
 import { useHouseholdAccounts } from "@/hooks/useHouseholdAccounts";
@@ -34,6 +41,7 @@ import AddMemberDialog from "@/components/AddMemberDialog";
 import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
 import QuickScheduleReviewDialog from "@/components/QuickScheduleReviewDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
+import ReparentContactDialog from "@/components/ReparentContactDialog";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -160,6 +168,7 @@ export default function HouseholdProfile() {
   const navigate = useNavigate();
   const { data: household, isLoading } = useHousehold(id);
   const { data: members = [] } = useHouseholdMembers(id);
+  const { data: archivedMembers = [] } = useArchivedHouseholdMembers(id);
   const { data: notes = [] } = useComplianceNotes(id);
   const { data: accounts = [] } = useHouseholdAccounts(id);
   const { data: hhSnapshots = [] } = useHouseholdSnapshots(id);
@@ -171,8 +180,21 @@ export default function HouseholdProfile() {
   const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false);
   const [deleteMemberId, setDeleteMemberId] = useState<string | null>(null);
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+
+  // Reparent + archive contact state
+  const [reparentMember, setReparentMember] = useState<MemberRow | null>(null);
+  const [reparentOpen, setReparentOpen] = useState(false);
+  const [archiveMember, setArchiveMember] = useState<MemberRow | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+
+  // Account close/archive state
+  const [closeAccountId, setCloseAccountId] = useState<string | null>(null);
+  const [closeReason, setCloseReason] = useState("");
+  const [archiveAccountId, setArchiveAccountId] = useState<string | null>(null);
 
   const archiveHousehold = useArchiveHousehold();
+  const archiveContact = useArchiveContact();
   const deleteMember = useDeleteHouseholdMember();
   const deleteAccount = useDeleteAccount();
 
@@ -459,10 +481,22 @@ export default function HouseholdProfile() {
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => setDeleteMemberId(member.id)}
+                          onClick={() => {
+                            setReparentMember(member);
+                            setReparentOpen(true);
+                          }}
                         >
-                          <Trash2 className="w-3.5 h-3.5 mr-2" /> Remove Contact
+                          <ArrowRightLeft className="w-3.5 h-3.5 mr-2" /> Move to Another Household
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setArchiveMember(member);
+                            setArchiveOpen(true);
+                          }}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Archive className="w-3.5 h-3.5 mr-2" /> Archive Contact
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -470,6 +504,46 @@ export default function HouseholdProfile() {
                 </div>
               ))}
               {members.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No members added yet.</p>}
+
+              {/* Archived Contacts collapsible */}
+              {archivedMembers.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <button
+                    onClick={() => setShowArchived(!showArchived)}
+                    className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+                  >
+                    {showArchived ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
+                    {archivedMembers.length} archived contact{archivedMembers.length !== 1 ? "s" : ""}
+                  </button>
+
+                  {showArchived && (
+                    <div className="mt-3 space-y-2">
+                      {archivedMembers.map((m) => (
+                        <div
+                          key={m.id}
+                          className="flex items-center justify-between p-3 rounded-lg bg-secondary/20 opacity-60"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">
+                              {m.first_name} {m.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Archived {m.archived_at ? new Date(m.archived_at).toLocaleDateString() : "—"}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px]">
+                            Archived
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -523,17 +597,48 @@ export default function HouseholdProfile() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteAccountId(a.id);
-                              }}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal className="w-3.5 h-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setCloseReason("");
+                                    setCloseAccountId(a.id);
+                                  }}
+                                >
+                                  <X className="w-3.5 h-3.5 mr-2" /> Close Account
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setArchiveAccountId(a.id)}>
+                                  <Archive className="w-3.5 h-3.5 mr-2" /> Archive Account
+                                </DropdownMenuItem>
+                                {(() => {
+                                  const createdToday = a.created_at
+                                    ? new Date(a.created_at).toDateString() === new Date().toDateString()
+                                    : false;
+                                  if (!createdToday) return null;
+                                  return (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive"
+                                        onClick={() => setDeleteAccountId(a.id)}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
+                                      </DropdownMenuItem>
+                                    </>
+                                  );
+                                })()}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -776,6 +881,157 @@ export default function HouseholdProfile() {
           })()}
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Archive Contact Confirmation */}
+      <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Archive {archiveMember?.first_name} {archiveMember?.last_name}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This contact will be archived and hidden from your active view. Their history will be
+              retained for compliance. You can view archived contacts in the household profile.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!archiveMember) return;
+                try {
+                  await archiveContact.mutateAsync({ memberId: archiveMember.id });
+                  toast.success(
+                    `${archiveMember.first_name} ${archiveMember.last_name} archived`
+                  );
+                  setArchiveOpen(false);
+                  setArchiveMember(null);
+                } catch (e: any) {
+                  toast.error(e?.message || "Failed to archive contact");
+                }
+              }}
+            >
+              Archive Contact
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Close Account Confirmation */}
+      <AlertDialog open={!!closeAccountId} onOpenChange={(o) => !o && setCloseAccountId(null)}>
+        <AlertDialogContent>
+          {(() => {
+            const a = accounts.find((x) => x.id === closeAccountId);
+            const name = a?.account_name || "this account";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Close {name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This account will be marked as closed. The record will be retained for compliance.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2 py-2">
+                  <Label htmlFor="close-reason" className="text-xs">
+                    Reason (optional)
+                  </Label>
+                  <Textarea
+                    id="close-reason"
+                    placeholder="e.g. Account transferred, client request..."
+                    value={closeReason}
+                    onChange={(e) => setCloseReason(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={async () => {
+                      if (!closeAccountId) return;
+                      try {
+                        await deleteAccount.mutateAsync({
+                          accountId: closeAccountId,
+                          action: "close",
+                          reason: closeReason || undefined,
+                        });
+                        toast.success(`${name} closed`);
+                        setCloseAccountId(null);
+                        setCloseReason("");
+                      } catch (e: any) {
+                        toast.error(e?.message || "Failed to close account");
+                      }
+                    }}
+                  >
+                    Close Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Archive Account Confirmation */}
+      <AlertDialog open={!!archiveAccountId} onOpenChange={(o) => !o && setArchiveAccountId(null)}>
+        <AlertDialogContent>
+          {(() => {
+            const a = accounts.find((x) => x.id === archiveAccountId);
+            const name = a?.account_name || "this account";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Archive {name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This account will be archived and hidden from active views. The record will be
+                    retained for compliance.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={async () => {
+                      if (!archiveAccountId) return;
+                      try {
+                        await deleteAccount.mutateAsync({
+                          accountId: archiveAccountId,
+                          action: "archive",
+                        });
+                        toast.success(`${name} archived`);
+                        setArchiveAccountId(null);
+                      } catch (e: any) {
+                        toast.error(e?.message || "Failed to archive account");
+                      }
+                    }}
+                  >
+                    Archive Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reparent Contact Dialog */}
+      {reparentOpen && reparentMember && id && (
+        <ReparentContactDialog
+          open={reparentOpen}
+          onOpenChange={setReparentOpen}
+          contact={{
+            id: reparentMember.id,
+            first_name: reparentMember.first_name,
+            last_name: reparentMember.last_name,
+            household_id: id,
+            household_name: household.name,
+          }}
+          accounts={accounts.filter((a: any) => a.member_id === reparentMember.id)}
+          onComplete={() => {
+            setReparentOpen(false);
+            setReparentMember(null);
+          }}
+        />
+      )}
     </div>
   );
 }
