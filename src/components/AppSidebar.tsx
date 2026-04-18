@@ -316,6 +316,22 @@ export default function AppSidebar() {
             })}
           </>
         )}
+
+        {/* Settings - standalone at bottom */}
+        <div className="mt-auto pt-4 border-t border-border">
+          <RouterNavLink
+            to="/settings"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              location.pathname === "/settings"
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+            )}
+          >
+            <Settings className="w-[18px] h-[18px]" />
+            <span className="flex-1">Settings</span>
+          </RouterNavLink>
+        </div>
       </nav>
 
       <div className="mt-auto px-3 pt-6 border-t border-border">
