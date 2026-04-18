@@ -235,30 +235,127 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Open Requests Banner + Goodie Suggests */}
+      {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 space-y-4">
-          {openRequests.length > 0 && (
-            <div className="flex items-center justify-between px-4 py-2.5 rounded-lg border border-amber-200 bg-amber-50/60 dark:border-amber-800/40 dark:bg-amber-950/20">
-              <div className="flex items-center gap-2.5">
-                <TicketCheck className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                <p className="text-sm text-amber-800 dark:text-amber-300">
-                  You have{" "}
-                  <span className="font-semibold">
-                    {openRequests.length}
-                  </span>{" "}
-                  open GL support{" "}
-                  {openRequests.length === 1 ? " request" : " requests"}
-                </p>
+        <div className="lg:col-span-2 space-y-6">
+          {/* Pending Tasks */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CheckSquare className="w-4 h-4" />
+                  Pending Tasks
+                </CardTitle>
+                <Link to="/tasks">
+                  <Button variant="ghost" size="sm" className="text-xs h-7">
+                    View all <ArrowRight className="w-3 h-3 ml-1" />
+                  </Button>
+                </Link>
               </div>
-              <Link
-                to="/my-requests"
-                className="text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline shrink-0"
-              >
-                View →
-              </Link>
-            </div>
-          )}
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {pendingTasks.length === 0 ? (
+                <div className="text-center py-6">
+                  <CheckSquare className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">You're all caught up</p>
+                </div>
+              ) : (
+                pendingTasks.map((t) => {
+                  const priorityDot =
+                    t.priority === "urgent"
+                      ? "bg-red-500"
+                      : t.priority === "high"
+                      ? "bg-amber-500"
+                      : t.priority === "medium"
+                      ? "bg-blue-500"
+                      : "bg-muted-foreground/40";
+                  const isOverdue =
+                    !!t.due_date &&
+                    new Date(t.due_date + "T00:00:00") < new Date(new Date().setHours(0, 0, 0, 0));
+                  return (
+                    <Link
+                      key={t.id}
+                      to={`/tasks/${t.id}`}
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors"
+                    >
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${priorityDot}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{t.title}</p>
+                        {t.households?.name && (
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                            {t.households.name}
+                          </p>
+                        )}
+                      </div>
+                      {t.due_date && (
+                        <span
+                          className={`text-[11px] shrink-0 ${
+                            isOverdue ? "text-red-600 dark:text-red-400 font-medium" : "text-muted-foreground"
+                          }`}
+                        >
+                          {new Date(t.due_date + "T00:00:00").toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Upcoming Meetings */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold">Upcoming Meetings</CardTitle>
+                <Link to="/calendar">
+                  <Button variant="ghost" size="sm" className="text-xs h-7">
+                    View Calendar <ArrowRight className="w-3 h-3 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {upcomingEvents.map((ev) => {
+                const colors = EVENT_TYPE_COLORS[ev.event_type] || EVENT_TYPE_COLORS["Discovery Call"];
+                return (
+                  <Link
+                    key={ev.id}
+                    to="/calendar"
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors group"
+                  >
+                    <div className={`w-2 h-8 rounded-full shrink-0 ${colors.dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {ev.households?.name || "No household linked"}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-medium text-foreground">
+                        {new Date(ev.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(ev.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+              {upcomingEvents.length === 0 && (
+                <div className="text-center py-6">
+                  <CalendarDays className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">No upcoming meetings</p>
+                  <Link to="/calendar">
+                    <Button variant="outline" size="sm" className="mt-2 text-xs">Schedule a meeting</Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="lg:col-span-1">
@@ -266,59 +363,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        {/* Upcoming Meetings */}
-        <Card className="border-border shadow-none">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">Upcoming Meetings</CardTitle>
-              <Link to="/calendar">
-                <Button variant="ghost" size="sm" className="text-xs h-7">
-                  View Calendar <ArrowRight className="w-3 h-3 ml-1" />
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {upcomingEvents.map((ev) => {
-              const colors = EVENT_TYPE_COLORS[ev.event_type] || EVENT_TYPE_COLORS["Discovery Call"];
-              return (
-                <Link
-                  key={ev.id}
-                  to="/calendar"
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors group"
-                >
-                  <div className={`w-2 h-8 rounded-full shrink-0 ${colors.dot}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {ev.households?.name || "No household linked"}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs font-medium text-foreground">
-                      {new Date(ev.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {new Date(ev.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
-            {upcomingEvents.length === 0 && (
-              <div className="text-center py-6">
-                <CalendarDays className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">No upcoming meetings</p>
-                <Link to="/calendar">
-                  <Button variant="outline" size="sm" className="mt-2 text-xs">Schedule a meeting</Button>
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-      
       <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
       <QuickLogNoteDialog open={logNoteOpen} onOpenChange={setLogNoteOpen} />
       <CreateHouseholdDialog
