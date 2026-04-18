@@ -8,18 +8,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
   Edit, Wallet, Plus, HelpCircle, ChevronRight, Trash2,
+  Archive, ArrowRightLeft, MoreHorizontal, X,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
-import { useDeleteHouseholdMember } from "@/hooks/useHouseholds";
+import { useDeleteHouseholdMember, useArchiveContact } from "@/hooks/useHouseholds";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
 import AddAccountDialog from "@/components/AddAccountDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
+import ReparentContactDialog from "@/components/ReparentContactDialog";
 
 export default function ContactProfile() {
   const { id } = useParams();
