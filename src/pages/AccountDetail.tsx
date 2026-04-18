@@ -1,12 +1,25 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Wallet, Lock, Edit } from "lucide-react";
-import { useAccount } from "@/hooks/useContacts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Wallet, Lock, Edit, Trash2 } from "lucide-react";
+import { useAccount, useDeleteAccount } from "@/hooks/useContacts";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditAccountSheet from "@/components/EditAccountSheet";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -35,6 +48,20 @@ export default function AccountDetail() {
   const { id } = useParams();
   const { data: account, isLoading } = useAccount(id);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const deleteAccount = useDeleteAccount();
+  const navigate = useNavigate();
+
+  const handleDelete = async () => {
+    if (!id || !account) return;
+    try {
+      await deleteAccount.mutateAsync(id);
+      toast.success("Account deleted");
+      navigate(`/contacts/${account.member_id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete account");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -92,9 +119,19 @@ export default function AccountDetail() {
               </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Account
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Account
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-destructive/40 text-destructive hover:bg-destructive/5"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete Account
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -182,6 +219,26 @@ export default function AccountDetail() {
       </div>
 
       <EditAccountSheet open={editOpen} onOpenChange={setEditOpen} account={account} />
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {account.account_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This financial account will be permanently deleted. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className={cn(buttonVariants({ variant: "destructive" }))}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
