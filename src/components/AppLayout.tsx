@@ -1,16 +1,18 @@
 import { Outlet, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Bot, PhoneOff, ChevronLeft, ChevronRight } from "lucide-react";
 import AppSidebar from "./AppSidebar";
 import ImpersonationBar from "./ImpersonationBar";
 import AiAssistant from "./AiAssistant";
 import InSessionPanel from "./InSessionPanel";
 import DashboardGoodiePanel from "./DashboardGoodiePanel";
+import ExecutionLaneDialog from "./ExecutionLaneDialog";
 import { Button } from "@/components/ui/button";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { InSessionProvider, useInSession } from "@/contexts/InSessionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateTask } from "@/hooks/useTasks";
+import type { CalendarEvent } from "@/hooks/useCalendarEvents";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
