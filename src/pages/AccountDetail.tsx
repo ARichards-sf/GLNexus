@@ -119,9 +119,19 @@ export default function AccountDetail() {
               </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Account
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Account
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-destructive/40 text-destructive hover:bg-destructive/5"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete Account
+            </Button>
+          </div>
         </div>
       </div>
 
