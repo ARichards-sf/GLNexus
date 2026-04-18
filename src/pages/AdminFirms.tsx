@@ -5,8 +5,9 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Building2, Plus, Pencil, ChevronDown, ChevronRight, Crown } from "lucide-react";
-import { useFirms } from "@/hooks/useFirms";
+import { useFirms, type Firm } from "@/hooks/useFirms";
 import CreateFirmDialog from "@/components/CreateFirmDialog";
+import EditFirmDialog from "@/components/EditFirmDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -128,6 +129,7 @@ function FirmAdvisorsList({ firmId }: { firmId: string }) {
 export default function AdminFirms() {
   const { data: firms = [], isLoading } = useFirms();
   const [createOpen, setCreateOpen] = useState(false);
+  const [editFirm, setEditFirm] = useState<Firm | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const toggleExpand = (id: string) => {
@@ -218,7 +220,7 @@ export default function AdminFirms() {
                       {firm.allow_book_sharing ? "Enabled" : "Disabled"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-xs h-7" disabled>
+                      <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setEditFirm(firm)}>
                         <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
                       </Button>
                     </TableCell>
@@ -245,6 +247,13 @@ export default function AdminFirms() {
       </div>
 
       <CreateFirmDialog open={createOpen} onOpenChange={setCreateOpen} />
+      {editFirm && (
+        <EditFirmDialog
+          open={!!editFirm}
+          onOpenChange={(o) => !o && setEditFirm(null)}
+          firm={editFirm}
+        />
+      )}
     </div>
   );
 }
