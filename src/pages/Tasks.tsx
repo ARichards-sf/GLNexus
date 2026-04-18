@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckSquare, Plus, AlertCircle, MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { useIsAdmin } from "@/hooks/useAdmin";
 import { useIsLeadAdvisor } from "@/hooks/useIsLeadAdvisor";
 import {
   useTasks, useCompleteTask, useUncompleteTask, useDeleteTask,
+  useMarkNotificationsRead,
   type Task, type TaskFilter,
 } from "@/hooks/useTasks";
 import { supabase } from "@/integrations/supabase/client";
@@ -248,6 +249,12 @@ export default function Tasks() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const deleteTask = useDeleteTask();
+  const markRead = useMarkNotificationsRead();
+
+  useEffect(() => {
+    markRead.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);

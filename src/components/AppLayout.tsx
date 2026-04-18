@@ -1,6 +1,6 @@
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { Bot, Bell, PhoneOff, ChevronLeft, ChevronRight } from "lucide-react";
+import { Bot, PhoneOff, ChevronLeft, ChevronRight } from "lucide-react";
 import AppSidebar from "./AppSidebar";
 import ImpersonationBar from "./ImpersonationBar";
 import AiAssistant from "./AiAssistant";
@@ -10,43 +10,9 @@ import { Button } from "@/components/ui/button";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { InSessionProvider, useInSession } from "@/contexts/InSessionContext";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  useTaskNotificationCount,
-  useMarkNotificationsRead,
-  useCreateTask,
-} from "@/hooks/useTasks";
+import { useCreateTask } from "@/hooks/useTasks";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-function TopBar() {
-  const navigate = useNavigate();
-  const { data: count = 0 } = useTaskNotificationCount();
-  const markRead = useMarkNotificationsRead();
-
-  const handleClick = () => {
-    navigate("/tasks");
-    if (count > 0) {
-      markRead.mutate();
-    }
-  };
-
-  return (
-    <div className="h-10 border-b border-border bg-card/50 flex items-center justify-end px-4 shrink-0">
-      <Button
-        variant="ghost"
-        size="icon"
-        title="Tasks"
-        onClick={handleClick}
-        className="relative"
-      >
-        <Bell className="w-5 h-5" />
-        {count > 0 && (
-          <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-destructive" />
-        )}
-      </Button>
-    </div>
-  );
-}
 
 function LayoutInner() {
   const { sessionEvent, isInSession, endSession } = useInSession();
@@ -105,7 +71,6 @@ function LayoutInner() {
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
-          {user && <TopBar />}
           <main
             className={cn(
               "flex-1 overflow-y-auto transition-all duration-300",
