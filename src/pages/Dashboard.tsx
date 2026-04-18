@@ -184,7 +184,10 @@ export default function Dashboard() {
                     {imminentMeeting.title}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {imminentMeeting.households?.name || "No household linked"}
+                    {(imminentMeeting.households?.name ||
+                      (imminentMeeting.prospects
+                        ? `${imminentMeeting.prospects.first_name} ${imminentMeeting.prospects.last_name}`
+                        : null)) || "No client linked"}
                     {" · "}
                     {minutesUntilMeeting === 0
                       ? "Starting now"
@@ -195,7 +198,7 @@ export default function Dashboard() {
               <Button
                 size="sm"
                 onClick={() => imminentMeeting && startSession(imminentMeeting)}
-                disabled={!imminentMeeting.household_id}
+                disabled={!imminentMeeting.household_id && !imminentMeeting.prospect_id}
               >
                 Start Session
                 <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
