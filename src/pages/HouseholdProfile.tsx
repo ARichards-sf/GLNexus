@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  CalendarCheck, AlertTriangle, CalendarPlus, Trash2, MoreHorizontal, Archive,
+  CalendarCheck, AlertTriangle, CalendarPlus, MoreHorizontal, Archive,
   ArrowRightLeft, ChevronDown, ChevronUp, X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
