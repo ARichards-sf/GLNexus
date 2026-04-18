@@ -593,6 +593,77 @@ export type Database = {
           },
         ]
       }
+      prospects: {
+        Row: {
+          advisor_id: string
+          company: string | null
+          converted_at: string | null
+          converted_household_id: string | null
+          created_at: string
+          email: string | null
+          estimated_aum: number | null
+          first_name: string
+          id: string
+          job_title: string | null
+          last_name: string
+          lost_reason: string | null
+          notes: string | null
+          phone: string | null
+          pipeline_stage: string
+          referred_by: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          advisor_id: string
+          company?: string | null
+          converted_at?: string | null
+          converted_household_id?: string | null
+          created_at?: string
+          email?: string | null
+          estimated_aum?: number | null
+          first_name: string
+          id?: string
+          job_title?: string | null
+          last_name: string
+          lost_reason?: string | null
+          notes?: string | null
+          phone?: string | null
+          pipeline_stage?: string
+          referred_by?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          advisor_id?: string
+          company?: string | null
+          converted_at?: string | null
+          converted_household_id?: string | null
+          created_at?: string
+          email?: string | null
+          estimated_aum?: number | null
+          first_name?: string
+          id?: string
+          job_title?: string | null
+          last_name?: string
+          lost_reason?: string | null
+          notes?: string | null
+          phone?: string | null
+          pipeline_stage?: string
+          referred_by?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_converted_household_id_fkey"
+            columns: ["converted_household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_request_messages: {
         Row: {
           content: string
