@@ -108,6 +108,7 @@ function getInitials(first: string, last: string): string {
 export default function Pipeline() {
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
