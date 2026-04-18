@@ -33,6 +33,7 @@ import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import { toast } from "sonner";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import GoodieSuggests from "@/components/GoodieSuggests";
+import MorningBriefing from "@/components/MorningBriefing";
 import { useTasks } from "@/hooks/useTasks";
 
 const noteTypeColors: Record<string, string> = {
