@@ -280,7 +280,10 @@ export default function HouseholdProfile() {
           <ArrowLeft className="w-4 h-4" /> Households
         </Link>
         <div className="flex items-center justify-between">
-          <div>
+          <div
+            className="pl-4 border-l-2"
+            style={{ borderColor: "var(--firm-accent, hsl(var(--primary)))" }}
+          >
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">{household.name}</h1>
             <p className="text-muted-foreground mt-1">{household.investment_objective}</p>
           </div>
