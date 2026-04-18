@@ -731,6 +731,13 @@ export default function FirmDetail() {
 
       <EditFirmDialog open={editOpen} onOpenChange={setEditOpen} firm={firm} />
       <InviteAdvisorDialog open={inviteOpen} onOpenChange={setInviteOpen} defaultFirmId={id} />
+      {id && (
+        <AddFirmAdminDialog
+          open={addAdminOpen}
+          onOpenChange={setAddAdminOpen}
+          firmId={id}
+        />
+      )}
     </div>
   );
 }
