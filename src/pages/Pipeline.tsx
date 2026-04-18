@@ -250,7 +250,10 @@ export default function Pipeline() {
             {formatCurrency(totalEstimatedAum)} estimated AUM
           </p>
         </div>
-        <AddProspectDialog />
+        <Button onClick={() => setAddOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Prospect
+        </Button>
       </div>
 
       {isEmpty ? (
@@ -265,7 +268,10 @@ export default function Pipeline() {
                 Add your first prospect to start building your pipeline
               </p>
             </div>
-            <AddProspectDialog />
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Prospect
+            </Button>
           </div>
         </Card>
       ) : (
