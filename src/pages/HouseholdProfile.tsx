@@ -610,6 +610,20 @@ export default function HouseholdProfile() {
         </TabsContent>
       </Tabs>
 
+      {/* Danger Zone */}
+      <div className="mt-8 pt-6 border-t border-border">
+        <h3 className="text-sm font-medium text-muted-foreground mb-3">Danger Zone</h3>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-destructive/40 text-destructive hover:bg-destructive/5"
+          onClick={() => setDeleteHouseholdOpen(true)}
+        >
+          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+          Delete Household
+        </Button>
+      </div>
+
       <AddMemberDialog open={addMemberOpen} onOpenChange={setAddMemberOpen} householdId={household.id} />
       <AddComplianceNoteDialog open={addNoteOpen} onOpenChange={setAddNoteOpen} householdId={household.id} />
       <QuickScheduleReviewDialog
@@ -627,6 +641,113 @@ export default function HouseholdProfile() {
           householdId: household.id,
         }}
       />
+
+      {/* Delete Household Confirmation */}
+      <AlertDialog open={deleteHouseholdOpen} onOpenChange={setDeleteHouseholdOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {household.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this household and all associated data including contacts,
+              financial accounts, and compliance notes. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                try {
+                  await deleteHousehold.mutateAsync(household.id);
+                  toast.success(`${household.name} deleted`);
+                  navigate("/households");
+                } catch (e: any) {
+                  toast.error(e?.message || "Failed to delete household");
+                }
+              }}
+            >
+              Delete Household
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Member Confirmation */}
+      <AlertDialog open={!!deleteMemberId} onOpenChange={(o) => !o && setDeleteMemberId(null)}>
+        <AlertDialogContent>
+          {(() => {
+            const m = members.find((x) => x.id === deleteMemberId);
+            const name = m ? `${m.first_name} ${m.last_name}` : "this contact";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete this contact and all their financial accounts.
+                    This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      if (!deleteMemberId) return;
+                      try {
+                        await deleteMember.mutateAsync(deleteMemberId);
+                        toast.success(`${name} deleted`);
+                        setDeleteMemberId(null);
+                      } catch (e: any) {
+                        toast.error(e?.message || "Failed to delete contact");
+                      }
+                    }}
+                  >
+                    Delete Member
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Account Confirmation */}
+      <AlertDialog open={!!deleteAccountId} onOpenChange={(o) => !o && setDeleteAccountId(null)}>
+        <AlertDialogContent>
+          {(() => {
+            const a = accounts.find((x) => x.id === deleteAccountId);
+            const name = a?.account_name || "this account";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete this account. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      if (!deleteAccountId) return;
+                      try {
+                        await deleteAccount.mutateAsync(deleteAccountId);
+                        toast.success(`${name} deleted`);
+                        setDeleteAccountId(null);
+                      } catch (e: any) {
+                        toast.error(e?.message || "Failed to delete account");
+                      }
+                    }}
+                  >
+                    Delete Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
