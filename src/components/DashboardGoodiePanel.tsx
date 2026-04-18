@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Send, Loader2, Mic, MicOff } from "lucide-react";
+import { Send, Loader2, Mic, MicOff, DollarSign, CalendarCheck, Users, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -10,6 +10,29 @@ import { buildContextSnapshot, streamChat, type AiMsg } from "@/lib/aiChat";
 import ActionCard from "@/components/ActionCard";
 import { useSpeechInput } from "@/hooks/useSpeechInput";
 import { cn } from "@/lib/utils";
+
+const PROMPT_CHIPS = [
+  {
+    icon: DollarSign,
+    label: "What's my total AUM?",
+    prompt: "What is my total AUM?",
+  },
+  {
+    icon: CalendarCheck,
+    label: "Which clients need a review?",
+    prompt: "Which of my clients have annual reviews coming up or overdue?",
+  },
+  {
+    icon: Users,
+    label: "Show me my top households",
+    prompt: "Show me my top 5 households by AUM",
+  },
+  {
+    icon: Bell,
+    label: "Remind me to follow up...",
+    prompt: "Remind me to follow up with ",
+  },
+];
 
 export default function DashboardGoodiePanel() {
   const { user } = useAuth();
@@ -170,9 +193,38 @@ export default function DashboardGoodiePanel() {
                     onReject={handleReject}
                   />
                 ))}
-              </div>
-            )}
           </div>
+        )}
+        {messages.length === 1 && !isLoading && (
+          <div className="px-4 pb-2 space-y-2">
+            <p className="text-xs text-muted-foreground font-medium">Try asking:</p>
+            <div className="flex flex-col gap-2">
+              {PROMPT_CHIPS.map((chip) => (
+                <button
+                  key={chip.label}
+                  onClick={() => {
+                    if (chip.prompt.endsWith(" ")) {
+                      setInput(chip.prompt);
+                      setTimeout(() => {
+                        const inputEl = document.querySelector(
+                          "input[placeholder]"
+                        ) as HTMLInputElement;
+                        inputEl?.focus();
+                      }, 50);
+                    } else {
+                      sendWithText(chip.prompt);
+                    }
+                  }}
+                  className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-lg border border-border bg-card hover:bg-secondary/60 hover:border-primary/30 transition-colors group text-sm"
+                >
+                  <chip.icon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                  <span className="text-foreground/80 group-hover:text-foreground transition-colors">{chip.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
         ))}
         {isLoading && messages[messages.length - 1]?.role === "user" && (
           <div className="flex justify-start">

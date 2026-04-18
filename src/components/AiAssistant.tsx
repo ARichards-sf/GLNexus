@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
-import { Bot, Send, Loader2, Mic, MicOff } from "lucide-react";
+import { Bot, Send, Loader2, Mic, MicOff, DollarSign, CalendarCheck, Users, Bell } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,28 @@ import { buildContextSnapshot, streamChat, type AiMsg as Msg } from "@/lib/aiCha
 import { cn } from "@/lib/utils";
 import { useSpeechInput } from "@/hooks/useSpeechInput";
 
+const PROMPT_CHIPS = [
+  {
+    icon: DollarSign,
+    label: "What's my total AUM?",
+    prompt: "What is my total AUM?",
+  },
+  {
+    icon: CalendarCheck,
+    label: "Which clients need a review?",
+    prompt: "Which of my clients have annual reviews coming up or overdue?",
+  },
+  {
+    icon: Users,
+    label: "Show me my top households",
+    prompt: "Show me my top 5 households by AUM",
+  },
+  {
+    icon: Bell,
+    label: "Remind me to follow up...",
+    prompt: "Remind me to follow up with ",
+  },
+];
 
 export default function AiAssistant() {
   const { user } = useAuth();
@@ -168,6 +190,35 @@ export default function AiAssistant() {
             <div className="flex justify-start">
               <div className="bg-secondary rounded-lg px-3 py-2">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            </div>
+          )}
+          {messages.length === 1 && !isLoading && (
+            <div className="px-4 pb-2 space-y-2">
+              <p className="text-xs text-muted-foreground font-medium">Try asking:</p>
+              <div className="flex flex-col gap-2">
+                {PROMPT_CHIPS.map((chip) => (
+                  <button
+                    key={chip.label}
+                    onClick={() => {
+                      if (chip.prompt.endsWith(" ")) {
+                        setInput(chip.prompt);
+                        setTimeout(() => {
+                          const inputEl = document.querySelector(
+                            "input[placeholder]"
+                          ) as HTMLInputElement;
+                          inputEl?.focus();
+                        }, 50);
+                      } else {
+                        sendWithText(chip.prompt);
+                      }
+                    }}
+                    className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-lg border border-border bg-card hover:bg-secondary/60 hover:border-primary/30 transition-colors group text-sm"
+                  >
+                    <chip.icon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                    <span className="text-foreground/80 group-hover:text-foreground transition-colors">{chip.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
           )}
