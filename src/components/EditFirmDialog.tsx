@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +33,36 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Cast firm to include new fields
+  const f = firm as typeof firm & {
+    phone?: string | null
+    email?: string | null
+    website?: string | null
+    address_line1?: string | null
+    address_line2?: string | null
+    city?: string | null
+    state?: string | null
+    zip?: string | null
+    bd_number?: string | null
+    crd_number?: string | null
+    notes?: string | null
+    founded_year?: number | null
+  };
+
+  // New field states
+  const [phone, setPhone] = useState(f.phone || "");
+  const [email, setEmail] = useState(f.email || "");
+  const [website, setWebsite] = useState(f.website || "");
+  const [addressLine1, setAddressLine1] = useState(f.address_line1 || "");
+  const [addressLine2, setAddressLine2] = useState(f.address_line2 || "");
+  const [city, setCity] = useState(f.city || "");
+  const [state, setState] = useState(f.state || "");
+  const [zip, setZip] = useState(f.zip || "");
+  const [bdNumber, setBdNumber] = useState(f.bd_number || "");
+  const [crdNumber, setCrdNumber] = useState(f.crd_number || "");
+  const [notes, setNotes] = useState(f.notes || "");
+  const [foundedYear, setFoundedYear] = useState(f.founded_year ? String(f.founded_year) : "");
+
   // Re-sync state if firm prop changes
   useEffect(() => {
     setName(firm.name);
@@ -40,6 +71,19 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
     setLogoFile(null);
     setLogoPreview(firm.logo_url);
     setLogoClearedExisting(false);
+    // Reset new fields
+    setPhone(f.phone || "");
+    setEmail(f.email || "");
+    setWebsite(f.website || "");
+    setAddressLine1(f.address_line1 || "");
+    setAddressLine2(f.address_line2 || "");
+    setCity(f.city || "");
+    setState(f.state || "");
+    setZip(f.zip || "");
+    setBdNumber(f.bd_number || "");
+    setCrdNumber(f.crd_number || "");
+    setNotes(f.notes || "");
+    setFoundedYear(f.founded_year ? String(f.founded_year) : "");
   }, [firm]);
 
   const validHex = HEX_RE.test(accentColor);
@@ -99,6 +143,18 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
           accent_color: accentColor || null,
           allow_book_sharing: allowBookSharing,
           logo_url: logoUrl,
+          phone: phone.trim() || null,
+          email: email.trim() || null,
+          website: website.trim() || null,
+          address_line1: addressLine1.trim() || null,
+          address_line2: addressLine2.trim() || null,
+          city: city.trim() || null,
+          state: state.trim().toUpperCase() || null,
+          zip: zip.trim() || null,
+          bd_number: bdNumber.trim() || null,
+          crd_number: crdNumber.trim() || null,
+          notes: notes.trim() || null,
+          founded_year: foundedYear ? parseInt(foundedYear) : null,
         })
         .eq("id", firm.id);
 
@@ -106,6 +162,7 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
 
       toast({ title: "Firm updated" });
       queryClient.invalidateQueries({ queryKey: ["firms_with_counts"] });
+      queryClient.invalidateQueries({ queryKey: ["firm", firm.id] });
       onOpenChange(false);
     } catch (e: any) {
       toast({ title: "Error updating firm", description: e.message, variant: "destructive" });
@@ -116,11 +173,11 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Firm</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 max-h-[80vh] overflow-y-auto">
           {/* Logo Upload */}
           <div className="space-y-2">
             <Label>Firm Logo</Label>
@@ -220,6 +277,144 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
               <p className="text-xs text-muted-foreground mt-0.5">Advisors can share households across the firm.</p>
             </div>
             <Switch id="edit-book-sharing" checked={allowBookSharing} onCheckedChange={setAllowBookSharing} />
+          </div>
+
+          {/* Contact Information */}
+          <div className="pt-4 border-t border-border">
+            <h4 className="text-sm font-medium text-foreground mb-3">Contact Information</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input
+                  id="edit-phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(555) 000-0000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="info@firm.com"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-website">Website</Label>
+            <Input
+              id="edit-website"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://www.firm.com"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-address-line1">Address Line 1</Label>
+            <Input
+              id="edit-address-line1"
+              value={addressLine1}
+              onChange={(e) => setAddressLine1(e.target.value)}
+              placeholder="123 Main Street"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-address-line2">Address Line 2</Label>
+            <Input
+              id="edit-address-line2"
+              value={addressLine2}
+              onChange={(e) => setAddressLine2(e.target.value)}
+              placeholder="Suite 100"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="edit-city">City</Label>
+              <Input
+                id="edit-city"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="New York"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-state">State</Label>
+              <Input
+                id="edit-state"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                placeholder="NY"
+                maxLength={2}
+                className="uppercase"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-zip">ZIP</Label>
+              <Input
+                id="edit-zip"
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
+                placeholder="10001"
+              />
+            </div>
+          </div>
+
+          {/* Regulatory Information */}
+          <div className="pt-4 border-t border-border">
+            <h4 className="text-sm font-medium text-foreground mb-3">Regulatory Information</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-bd-number">BD Number</Label>
+                <Input
+                  id="edit-bd-number"
+                  value={bdNumber}
+                  onChange={(e) => setBdNumber(e.target.value)}
+                  placeholder="LPL-XXXXX"
+                  className="font-mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-crd-number">CRD Number</Label>
+                <Input
+                  id="edit-crd-number"
+                  value={crdNumber}
+                  onChange={(e) => setCrdNumber(e.target.value)}
+                  placeholder="XXXXXXX"
+                  className="font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-founded-year">Founded Year</Label>
+            <Input
+              id="edit-founded-year"
+              type="number"
+              value={foundedYear}
+              onChange={(e) => setFoundedYear(e.target.value)}
+              placeholder="2010"
+              min="1900"
+              max={new Date().getFullYear()}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-notes">Notes</Label>
+            <Textarea
+              id="edit-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Internal notes about this firm..."
+              rows={3}
+            />
           </div>
         </div>
         <DialogFooter>
