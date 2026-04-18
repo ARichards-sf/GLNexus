@@ -151,7 +151,7 @@ export default function AppSidebar() {
 
         {/* GROUP 1 — Client Service */}
         <div className="mt-4 mb-1 px-3">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/40">Client Service</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Client Service</span>
         </div>
         {clientServiceItems.map((item) => {
           const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
@@ -177,7 +177,7 @@ export default function AppSidebar() {
 
         {/* GROUP 2 — Activity */}
         <div className="mt-4 mb-1 px-3">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/40">Activity</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Activity</span>
         </div>
         {activityItems.map((item) => {
           const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
@@ -213,7 +213,7 @@ export default function AppSidebar() {
 
         {/* GROUP 3 — Insights */}
         <div className="mt-4 mb-1 px-3">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/40">Insights</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Insights</span>
         </div>
         {insightsItems.map((item) => {
           const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
@@ -239,7 +239,7 @@ export default function AppSidebar() {
 
         {/* GROUP 4 — Business Development */}
         <div className="mt-4 mb-2 px-3">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/40">Business Development</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Business Development</span>
         </div>
         {bdItems.map((item) => {
           const isActive = location.pathname === item.to || location.pathname.startsWith(item.to);
@@ -266,7 +266,7 @@ export default function AppSidebar() {
         {isAdmin && (
           <>
             <div className="mt-6 mb-2 px-3">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Admin</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Admin</span>
             </div>
             {adminItems.map((item) => {
               const isActive = location.pathname.startsWith(item.to);
@@ -305,7 +305,7 @@ export default function AppSidebar() {
         {showInternal && (
           <>
             <div className="mt-6 mb-2 px-3">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Internal</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Internal</span>
             </div>
             {internalItems.map((item) => {
               if ((item as any).requireSuperAdmin && !isSuperAdmin) return null;
