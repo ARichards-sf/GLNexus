@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
+import { useProspects } from "@/hooks/useProspects";
 import { useAiActions, type ParsedToolCall } from "@/hooks/useAiActions";
 import { buildContextSnapshot, streamChat, type AiMsg } from "@/lib/aiChat";
 import ActionCard from "@/components/ActionCard";
