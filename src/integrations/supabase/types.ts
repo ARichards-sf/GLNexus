@@ -151,6 +151,13 @@ export type Database = {
             foreignKeyName: "calendar_events_household_id_fkey"
             columns: ["household_id"]
             isOneToOne: false
+            referencedRelation: "active_households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
             referencedRelation: "households"
             referencedColumns: ["id"]
           },
@@ -195,6 +202,13 @@ export type Database = {
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "compliance_notes_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "active_households"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "compliance_notes_household_id_fkey"
             columns: ["household_id"]
@@ -379,6 +393,7 @@ export type Database = {
       household_members: {
         Row: {
           advisor_id: string
+          archived_at: string | null
           company: string | null
           created_at: string
           date_of_birth: string | null
@@ -394,6 +409,7 @@ export type Database = {
         }
         Insert: {
           advisor_id: string
+          archived_at?: string | null
           company?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -409,6 +425,7 @@ export type Database = {
         }
         Update: {
           advisor_id?: string
+          archived_at?: string | null
           company?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -423,6 +440,13 @@ export type Database = {
           relationship?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "household_members_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "active_households"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "household_members_household_id_fkey"
             columns: ["household_id"]
@@ -462,6 +486,13 @@ export type Database = {
             foreignKeyName: "household_snapshots_household_id_fkey"
             columns: ["household_id"]
             isOneToOne: false
+            referencedRelation: "active_households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_snapshots_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
             referencedRelation: "households"
             referencedColumns: ["id"]
           },
@@ -471,6 +502,8 @@ export type Database = {
         Row: {
           advisor_id: string
           annual_review_date: string | null
+          archived_at: string | null
+          archived_reason: string | null
           created_at: string
           id: string
           investment_objective: string | null
@@ -487,6 +520,8 @@ export type Database = {
         Insert: {
           advisor_id: string
           annual_review_date?: string | null
+          archived_at?: string | null
+          archived_reason?: string | null
           created_at?: string
           id?: string
           investment_objective?: string | null
@@ -503,6 +538,8 @@ export type Database = {
         Update: {
           advisor_id?: string
           annual_review_date?: string | null
+          archived_at?: string | null
+          archived_reason?: string | null
           created_at?: string
           id?: string
           investment_objective?: string | null
@@ -668,6 +705,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "prospects_converted_household_id_fkey"
+            columns: ["converted_household_id"]
+            isOneToOne: false
+            referencedRelation: "active_households"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prospects_converted_household_id_fkey"
             columns: ["converted_household_id"]
@@ -872,6 +916,13 @@ export type Database = {
             foreignKeyName: "tasks_household_id_fkey"
             columns: ["household_id"]
             isOneToOne: false
+            referencedRelation: "active_households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
             referencedRelation: "households"
             referencedColumns: ["id"]
           },
@@ -926,7 +977,63 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      active_households: {
+        Row: {
+          advisor_id: string | null
+          annual_review_date: string | null
+          archived_at: string | null
+          archived_reason: string | null
+          created_at: string | null
+          id: string | null
+          investment_objective: string | null
+          last_review_date: string | null
+          name: string | null
+          next_action: string | null
+          next_action_date: string | null
+          risk_tolerance: string | null
+          status: string | null
+          total_aum: number | null
+          updated_at: string | null
+          wealth_tier: string | null
+        }
+        Insert: {
+          advisor_id?: string | null
+          annual_review_date?: string | null
+          archived_at?: string | null
+          archived_reason?: string | null
+          created_at?: string | null
+          id?: string | null
+          investment_objective?: string | null
+          last_review_date?: string | null
+          name?: string | null
+          next_action?: string | null
+          next_action_date?: string | null
+          risk_tolerance?: string | null
+          status?: string | null
+          total_aum?: number | null
+          updated_at?: string | null
+          wealth_tier?: string | null
+        }
+        Update: {
+          advisor_id?: string | null
+          annual_review_date?: string | null
+          archived_at?: string | null
+          archived_reason?: string | null
+          created_at?: string | null
+          id?: string | null
+          investment_objective?: string | null
+          last_review_date?: string | null
+          name?: string | null
+          next_action?: string | null
+          next_action_date?: string | null
+          risk_tolerance?: string | null
+          status?: string | null
+          total_aum?: number | null
+          updated_at?: string | null
+          wealth_tier?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       generate_daily_snapshots: { Args: never; Returns: undefined }
