@@ -29,7 +29,7 @@ export default function MorningBriefing({
   firstName,
   userId,
 }: MorningBriefingProps) {
-  const STORAGE_KEY = `goodie_morning_briefing_${userId}`;
+  const STORAGE_KEY = `goodie_morning_briefing_${userId}_v2`;
   const today = new Date().toISOString().split("T")[0];
 
   const initialCache: BriefingCache | null = (() => {
@@ -109,7 +109,8 @@ export default function MorningBriefing({
     });
 
     const totalAUM = households.reduce((s, h) => s + Number(h.total_aum || 0), 0);
-    const activeCount = households.filter((h) => h.status === "Active").length;
+    const activeCount = households.filter((h) => h.status === "Active" || h.status === "Onboarding" || h.status === "Review Scheduled").length;
+    const onboardingCount = households.filter((h) => h.status === "Onboarding").length;
 
     const prompt = `Today is ${todayFormatted}.
 
@@ -164,6 +165,7 @@ Overdue annual reviews: ${
 Total AUM: ${formatCurrency(totalAUM)}
 
 Active households: ${activeCount} of ${households.length}
+Onboarding: ${onboardingCount} household(s) in onboarding
 
 Recent activity: ${
       recentNotes
