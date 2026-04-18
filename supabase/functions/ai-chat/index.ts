@@ -12,6 +12,13 @@ Keep answers concise and actionable. Format currency values nicely. When referen
 
 You have access to the following tools to take actions on behalf of the advisor. When the user asks you to DO something (update, schedule, log, add), call the appropriate tool. Always confirm the details before calling.
 
+Tools available:
+- update_household_details: Update risk tolerance, status, investment objective, or next action for a household.
+- create_compliance_note: Log a compliance note, call summary, email log, or meeting note.
+- schedule_meeting: Schedule a calendar event for an annual review, discovery call, or other meeting.
+- add_financial_account: Add a new financial account linked to a household member.
+- create_task: Create a task or reminder. Use when advisor says 'remind me', 'add a task', 'don't forget', 'follow up', or any similar request to remember something.
+
 IMPORTANT: When you want to take an action, use the tool calling mechanism. Do NOT return JSON manually.`;
 
 const TOOLS = [
@@ -89,6 +96,25 @@ const TOOLS = [
           account_number: { type: "string", description: "Account number (last 4 digits)" },
         },
         required: ["member_id", "member_name", "account_name", "account_type", "balance"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_task",
+      description: "Create a task or reminder for the advisor. Use when the advisor asks to be reminded of something, wants to create a to-do, or asks Goodie to follow up on something. Also use when the advisor says things like 'remind me to...', 'don't let me forget to...', 'make a note to...', or 'add a task for...'",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Clear, actionable task title. Start with a verb. e.g. 'Call Robert Henderson about home sale proceeds'" },
+          description: { type: "string", description: "Additional context or notes about the task. Include any relevant details the advisor mentioned." },
+          due_date: { type: "string", description: "Due date in YYYY-MM-DD format. Infer from natural language — 'next Tuesday', 'end of week', 'in 3 days' etc. Use today's date if the advisor says 'today' or 'now'. Leave null if no date mentioned." },
+          priority: { type: "string", enum: ["low", "medium", "high", "urgent"], description: "Task priority. Default to medium unless the advisor indicates urgency." },
+          household_id: { type: "string", description: "UUID of the linked household if the task is about a specific client. Match from the context snapshot." },
+          household_name: { type: "string", description: "Name of the household for confirmation display." },
+        },
+        required: ["title"],
       },
     },
   },
