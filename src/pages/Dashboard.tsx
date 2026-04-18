@@ -17,7 +17,6 @@ import {
   CalendarDays,
   HelpCircle,
   TicketCheck,
-  MessageCircle,
   Plus,
 } from "lucide-react";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
@@ -27,7 +26,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useHouseholds, useAllComplianceNotes, useGenerateSnapshot } from "@/hooks/useHouseholds";
 import { useUpcomingEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
 import { useMyServiceRequests } from "@/hooks/useServiceRequests";
-import { useUnreadRequests } from "@/hooks/useUnreadRequests";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
