@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
-import { Bot, Send, Loader2 } from "lucide-react";
+import { Bot, Send, Loader2, Mic, MicOff } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,7 @@ import { ParsedToolCall, useAiActions } from "@/hooks/useAiActions";
 import ActionCard from "@/components/ActionCard";
 import { buildContextSnapshot, streamChat, type AiMsg as Msg } from "@/lib/aiChat";
 import { cn } from "@/lib/utils";
+import { useSpeechInput } from "@/hooks/useSpeechInput";
 
 
 export default function AiAssistant() {
@@ -65,12 +66,12 @@ export default function AiAssistant() {
     })));
   }, []);
 
-  const send = useCallback(async () => {
-    const text = input.trim();
-    if (!text || isLoading) return;
+  const sendWithText = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || isLoading) return;
     setInput("");
 
-    const userMsg: Msg = { role: "user", content: text };
+    const userMsg: Msg = { role: "user", content: trimmed };
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
@@ -97,7 +98,6 @@ export default function AiAssistant() {
         onDelta: upsert,
         onToolCalls: (calls) => {
           setMessages((prev) => {
-            // Attach tool calls to the last assistant message, or create one
             const last = prev[prev.length - 1];
             if (last?.role === "assistant") {
               return prev.map((m, i) => i === prev.length - 1 ? { ...m, toolCalls: calls } : m);
@@ -112,7 +112,14 @@ export default function AiAssistant() {
       toast.error("Failed to reach the AI assistant.");
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, households, recentNotes]);
+  }, [isLoading, messages, households, recentNotes]);
+
+  const send = useCallback(() => sendWithText(input), [input, sendWithText]);
+
+  const { isListening, isSupported, startListening, stopListening } = useSpeechInput((text) => {
+    setInput(text);
+    setTimeout(() => sendWithText(text), 100);
+  });
 
   if (hideOnPage) return null;
 
@@ -167,14 +174,31 @@ export default function AiAssistant() {
         </div>
 
         <div className="border-t px-4 py-3">
-          <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex gap-2">
+          <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex gap-2 items-center">
             <Input
-              placeholder="Ask or give instructions…"
+              placeholder={isListening ? "Listening…" : "Ask or give instructions…"}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isLoading}
               className="flex-1"
             />
+            {isSupported && (
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                onClick={isListening ? stopListening : startListening}
+                className={cn(
+                  "h-8 w-8 shrink-0 transition-colors",
+                  isListening
+                    ? "text-red-500 animate-pulse"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                title={isListening ? "Listening... click to stop" : "Click to speak"}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </Button>
+            )}
             <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
               <Send className="h-4 w-4" />
             </Button>
