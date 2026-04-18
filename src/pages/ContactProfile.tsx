@@ -35,14 +35,11 @@ export default function ContactProfile() {
   const [editOpen, setEditOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
-  const [deleteContactOpen, setDeleteContactOpen] = useState(false);
-  const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
   const [reparentOpen, setReparentOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [closeAccountId, setCloseAccountId] = useState<string | null>(null);
   const [closeReason, setCloseReason] = useState("");
   const [archiveAccountId, setArchiveAccountId] = useState<string | null>(null);
-  const deleteMember = useDeleteHouseholdMember();
   const deleteAccount = useDeleteAccount();
   const archiveContact = useArchiveContact();
 
