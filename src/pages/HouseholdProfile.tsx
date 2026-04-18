@@ -419,29 +419,55 @@ export default function HouseholdProfile() {
             </CardHeader>
             <CardContent className="space-y-4">
               {members.map((member) => (
-                <Link
+                <div
                   key={member.id}
-                  to={`/contacts/${member.id}`}
-                  className="block p-3 rounded-lg bg-secondary/40 hover:bg-secondary/70 transition-colors"
+                  className="relative p-3 rounded-lg bg-secondary/40 hover:bg-secondary/70 transition-colors group"
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-foreground hover:underline">{member.first_name} {member.last_name}</p>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">{member.relationship}</Badge>
+                  <Link to={`/contacts/${member.id}`} className="block">
+                    <div className="flex items-center justify-between mb-1 pr-8">
+                      <p className="text-sm font-medium text-foreground hover:underline">{member.first_name} {member.last_name}</p>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">{member.relationship}</Badge>
+                    </div>
+                    {member.date_of_birth && <p className="text-xs text-muted-foreground">Age {memberAge(member.date_of_birth)}</p>}
+                    {member.email && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <Mail className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">{member.email}</span>
+                      </div>
+                    )}
+                    {member.phone && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Phone className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">{member.phone}</span>
+                      </div>
+                    )}
+                  </Link>
+                  <div className="absolute top-2 right-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="w-3.5 h-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/contacts/${member.id}`)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteMemberId(member.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete Member
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  {member.date_of_birth && <p className="text-xs text-muted-foreground">Age {memberAge(member.date_of_birth)}</p>}
-                  {member.email && (
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <Mail className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">{member.email}</span>
-                    </div>
-                  )}
-                  {member.phone && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <Phone className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">{member.phone}</span>
-                    </div>
-                  )}
-                </Link>
+                </div>
               ))}
               {members.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No members added yet.</p>}
             </CardContent>
