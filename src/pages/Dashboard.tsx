@@ -34,6 +34,7 @@ import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import { toast } from "sonner";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import GoodieSuggests from "@/components/GoodieSuggests";
+import DashboardGoodiePanel from "@/components/DashboardGoodiePanel";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -99,7 +100,7 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="p-6 lg:p-10 max-w-6xl">
+      <div className="p-6 lg:p-10">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-secondary rounded w-64" />
           <div className="grid grid-cols-3 gap-4">
@@ -111,7 +112,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-6xl">
+    <div className="flex min-h-full">
+      <div className="flex-1 p-6 lg:p-8 overflow-auto min-w-0">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
@@ -291,9 +293,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Upcoming Meetings */}
-        <Card className="lg:col-span-2 border-border shadow-none">
+        <Card className="border-border shadow-none">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold">Upcoming Meetings</CardTitle>
@@ -340,49 +342,6 @@ export default function Dashboard() {
                 </Link>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity */}
-        <Card className="lg:col-span-3 border-border shadow-none">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base font-semibold">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentNotes.map((note: any) => {
-                const Icon = noteTypeIcons[note.type] || FileText;
-                return (
-                  <div key={note.id} className="flex gap-3">
-                    <div className="mt-0.5">
-                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Link to={`/household/${note.household_id}`} className="text-sm font-medium text-foreground hover:underline">
-                          {note.households?.name || "Household"}
-                        </Link>
-                        <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 font-medium ${noteTypeColors[note.type] || ""}`}>
-                          {note.type}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{note.summary}</p>
-                      <div className="flex items-center gap-1 mt-1.5">
-                        <Clock className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-[11px] text-muted-foreground">
-                          {new Date(note.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {recentNotes.length === 0 && (
-                <p className="text-sm text-muted-foreground py-4 text-center">No recent activity</p>
-              )}
-            </div>
           </CardContent>
         </Card>
       </div>

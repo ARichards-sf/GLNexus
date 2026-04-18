@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 
 export default function AiAssistant() {
   const { user } = useAuth();
+  const { pathname } = useLocation();
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
@@ -115,7 +116,13 @@ export default function AiAssistant() {
   return (
     <Sheet open={open} onOpenChange={setOpen} modal={false}>
       <SheetTrigger asChild>
-        <Button size="icon" className="fixed bottom-6 right-6 h-12 w-12 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90">
+        <Button
+          size="icon"
+          className={cn(
+            "fixed bottom-6 right-6 h-12 w-12 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90",
+            pathname === "/" && "2xl:hidden"
+          )}
+        >
           <Bot className="h-5 w-5" />
         </Button>
       </SheetTrigger>
