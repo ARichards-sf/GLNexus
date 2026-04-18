@@ -8,7 +8,7 @@ import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useTaskNotificationCount } from "@/hooks/useTasks";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3,
 } from "lucide-react";
 import glLogo from "@/assets/gl-logo.png";
 
@@ -21,7 +21,7 @@ const navItems = [
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/my-requests", label: "My Requests", icon: TicketCheck, badgeKey: "myRequests" as const },
   { to: "/tasks", label: "Tasks", icon: CheckSquare, badgeKey: "tasks" as const },
-  { to: "/reports", label: "Reports", icon: FileText },
+  { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/performance", label: "Performance", icon: TrendingUp },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
