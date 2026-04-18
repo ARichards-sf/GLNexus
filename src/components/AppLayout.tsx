@@ -1,5 +1,5 @@
-import { Outlet } from "react-router-dom";
-import { Bot, X } from "lucide-react";
+import { Outlet, useNavigate } from "react-router-dom";
+import { Bot, X, Bell } from "lucide-react";
 import AppSidebar from "./AppSidebar";
 import ImpersonationBar from "./ImpersonationBar";
 import AiAssistant from "./AiAssistant";
@@ -7,10 +7,46 @@ import InSessionPanel from "./InSessionPanel";
 import { Button } from "@/components/ui/button";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { InSessionProvider, useInSession } from "@/contexts/InSessionContext";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  useTaskNotificationCount,
+  useMarkNotificationsRead,
+} from "@/hooks/useTasks";
 import { cn } from "@/lib/utils";
+
+function TopBar() {
+  const navigate = useNavigate();
+  const { data: count = 0 } = useTaskNotificationCount();
+  const markRead = useMarkNotificationsRead();
+
+  const handleClick = () => {
+    navigate("/tasks");
+    if (count > 0) {
+      markRead.mutate();
+    }
+  };
+
+  return (
+    <div className="h-10 border-b border-border bg-card/50 flex items-center justify-end px-4 shrink-0">
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Tasks"
+        onClick={handleClick}
+        className="relative"
+      >
+        <Bell className="w-5 h-5" />
+        {count > 0 && (
+          <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-destructive" />
+        )}
+      </Button>
+    </div>
+  );
+}
 
 function LayoutInner() {
   const { sessionEvent, isInSession, endSession } = useInSession();
+  const { user } = useAuth();
   const showPanel = isInSession && sessionEvent && sessionEvent.household_id;
   const householdName = sessionEvent?.households?.name;
   const headerTitle = householdName ? `In Session · ${householdName}` : "In Session";
@@ -20,14 +56,17 @@ function LayoutInner() {
       <ImpersonationBar />
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
-        <main
-          className={cn(
-            "flex-1 overflow-y-auto transition-all duration-300",
-            showPanel && "lg:mr-[480px]"
-          )}
-        >
-          <Outlet />
-        </main>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {user && <TopBar />}
+          <main
+            className={cn(
+              "flex-1 overflow-y-auto transition-all duration-300",
+              showPanel && "lg:mr-[480px]"
+            )}
+          >
+            <Outlet />
+          </main>
+        </div>
         {showPanel && (
           <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[480px] border-l border-border bg-background shadow-lg z-40 flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background sticky top-0 z-10">
