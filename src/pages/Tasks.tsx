@@ -361,7 +361,6 @@ export default function Tasks() {
         open={!!reassignTask}
         onOpenChange={(o) => !o && setReassignTask(null)}
         task={reassignTask}
-        onReassign={handleReassign}
       />
 
       <AlertDialog open={!!deleteCandidate} onOpenChange={(o) => !o && setDeleteCandidate(null)}>
