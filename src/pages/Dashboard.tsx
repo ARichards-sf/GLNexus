@@ -162,6 +162,7 @@ export default function Dashboard() {
         upcomingEvents={upcomingEvents as any}
         pendingTasks={myTasks as any}
         firstName={firstName}
+        userId={user?.id || "anonymous"}
       />
 
       {/* Your Next Meeting — only when within 60 minutes */}
