@@ -176,6 +176,13 @@ export default function CreateTaskDialog({
     setShowResults(false);
   }, [open, isEdit, initialTask, defaultTitle, defaultDescription, defaultAssignedTo, preSelected, user?.id]);
 
+  // Fallback: ensure assignedTo is set once assignees load
+  useEffect(() => {
+    if (assignees.length > 0 && !assignedTo) {
+      setAssignedTo(defaultAssignedTo ?? user?.id ?? "");
+    }
+  }, [assignees, assignedTo, defaultAssignedTo, user?.id]);
+
   // Click-outside to close household search dropdown
   useEffect(() => {
     const onClick = (e: MouseEvent) => {

@@ -104,6 +104,8 @@ export function useCreateTask() {
 
       if (error) throw error;
 
+      console.log("Task created:", task);
+
       if (task.assigned_to && task.assigned_to !== user.id) {
         const { error: notifError } = await (supabase as any)
           .from("task_notifications")
