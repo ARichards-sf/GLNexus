@@ -82,13 +82,15 @@ export function useCreateCalendarEvent() {
       start_time: string;
       end_time: string;
       event_type: string;
-      household_id?: string;
+      household_id?: string | null;
+      prospect_id?: string | null;
+      meeting_context?: string | null;
     }) => {
       const advisorId = user ? targetAdvisorId(user.id) : user!.id;
 
       const { data, error } = await supabase
         .from("calendar_events")
-        .insert({ ...event, advisor_id: advisorId })
+        .insert({ ...event, advisor_id: advisorId } as any)
         .select()
         .single();
       if (error) throw error;
