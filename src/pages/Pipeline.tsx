@@ -9,6 +9,7 @@ import {
   XCircle,
   UserCheck,
   Trash2,
+  Plus,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -108,6 +109,7 @@ function getInitials(first: string, last: string): string {
 export default function Pipeline() {
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -249,7 +251,10 @@ export default function Pipeline() {
             {formatCurrency(totalEstimatedAum)} estimated AUM
           </p>
         </div>
-        <AddProspectDialog />
+        <Button onClick={() => setAddOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Prospect
+        </Button>
       </div>
 
       {isEmpty ? (
@@ -264,7 +269,10 @@ export default function Pipeline() {
                 Add your first prospect to start building your pipeline
               </p>
             </div>
-            <AddProspectDialog />
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Prospect
+            </Button>
           </div>
         </Card>
       ) : (
@@ -570,6 +578,9 @@ export default function Pipeline() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Prospect Dialog */}
+      <AddProspectDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }

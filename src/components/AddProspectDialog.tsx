@@ -1,14 +1,12 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,15 +17,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 import {
+  PIPELINE_STAGES,
   PROSPECT_SOURCES,
   useCreateProspect,
+  type Prospect,
 } from "@/hooks/useProspects";
-import { toast } from "sonner";
-import { Plus } from "lucide-react";
 
-interface AddProspectDialogProps {
-  trigger?: React.ReactNode;
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultStage?: string;
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -39,20 +40,24 @@ const SOURCE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-export default function AddProspectDialog({ trigger }: AddProspectDialogProps) {
-  const [open, setOpen] = useState(false);
+export default function AddProspectDialog({
+  open,
+  onOpenChange,
+  defaultStage = "lead",
+}: Props) {
+  const createMut = useCreateProspect();
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
   const [jobTitle, setJobTitle] = useState("");
+  const [stage, setStage] = useState<string>(defaultStage);
   const [source, setSource] = useState<string>("");
-  const [referredBy, setReferredBy] = useState("");
   const [estimatedAum, setEstimatedAum] = useState("");
+  const [referredBy, setReferredBy] = useState("");
   const [notes, setNotes] = useState("");
-
-  const createMut = useCreateProspect();
 
   const reset = () => {
     setFirstName("");
@@ -61,14 +66,23 @@ export default function AddProspectDialog({ trigger }: AddProspectDialogProps) {
     setPhone("");
     setCompany("");
     setJobTitle("");
+    setStage(defaultStage);
     setSource("");
-    setReferredBy("");
     setEstimatedAum("");
+    setReferredBy("");
     setNotes("");
   };
 
+  // Reset stage when defaultStage changes / dialog reopens
+  useEffect(() => {
+    if (open) {
+      setStage(defaultStage);
+    }
+  }, [open, defaultStage]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!firstName.trim() || !lastName.trim()) {
       toast.error("First and last name are required");
       return;
@@ -82,50 +96,58 @@ export default function AddProspectDialog({ trigger }: AddProspectDialogProps) {
         phone: phone.trim() || null,
         company: company.trim() || null,
         job_title: jobTitle.trim() || null,
+        pipeline_stage: stage as Prospect["pipeline_stage"],
         source: source || null,
-        referred_by: referredBy.trim() || null,
         estimated_aum: estimatedAum ? Number(estimatedAum) : null,
+        referred_by:
+          source === "referral" && referredBy.trim()
+            ? referredBy.trim()
+            : null,
         notes: notes.trim() || null,
-        pipeline_stage: "lead",
       });
-      toast.success("Prospect added");
+
+      toast.success(
+        `${firstName.trim()} ${lastName.trim()} added to pipeline`
+      );
       reset();
-      setOpen(false);
+      onOpenChange(false);
     } catch (err: any) {
       toast.error(err.message || "Failed to add prospect");
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Prospect
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) reset();
+        onOpenChange(o);
+      }}
+    >
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Prospect</DialogTitle>
-          <DialogDescription>
-            Add a new prospect to your pipeline.
-          </DialogDescription>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Row 1: Names */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="firstName">First name *</Label>
+              <Label htmlFor="firstName">
+                First Name <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="firstName"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 required
+                autoFocus
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Last name *</Label>
+              <Label htmlFor="lastName">
+                Last Name <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="lastName"
                 value={lastName}
@@ -135,6 +157,7 @@ export default function AddProspectDialog({ trigger }: AddProspectDialogProps) {
             </div>
           </div>
 
+          {/* Row 2: Email + Phone */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -155,6 +178,7 @@ export default function AddProspectDialog({ trigger }: AddProspectDialogProps) {
             </div>
           </div>
 
+          {/* Row 3: Company + Job Title */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="company">Company</Label>
@@ -165,7 +189,7 @@ export default function AddProspectDialog({ trigger }: AddProspectDialogProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="jobTitle">Job title</Label>
+              <Label htmlFor="jobTitle">Job Title</Label>
               <Input
                 id="jobTitle"
                 value={jobTitle}
@@ -174,7 +198,23 @@ export default function AddProspectDialog({ trigger }: AddProspectDialogProps) {
             </div>
           </div>
 
+          {/* Row 4: Stage + Source */}
           <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="stage">Pipeline Stage</Label>
+              <Select value={stage} onValueChange={setStage}>
+                <SelectTrigger id="stage">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PIPELINE_STAGES.map((s) => (
+                    <SelectItem key={s.key} value={s.key}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="source">Source</Label>
               <Select value={source} onValueChange={setSource}>
@@ -190,29 +230,35 @@ export default function AddProspectDialog({ trigger }: AddProspectDialogProps) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Row 5: Estimated AUM + (conditional) Referred By */}
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="estimatedAum">Estimated AUM</Label>
               <Input
                 id="estimatedAum"
                 type="number"
                 min="0"
-                placeholder="0"
+                placeholder="$500,000"
                 value={estimatedAum}
                 onChange={(e) => setEstimatedAum(e.target.value)}
               />
             </div>
+            {source === "referral" && (
+              <div className="space-y-2">
+                <Label htmlFor="referredBy">Referred By</Label>
+                <Input
+                  id="referredBy"
+                  value={referredBy}
+                  onChange={(e) => setReferredBy(e.target.value)}
+                  placeholder="Who referred them?"
+                />
+              </div>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="referredBy">Referred by</Label>
-            <Input
-              id="referredBy"
-              value={referredBy}
-              onChange={(e) => setReferredBy(e.target.value)}
-              placeholder="Optional"
-            />
-          </div>
-
+          {/* Row 6: Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
@@ -227,7 +273,7 @@ export default function AddProspectDialog({ trigger }: AddProspectDialogProps) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
