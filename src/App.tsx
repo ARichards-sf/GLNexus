@@ -30,6 +30,7 @@ import RequestDetail from "./pages/RequestDetail";
 import ComingSoon from "./pages/ComingSoon";
 import Reports from "./pages/Reports";
 import Pipeline from "./pages/Pipeline";
+import ProspectDetail from "./pages/ProspectDetail";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/pipeline" element={<Pipeline />} />
+              <Route path="/prospects/:id" element={<ProspectDetail />} />
               <Route path="/my-requests" element={<MyRequests />} />
               <Route path="/my-requests/:id" element={<RequestDetail />} />
               <Route path="/tasks" element={<Tasks />} />
