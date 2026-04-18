@@ -21,7 +21,7 @@ import { useIsLeadAdvisor } from "@/hooks/useIsLeadAdvisor";
 import {
   useTasks, useCompleteTask, useUncompleteTask, useDeleteTask,
   useMarkNotificationsRead,
-  type Task, type TaskFilter,
+  type Task,
 } from "@/hooks/useTasks";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -161,7 +161,8 @@ function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelet
 }
 
 interface TaskListProps {
-  filter: TaskFilter;
+  tasks: Task[];
+  isLoading: boolean;
   showAdvisor?: boolean;
   currentUserId: string;
   onEdit: (t: Task) => void;
@@ -169,8 +170,7 @@ interface TaskListProps {
   onDelete: (t: Task) => void;
 }
 
-function TaskList({ filter, showAdvisor, currentUserId, onEdit, onReassign, onDelete }: TaskListProps) {
-  const { data: tasks = [], isLoading } = useTasks(filter);
+function TaskList({ tasks, isLoading, showAdvisor, currentUserId, onEdit, onReassign, onDelete }: TaskListProps) {
   const [showDone, setShowDone] = useState(false);
 
   const todoTasks = useMemo(() => tasks.filter((t) => t.status === "todo"), [tasks]);
@@ -322,16 +322,16 @@ export default function Tasks() {
         </TabsList>
 
         <TabsContent value="mine">
-          <TaskList filter="mine" currentUserId={user.id}
+          <TaskList tasks={activeTab === "mine" ? tasks : []} isLoading={activeTab === "mine" && isLoading} currentUserId={user.id}
             onEdit={setEditTask} onReassign={setReassignTask} onDelete={setDeleteCandidate} />
         </TabsContent>
         <TabsContent value="created">
-          <TaskList filter="created" currentUserId={user.id}
+          <TaskList tasks={activeTab === "created" ? tasks : []} isLoading={activeTab === "created" && isLoading} currentUserId={user.id}
             onEdit={setEditTask} onReassign={setReassignTask} onDelete={setDeleteCandidate} />
         </TabsContent>
         {showFirmView && (
           <TabsContent value="all">
-            <TaskList filter="all" showAdvisor currentUserId={user.id}
+            <TaskList tasks={activeTab === "all" ? tasks : []} isLoading={activeTab === "all" && isLoading} showAdvisor currentUserId={user.id}
               onEdit={setEditTask} onReassign={setReassignTask} onDelete={setDeleteCandidate} />
           </TabsContent>
         )}
