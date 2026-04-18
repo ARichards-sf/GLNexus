@@ -294,22 +294,6 @@ export default function ContactProfile() {
                                     <Archive className="w-4 h-4 mr-2" />
                                     Archive Account
                                   </DropdownMenuItem>
-                                  {account.created_at &&
-                                    new Date(account.created_at).toDateString() === new Date().toDateString() && (
-                                      <>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                          className="text-destructive focus:text-destructive"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setDeleteAccountId(account.id);
-                                          }}
-                                        >
-                                          <Trash2 className="w-4 h-4 mr-2" />
-                                          Delete
-                                        </DropdownMenuItem>
-                                      </>
-                                    )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                               <ChevronRight className="w-4 h-4 text-muted-foreground" />
