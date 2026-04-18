@@ -107,13 +107,17 @@ export function useCreateTask() {
       console.log("Task created:", task);
 
       if (task.assigned_to && task.assigned_to !== user.id) {
-        const { error: notifError } = await (supabase as any)
-          .from("task_notifications")
-          .insert({
-            task_id: task.id,
-            user_id: task.assigned_to,
-          });
-        if (notifError) throw notifError;
+        try {
+          const { error: notifError } = await (supabase as any)
+            .from("task_notifications")
+            .insert({
+              task_id: task.id,
+              user_id: task.assigned_to,
+            });
+          if (notifError) throw notifError;
+        } catch (notifErr) {
+          console.warn("Task notification insert failed:", notifErr);
+        }
       }
 
       return task as Task;
