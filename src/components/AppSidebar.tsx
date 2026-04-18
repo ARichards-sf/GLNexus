@@ -14,16 +14,25 @@ import glLogo from "@/assets/gl-logo.png";
 
 const DEFAULT_FIRM_VALUE = "__default__";
 
-const navItems = [
+const clientServiceItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/households", label: "Households", icon: Users },
   { to: "/contacts", label: "Contacts", icon: UserRound },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
-  { to: "/my-requests", label: "My Requests", icon: TicketCheck, badgeKey: "myRequests" as const },
+];
+
+const activityItems = [
   { to: "/tasks", label: "Tasks", icon: CheckSquare, badgeKey: "tasks" as const },
+  { to: "/my-requests", label: "My Requests", icon: TicketCheck, badgeKey: "myRequests" as const },
+];
+
+const insightsItems = [
   { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/performance", label: "Performance", icon: TrendingUp },
-  { to: "/settings", label: "Settings", icon: Settings },
+];
+
+const bdItems = [
+  { to: "/pipeline", label: "Pipeline", icon: TrendingUp },
 ];
 
 const adminItems = [
