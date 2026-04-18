@@ -337,6 +337,39 @@ export type Database = {
         }
         Relationships: []
       }
+      deletion_audit_log: {
+        Row: {
+          advisor_id: string | null
+          deleted_at: string
+          deleted_by: string
+          deletion_reason: string
+          id: string
+          record_id: string
+          record_snapshot: Json
+          record_type: string
+        }
+        Insert: {
+          advisor_id?: string | null
+          deleted_at?: string
+          deleted_by: string
+          deletion_reason: string
+          id?: string
+          record_id: string
+          record_snapshot: Json
+          record_type: string
+        }
+        Update: {
+          advisor_id?: string | null
+          deleted_at?: string
+          deleted_by?: string
+          deletion_reason?: string
+          id?: string
+          record_id?: string
+          record_snapshot?: Json
+          record_type?: string
+        }
+        Relationships: []
+      }
       firm_memberships: {
         Row: {
           created_at: string
