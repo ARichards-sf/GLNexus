@@ -1,13 +1,18 @@
 import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { CalendarCheck, AlertTriangle, CalendarPlus, Trash2, MoreHorizontal, Archive } from "lucide-react";
+import {
+  CalendarCheck, AlertTriangle, CalendarPlus, Trash2, MoreHorizontal, Archive,
+  ArrowRightLeft, ChevronDown, ChevronUp, X,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   ArrowLeft, DollarSign, Shield, Target, Users, Mail, Phone,
   FileText, Lightbulb, UserPlus, Briefcase, Plus, Lock, Search, HelpCircle,
@@ -21,11 +26,13 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   useHousehold, useHouseholdMembers, useComplianceNotes, useHouseholdSnapshots,
   useAccountSnapshots, useArchiveHousehold, useDeleteHouseholdMember,
+  useArchiveContact, useArchivedHouseholdMembers,
+  type MemberRow,
 } from "@/hooks/useHouseholds";
 import { useDeleteAccount } from "@/hooks/useContacts";
 import { useHouseholdAccounts } from "@/hooks/useHouseholdAccounts";
@@ -34,6 +41,7 @@ import AddMemberDialog from "@/components/AddMemberDialog";
 import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
 import QuickScheduleReviewDialog from "@/components/QuickScheduleReviewDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
+import ReparentContactDialog from "@/components/ReparentContactDialog";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -160,6 +168,7 @@ export default function HouseholdProfile() {
   const navigate = useNavigate();
   const { data: household, isLoading } = useHousehold(id);
   const { data: members = [] } = useHouseholdMembers(id);
+  const { data: archivedMembers = [] } = useArchivedHouseholdMembers(id);
   const { data: notes = [] } = useComplianceNotes(id);
   const { data: accounts = [] } = useHouseholdAccounts(id);
   const { data: hhSnapshots = [] } = useHouseholdSnapshots(id);
@@ -171,8 +180,21 @@ export default function HouseholdProfile() {
   const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false);
   const [deleteMemberId, setDeleteMemberId] = useState<string | null>(null);
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+
+  // Reparent + archive contact state
+  const [reparentMember, setReparentMember] = useState<MemberRow | null>(null);
+  const [reparentOpen, setReparentOpen] = useState(false);
+  const [archiveMember, setArchiveMember] = useState<MemberRow | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+
+  // Account close/archive state
+  const [closeAccountId, setCloseAccountId] = useState<string | null>(null);
+  const [closeReason, setCloseReason] = useState("");
+  const [archiveAccountId, setArchiveAccountId] = useState<string | null>(null);
 
   const archiveHousehold = useArchiveHousehold();
+  const archiveContact = useArchiveContact();
   const deleteMember = useDeleteHouseholdMember();
   const deleteAccount = useDeleteAccount();
 
