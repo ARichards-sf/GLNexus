@@ -17,6 +17,7 @@ import Households from "./pages/Households";
 import HouseholdProfile from "./pages/HouseholdProfile";
 import AdminAdvisors from "./pages/AdminAdvisors";
 import AdminFirms from "./pages/AdminFirms";
+import FirmDetail from "./pages/FirmDetail";
 import AdminStaff from "./pages/AdminStaff";
 import StaffDetail from "./pages/StaffDetail";
 import AdvisorDetail from "./pages/AdvisorDetail";
@@ -68,6 +69,7 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/admin/advisors" element={<AdminRoute><AdminAdvisors /></AdminRoute>} />
               <Route path="/admin/firms" element={<AdminRoute><AdminFirms /></AdminRoute>} />
+              <Route path="/admin/firms/:id" element={<AdminRoute><FirmDetail /></AdminRoute>} />
               <Route path="/admin/staff" element={<AdminRoute><AdminStaff /></AdminRoute>} />
               <Route path="/admin/staff/:id" element={<AdminRoute><StaffDetail /></AdminRoute>} />
               <Route path="/admin/advisors/:id" element={<AdminRoute><AdvisorDetail /></AdminRoute>} />
