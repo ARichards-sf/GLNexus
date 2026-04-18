@@ -18,9 +18,12 @@ import {
   ExternalLink,
   Pencil,
   Plus,
+  Shield,
+  X,
 } from "lucide-react";
 import EditFirmDialog from "@/components/EditFirmDialog";
 import InviteAdvisorDialog from "@/components/InviteAdvisorDialog";
+import AddFirmAdminDialog from "@/components/AddFirmAdminDialog";
 import { formatFullCurrency } from "@/data/sampleData";
 import { useToast } from "@/hooks/use-toast";
 import type { Firm } from "@/hooks/useFirms";
@@ -30,6 +33,30 @@ interface FirmAdvisor {
   is_lead_advisor: boolean;
   full_name: string | null;
   email: string | null;
+  last_sign_in: string | null;
+  status: string | null;
+}
+
+interface FirmAdmin {
+  membership_id: string;
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+}
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return "Never";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(months / 12)}y ago`;
 }
 
 function getInitials(name: string | null, email: string | null) {
@@ -56,6 +83,8 @@ export default function FirmDetail() {
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
 
   const { data: firm, isLoading: firmLoading } = useQuery({
     queryKey: ["firm", id],
@@ -86,17 +115,56 @@ export default function FirmDetail() {
       const userIds = memberships.map((m) => m.user_id);
       const { data: profiles, error: pErr } = await supabase
         .from("profiles")
+        .select("user_id, full_name, email, last_sign_in, status")
+        .in("user_id", userIds);
+      if (pErr) throw pErr;
+
+      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) ?? []);
+      return memberships.map((m) => {
+        const p = profileMap.get(m.user_id);
+        return {
+          user_id: m.user_id,
+          is_lead_advisor: m.is_lead_advisor,
+          full_name:
+            p?.full_name || p?.email?.split("@")[0] || "Advisor",
+          email: p?.email ?? null,
+          last_sign_in: p?.last_sign_in ?? null,
+          status: p?.status ?? null,
+        };
+      });
+    },
+  });
+
+  const { data: admins = [] } = useQuery({
+    queryKey: ["firm_admins", id],
+    enabled: !!id,
+    queryFn: async (): Promise<FirmAdmin[]> => {
+      const { data: memberships, error } = await supabase
+        .from("firm_memberships")
+        .select("id, user_id, role")
+        .eq("firm_id", id!)
+        .in("role", ["admin", "advisor_admin"]);
+      if (error) throw error;
+      if (!memberships || memberships.length === 0) return [];
+
+      const userIds = memberships.map((m) => m.user_id);
+      const { data: profiles, error: pErr } = await supabase
+        .from("profiles")
         .select("user_id, full_name, email")
         .in("user_id", userIds);
       if (pErr) throw pErr;
 
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) ?? []);
-      return memberships.map((m) => ({
-        user_id: m.user_id,
-        is_lead_advisor: m.is_lead_advisor,
-        full_name: profileMap.get(m.user_id)?.full_name ?? null,
-        email: profileMap.get(m.user_id)?.email ?? null,
-      }));
+      return memberships.map((m) => {
+        const p = profileMap.get(m.user_id);
+        return {
+          membership_id: m.id,
+          user_id: m.user_id,
+          full_name:
+            p?.full_name || p?.email?.split("@")[0] || "User",
+          email: p?.email ?? null,
+        };
+      });
     },
   });
 
