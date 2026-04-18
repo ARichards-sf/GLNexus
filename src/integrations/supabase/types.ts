@@ -49,6 +49,27 @@ export type Database = {
           },
         ]
       }
+      advisor_admin_relationships: {
+        Row: {
+          admin_id: string
+          advisor_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          admin_id: string
+          advisor_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          admin_id?: string
+          advisor_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       automation_logs: {
         Row: {
           completed_at: string | null
@@ -282,6 +303,7 @@ export type Database = {
           created_at: string
           firm_id: string
           id: string
+          is_lead_advisor: boolean
           role: string
           user_id: string
         }
@@ -289,6 +311,7 @@ export type Database = {
           created_at?: string
           firm_id: string
           id?: string
+          is_lead_advisor?: boolean
           role: string
           user_id: string
         }
@@ -296,6 +319,7 @@ export type Database = {
           created_at?: string
           firm_id?: string
           id?: string
+          is_lead_advisor?: boolean
           role?: string
           user_id?: string
         }
@@ -665,6 +689,110 @@ export type Database = {
         }
         Relationships: []
       }
+      task_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          read: boolean
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          read?: boolean
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          read?: boolean
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_notifications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          advisor_id: string
+          assigned_to: string
+          completed_at: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          dismissed_at: string | null
+          due_date: string | null
+          household_id: string | null
+          id: string
+          metadata: Json | null
+          priority: string
+          status: string
+          task_type: string
+          title: string
+        }
+        Insert: {
+          advisor_id: string
+          assigned_to: string
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          dismissed_at?: string | null
+          due_date?: string | null
+          household_id?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: string
+          status?: string
+          task_type?: string
+          title: string
+        }
+        Update: {
+          advisor_id?: string
+          assigned_to?: string
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          dismissed_at?: string | null
+          due_date?: string | null
+          household_id?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: string
+          status?: string
+          task_type?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "household_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -718,6 +846,7 @@ export type Database = {
     }
     Functions: {
       generate_daily_snapshots: { Args: never; Returns: undefined }
+      get_accessible_advisor_ids: { Args: never; Returns: string[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
