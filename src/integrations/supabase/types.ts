@@ -1132,6 +1132,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_developer: { Args: { _user_id: string }; Returns: boolean }
       is_gl_internal: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
