@@ -45,6 +45,9 @@ export default function StaffDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: staff = [], isLoading } = useInternalUsers();
+  const { data: myProfile } = useGlProfile();
+  const isSuperAdmin = myProfile?.platform_role === "super_admin";
+  const availableRoles = isSuperAdmin ? ROLES : ROLES.filter((r) => r !== "developer");
   const updateUser = useUpdateInternalUser();
   const toggleStatus = useToggleAdvisorStatus();
 
