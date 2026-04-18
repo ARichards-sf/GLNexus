@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -8,6 +8,8 @@ import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
 import { useAiActions, type ParsedToolCall } from "@/hooks/useAiActions";
 import { buildContextSnapshot, streamChat, type AiMsg } from "@/lib/aiChat";
 import ActionCard from "@/components/ActionCard";
+import { useSpeechInput } from "@/hooks/useSpeechInput";
+import { cn } from "@/lib/utils";
 
 export default function DashboardGoodiePanel() {
   const { user } = useAuth();
@@ -79,58 +81,68 @@ export default function DashboardGoodiePanel() {
     );
   }, []);
 
-  const send = useCallback(async () => {
-    const text = input.trim();
-    if (!text || isLoading) return;
-    setInput("");
-    const userMsg: AiMsg = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
-    setIsLoading(true);
+  const sendWithText = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed || isLoading) return;
+      setInput("");
+      const userMsg: AiMsg = { role: "user", content: trimmed };
+      setMessages((prev) => [...prev, userMsg]);
+      setIsLoading(true);
 
-    const context = buildContextSnapshot(households, recentNotes);
-    let assistantSoFar = "";
-    const apiMessages = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
+      const context = buildContextSnapshot(households, recentNotes);
+      let assistantSoFar = "";
+      const apiMessages = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
 
-    const upsert = (chunk: string) => {
-      assistantSoFar += chunk;
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant" && !last.toolCalls) {
-          return prev.map((m, i) =>
-            i === prev.length - 1 ? { ...m, content: assistantSoFar } : m
-          );
-        }
-        return [...prev, { role: "assistant", content: assistantSoFar }];
-      });
-    };
+      const upsert = (chunk: string) => {
+        assistantSoFar += chunk;
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && !last.toolCalls) {
+            return prev.map((m, i) =>
+              i === prev.length - 1 ? { ...m, content: assistantSoFar } : m
+            );
+          }
+          return [...prev, { role: "assistant", content: assistantSoFar }];
+        });
+      };
 
-    try {
-      await streamChat({
-        messages: apiMessages,
-        context,
-        onDelta: upsert,
-        onToolCalls: (calls) => {
-          setMessages((prev) => {
-            const last = prev[prev.length - 1];
-            if (last?.role === "assistant") {
-              return prev.map((m, i) =>
-                i === prev.length - 1 ? { ...m, toolCalls: calls } : m
-              );
-            }
-            return [...prev, { role: "assistant", content: "", toolCalls: calls }];
-          });
-        },
-        onDone: () => setIsLoading(false),
-        onError: (msg) => {
-          toast.error(msg);
-          setIsLoading(false);
-        },
-      });
-    } catch {
-      toast.error("Failed to reach the AI assistant.");
-      setIsLoading(false);
-    }
-  }, [input, isLoading, messages, households, recentNotes]);
+      try {
+        await streamChat({
+          messages: apiMessages,
+          context,
+          onDelta: upsert,
+          onToolCalls: (calls) => {
+            setMessages((prev) => {
+              const last = prev[prev.length - 1];
+              if (last?.role === "assistant") {
+                return prev.map((m, i) =>
+                  i === prev.length - 1 ? { ...m, toolCalls: calls } : m
+                );
+              }
+              return [...prev, { role: "assistant", content: "", toolCalls: calls }];
+            });
+          },
+          onDone: () => setIsLoading(false),
+          onError: (msg) => {
+            toast.error(msg);
+            setIsLoading(false);
+          },
+        });
+      } catch {
+        toast.error("Failed to reach the AI assistant.");
+        setIsLoading(false);
+      }
+    },
+    [isLoading, messages, households, recentNotes]
+  );
+
+  const send = useCallback(() => sendWithText(input), [input, sendWithText]);
+
+  const { isListening, isSupported, startListening, stopListening } = useSpeechInput((text) => {
+    setInput(text);
+    setTimeout(() => sendWithText(text), 100);
+  });
 
   return (
     <>
@@ -177,15 +189,32 @@ export default function DashboardGoodiePanel() {
             e.preventDefault();
             send();
           }}
-          className="flex gap-2"
+          className="flex gap-2 items-center"
         >
           <Input
-            placeholder="Ask or give instructions…"
+            placeholder={isListening ? "Listening…" : "Ask or give instructions…"}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
             className="flex-1"
           />
+          {isSupported && (
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              onClick={isListening ? stopListening : startListening}
+              className={cn(
+                "h-8 w-8 shrink-0 transition-colors",
+                isListening
+                  ? "text-red-500 animate-pulse"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              title={isListening ? "Listening... click to stop" : "Click to speak"}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </Button>
+          )}
           <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
             <Send className="h-4 w-4" />
           </Button>
