@@ -219,6 +219,26 @@ export default function AccountDetail() {
       </div>
 
       <EditAccountSheet open={editOpen} onOpenChange={setEditOpen} account={account} />
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {account.account_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This financial account will be permanently deleted. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className={cn(buttonVariants({ variant: "destructive" }))}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
