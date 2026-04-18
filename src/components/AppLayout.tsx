@@ -15,12 +15,36 @@ import { useCreateTask } from "@/hooks/useTasks";
 import type { CalendarEvent } from "@/hooks/useCalendarEvents";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useFirmContext } from "@/hooks/useFirmContext";
+import { useSelectedFirm } from "@/contexts/FirmContext";
+import { useFirms } from "@/hooks/useFirms";
 
 function LayoutInner() {
   const { sessionEvent, isInSession, endSession, isProspectSession } = useInSession();
   const { user } = useAuth();
   const { pathname } = useLocation();
   const createTask = useCreateTask();
+
+  // Firm branding colors
+  const { currentFirm, allFirms } = useFirmContext();
+  const { selectedFirmId } = useSelectedFirm();
+  const { data: firms = [] } = useFirms();
+
+  const brandingFirm = selectedFirmId
+    ? firms.find(f => f.id === selectedFirmId) ?? currentFirm
+    : currentFirm;
+
+  const accentColor = (brandingFirm as any)?.accent_color;
+  const secondaryColor = (brandingFirm as any)?.secondary_color;
+
+  const firmCssVars = {
+    ...(accentColor
+      ? { "--firm-accent": accentColor }
+      : {}),
+    ...(secondaryColor
+      ? { "--firm-secondary": secondaryColor }
+      : { "--firm-secondary": accentColor || "" }),
+  } as React.CSSProperties;
 
   const [panelCollapsed, setPanelCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -99,6 +123,7 @@ function LayoutInner() {
         <AppSidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <main
+            style={firmCssVars}
             className={cn(
               "flex-1 overflow-y-auto transition-all duration-300",
               showPanel && !panelCollapsed && "2xl:mr-[360px] 3xl:mr-[480px]",
