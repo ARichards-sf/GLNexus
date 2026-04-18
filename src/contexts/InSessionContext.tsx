@@ -6,6 +6,7 @@ export interface InSessionContextType {
   startSession: (event: CalendarEvent) => void;
   endSession: () => void;
   isInSession: boolean;
+  isProspectSession: boolean;
 }
 
 const InSessionContext = createContext<InSessionContextType | null>(null);
@@ -22,9 +23,13 @@ export function InSessionProvider({ children }: { children: ReactNode }) {
   };
 
   const isInSession = sessionEvent !== null;
+  const isProspectSession =
+    !!sessionEvent?.prospect_id && !sessionEvent?.household_id;
 
   return (
-    <InSessionContext.Provider value={{ sessionEvent, startSession, endSession, isInSession }}>
+    <InSessionContext.Provider
+      value={{ sessionEvent, startSession, endSession, isInSession, isProspectSession }}
+    >
       {children}
     </InSessionContext.Provider>
   );

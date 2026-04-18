@@ -7,8 +7,10 @@ export interface CalendarEvent {
   id: string;
   advisor_id: string;
   household_id: string | null;
+  prospect_id: string | null;
   title: string;
   description: string | null;
+  meeting_context?: string | null;
   start_time: string;
   end_time: string;
   event_type: string;
@@ -16,6 +18,14 @@ export interface CalendarEvent {
   created_at: string;
   updated_at: string;
   households?: { name: string } | null;
+  prospects?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    company: string | null;
+    pipeline_stage: string;
+    estimated_aum: number | null;
+  } | null;
 }
 
 function useTargetAdvisorId() {
