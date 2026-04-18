@@ -441,6 +441,153 @@ export default function ContactProfile() {
           })()}
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Archive Contact Confirmation */}
+      <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive {contact.first_name} {contact.last_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This contact will be archived and hidden from your active view. Their history will be retained for compliance.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                try {
+                  await archiveContact.mutateAsync({ memberId: contact.id });
+                  toast.success("Contact archived");
+                  navigate(contact.household_id ? `/household/${contact.household_id}` : "/contacts");
+                } catch (e: any) {
+                  toast.error(e?.message || "Failed to archive contact");
+                }
+              }}
+            >
+              Archive Contact
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Close Account Confirmation */}
+      <AlertDialog
+        open={!!closeAccountId}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCloseAccountId(null);
+            setCloseReason("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          {(() => {
+            const a = accounts.find((x) => x.id === closeAccountId);
+            const name = a?.account_name || "this account";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Close {name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This account will be marked as closed. The record will be retained for compliance.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-2">
+                  <Textarea
+                    placeholder="Optional: reason for closure"
+                    value={closeReason}
+                    onChange={(e) => setCloseReason(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={async () => {
+                      if (!closeAccountId) return;
+                      try {
+                        await deleteAccount.mutateAsync({
+                          accountId: closeAccountId,
+                          action: "close",
+                          reason: closeReason || undefined,
+                        });
+                        toast.success(`${name} closed`);
+                        setCloseAccountId(null);
+                        setCloseReason("");
+                      } catch (e: any) {
+                        toast.error(e?.message || "Failed to close account");
+                      }
+                    }}
+                  >
+                    Close Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Archive Account Confirmation */}
+      <AlertDialog open={!!archiveAccountId} onOpenChange={(o) => !o && setArchiveAccountId(null)}>
+        <AlertDialogContent>
+          {(() => {
+            const a = accounts.find((x) => x.id === archiveAccountId);
+            const name = a?.account_name || "this account";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Archive {name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This account will be archived and hidden from active views. Its history will be retained.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={async () => {
+                      if (!archiveAccountId) return;
+                      try {
+                        await deleteAccount.mutateAsync({
+                          accountId: archiveAccountId,
+                          action: "archive",
+                        });
+                        toast.success(`${name} archived`);
+                        setArchiveAccountId(null);
+                      } catch (e: any) {
+                        toast.error(e?.message || "Failed to archive account");
+                      }
+                    }}
+                  >
+                    Archive Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reparent Dialog */}
+      {reparentOpen && contact.household_id && (
+        <ReparentContactDialog
+          open={reparentOpen}
+          onOpenChange={setReparentOpen}
+          contact={{
+            id: contact.id,
+            first_name: contact.first_name,
+            last_name: contact.last_name,
+            household_id: contact.household_id,
+            household_name: householdName || "Current Household",
+          }}
+          accounts={accounts}
+          onComplete={() => {
+            setReparentOpen(false);
+            navigate(`/household/${contact.household_id}`);
+          }}
+        />
+      )}
     </div>
   );
 }
