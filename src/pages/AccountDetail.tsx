@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,16 +18,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Wallet, Lock, Edit, Trash2, Archive, X, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Wallet, Lock, Edit, Archive, X, MoreHorizontal } from "lucide-react";
 import { useAccount, useDeleteAccount } from "@/hooks/useContacts";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditAccountSheet from "@/components/EditAccountSheet";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -58,17 +55,9 @@ export default function AccountDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [closeReason, setCloseReason] = useState("");
   const deleteAccount = useDeleteAccount();
   const navigate = useNavigate();
-
-  const isNewAccount = useMemo(() => {
-    if (!account?.created_at) return false;
-    const created = new Date(account.created_at);
-    const hoursSince = (Date.now() - created.getTime()) / (1000 * 60 * 60);
-    return hoursSince < 24;
-  }, [account?.created_at]);
 
   const goBackToContact = () => {
     if (account) navigate(`/contacts/${account.member_id}`);
@@ -100,18 +89,6 @@ export default function AccountDetail() {
       goBackToContact();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to archive account");
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!id || !account) return;
-    try {
-      await deleteAccount.mutateAsync({ accountId: id, action: "delete" });
-      toast.success("Account deleted");
-      setDeleteOpen(false);
-      goBackToContact();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete account");
     }
   };
 
@@ -202,18 +179,6 @@ export default function AccountDetail() {
                   <Archive className="w-4 h-4 mr-2" />
                   Archive Account
                 </DropdownMenuItem>
-                {isNewAccount && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => setDeleteOpen(true)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Account
-                    </DropdownMenuItem>
-                  </>
-                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -347,27 +312,6 @@ export default function AccountDetail() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleArchive}>Archive Account</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Account (recently created only) */}
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {account.account_name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this account. Only available for recently created accounts.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className={cn(buttonVariants({ variant: "destructive" }))}
-            >
-              Delete
-            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

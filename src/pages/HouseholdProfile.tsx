@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  CalendarCheck, AlertTriangle, CalendarPlus, Trash2, MoreHorizontal, Archive,
+  CalendarCheck, AlertTriangle, CalendarPlus, MoreHorizontal, Archive,
   ArrowRightLeft, ChevronDown, ChevronUp, X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   useHousehold, useHouseholdMembers, useComplianceNotes, useHouseholdSnapshots,
-  useAccountSnapshots, useArchiveHousehold, useDeleteHouseholdMember,
+  useAccountSnapshots, useArchiveHousehold,
   useArchiveContact, useArchivedHouseholdMembers,
   type MemberRow,
 } from "@/hooks/useHouseholds";
@@ -178,8 +178,6 @@ export default function HouseholdProfile() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
   const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false);
-  const [deleteMemberId, setDeleteMemberId] = useState<string | null>(null);
-  const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
   // Reparent + archive contact state
@@ -195,7 +193,6 @@ export default function HouseholdProfile() {
 
   const archiveHousehold = useArchiveHousehold();
   const archiveContact = useArchiveContact();
-  const deleteMember = useDeleteHouseholdMember();
   const deleteAccount = useDeleteAccount();
 
   const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
@@ -620,23 +617,6 @@ export default function HouseholdProfile() {
                                 <DropdownMenuItem onClick={() => setArchiveAccountId(a.id)}>
                                   <Archive className="w-3.5 h-3.5 mr-2" /> Archive Account
                                 </DropdownMenuItem>
-                                {(() => {
-                                  const createdToday = a.created_at
-                                    ? new Date(a.created_at).toDateString() === new Date().toDateString()
-                                    : false;
-                                  if (!createdToday) return null;
-                                  return (
-                                    <>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        className="text-destructive focus:text-destructive"
-                                        onClick={() => setDeleteAccountId(a.id)}
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
-                                      </DropdownMenuItem>
-                                    </>
-                                  );
-                                })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -785,102 +765,6 @@ export default function HouseholdProfile() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Remove Member Confirmation */}
-      <AlertDialog open={!!deleteMemberId} onOpenChange={(o) => !o && setDeleteMemberId(null)}>
-        <AlertDialogContent>
-          {(() => {
-            const m = members.find((x) => x.id === deleteMemberId);
-            const name = m ? `${m.first_name} ${m.last_name}` : "this contact";
-            const memberAccountCount = m
-              ? accounts.filter((a: any) => a.member_id === m.id).length
-              : 0;
-            const hasAccounts = memberAccountCount > 0;
-            if (hasAccounts) {
-              return (
-                <>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cannot remove {name}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {name} has {memberAccountCount} financial{" "}
-                      {memberAccountCount === 1 ? "account" : "accounts"}. Please delete their
-                      accounts before removing this contact.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogAction onClick={() => setDeleteMemberId(null)}>OK</AlertDialogAction>
-                  </AlertDialogFooter>
-                </>
-              );
-            }
-            return (
-              <>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Remove {name}?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This contact will be removed from the household.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={async () => {
-                      if (!deleteMemberId) return;
-                      try {
-                        await deleteMember.mutateAsync({ memberId: deleteMemberId, force: true });
-                        toast.success(`${name} removed`);
-                        setDeleteMemberId(null);
-                      } catch (e: any) {
-                        toast.error(e?.message || "Failed to remove contact");
-                      }
-                    }}
-                  >
-                    Remove
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </>
-            );
-          })()}
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Account Confirmation */}
-      <AlertDialog open={!!deleteAccountId} onOpenChange={(o) => !o && setDeleteAccountId(null)}>
-        <AlertDialogContent>
-          {(() => {
-            const a = accounts.find((x) => x.id === deleteAccountId);
-            const name = a?.account_name || "this account";
-            return (
-              <>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This financial account will be permanently deleted.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={async () => {
-                      if (!deleteAccountId) return;
-                      try {
-                        await deleteAccount.mutateAsync({ accountId: deleteAccountId, action: "delete" });
-                        toast.success(`${name} deleted`);
-                        setDeleteAccountId(null);
-                      } catch (e: any) {
-                        toast.error(e?.message || "Failed to delete account");
-                      }
-                    }}
-                  >
-                    Delete Account
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </>
-            );
-          })()}
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Archive Contact Confirmation */}
       <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>

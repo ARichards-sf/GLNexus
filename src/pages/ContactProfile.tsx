@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
-  Edit, Wallet, Plus, HelpCircle, ChevronRight, Trash2,
+  Edit, Wallet, Plus, HelpCircle, ChevronRight,
   Archive, ArrowRightLeft, MoreHorizontal, X,
 } from "lucide-react";
 import {
@@ -18,10 +18,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
-import { useDeleteHouseholdMember, useArchiveContact } from "@/hooks/useHouseholds";
+import { useArchiveContact } from "@/hooks/useHouseholds";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
 import AddAccountDialog from "@/components/AddAccountDialog";
@@ -36,14 +35,11 @@ export default function ContactProfile() {
   const [editOpen, setEditOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
-  const [deleteContactOpen, setDeleteContactOpen] = useState(false);
-  const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
   const [reparentOpen, setReparentOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [closeAccountId, setCloseAccountId] = useState<string | null>(null);
   const [closeReason, setCloseReason] = useState("");
   const [archiveAccountId, setArchiveAccountId] = useState<string | null>(null);
-  const deleteMember = useDeleteHouseholdMember();
   const deleteAccount = useDeleteAccount();
   const archiveContact = useArchiveContact();
 
@@ -294,22 +290,6 @@ export default function ContactProfile() {
                                     <Archive className="w-4 h-4 mr-2" />
                                     Archive Account
                                   </DropdownMenuItem>
-                                  {account.created_at &&
-                                    new Date(account.created_at).toDateString() === new Date().toDateString() && (
-                                      <>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                          className="text-destructive focus:text-destructive"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setDeleteAccountId(account.id);
-                                          }}
-                                        >
-                                          <Trash2 className="w-4 h-4 mr-2" />
-                                          Delete
-                                        </DropdownMenuItem>
-                                      </>
-                                    )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                               <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -328,41 +308,6 @@ export default function ContactProfile() {
         </div>
       </div>
 
-      {/* Danger Zone */}
-      <div className="mt-8 pt-6 border-t border-border">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-medium text-foreground">Remove Contact</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Remove this contact from the household.
-              {accounts.length > 0 && " Delete all accounts first."}
-            </p>
-          </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={accounts.length > 0}
-                    className="border-destructive/40 text-destructive hover:bg-destructive/5 shrink-0 disabled:opacity-50"
-                    onClick={() => setDeleteContactOpen(true)}
-                  >
-                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                    Remove Contact
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {accounts.length > 0 && (
-                <TooltipContent>
-                  Delete all financial accounts before removing this contact
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
 
       <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
       <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} memberId={contact.id} />
@@ -375,72 +320,6 @@ export default function ContactProfile() {
         }}
       />
 
-      {/* Remove Contact Confirmation */}
-      <AlertDialog open={deleteContactOpen} onOpenChange={setDeleteContactOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove {contact.first_name} {contact.last_name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This contact will be removed from {householdName || "the household"}. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={async () => {
-                try {
-                  await deleteMember.mutateAsync({ memberId: contact.id, force: true });
-                  toast.success("Contact removed");
-                  navigate(contact.household_id ? `/household/${contact.household_id}` : "/contacts");
-                } catch (e: any) {
-                  toast.error(e?.message || "Failed to remove contact");
-                }
-              }}
-            >
-              Remove Contact
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Account Confirmation */}
-      <AlertDialog open={!!deleteAccountId} onOpenChange={(o) => !o && setDeleteAccountId(null)}>
-        <AlertDialogContent>
-          {(() => {
-            const a = accounts.find((x) => x.id === deleteAccountId);
-            const name = a?.account_name || "this account";
-            return (
-              <>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This financial account will be permanently deleted.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={async () => {
-                      if (!deleteAccountId) return;
-                      try {
-                        await deleteAccount.mutateAsync({ accountId: deleteAccountId, action: "delete" });
-                        toast.success(`${name} deleted`);
-                        setDeleteAccountId(null);
-                      } catch (e: any) {
-                        toast.error(e?.message || "Failed to delete account");
-                      }
-                    }}
-                  >
-                    Delete Account
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </>
-            );
-          })()}
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Archive Contact Confirmation */}
       <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
