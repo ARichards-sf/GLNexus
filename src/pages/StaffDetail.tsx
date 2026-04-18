@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Pencil, Building2, Clock, Calendar, Info } from "lucide-react";
+import { ArrowLeft, Pencil, Building2, Clock, Calendar, Info, AlertTriangle } from "lucide-react";
 import {
-  useInternalUsers, useUpdateInternalUser, useToggleAdvisorStatus,
+  useInternalUsers, useUpdateInternalUser, useToggleAdvisorStatus, useGlProfile,
 } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
 import ManageStaffFirmsDialog from "@/components/ManageStaffFirmsDialog";
