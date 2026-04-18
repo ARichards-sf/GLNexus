@@ -33,6 +33,7 @@ import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import { toast } from "sonner";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import GoodieSuggests from "@/components/GoodieSuggests";
+import MorningBriefing from "@/components/MorningBriefing";
 import { useTasks } from "@/hooks/useTasks";
 
 const noteTypeColors: Record<string, string> = {
@@ -123,6 +124,14 @@ export default function Dashboard() {
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
         <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
       </div>
+
+      <MorningBriefing
+        households={households}
+        recentNotes={recentNotes as any}
+        upcomingEvents={upcomingEvents as any}
+        pendingTasks={myTasks as any}
+        firstName={firstName}
+      />
 
       {/* Quick Actions bar */}
       <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-secondary/40 mb-6">
