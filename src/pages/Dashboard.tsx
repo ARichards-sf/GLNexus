@@ -155,6 +155,9 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Your Next Meeting — only when within 60 minutes */}
+      {imminentMeeting && (
+        <Card className="mb-6 border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/10 shadow-none">
           <CardContent className="pt-5 pb-5">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4 min-w-0">
