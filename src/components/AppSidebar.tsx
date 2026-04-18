@@ -31,6 +31,10 @@ const adminItems = [
   { to: "/admin/requests", label: "All Requests", icon: TicketCheck, badgeKey: "allRequests" as const },
 ];
 
+const bdItems = [
+  { to: "/pipeline", label: "Pipeline", icon: TrendingUp },
+];
+
 const internalItems = [
   { to: "/admin/staff", label: "GL Staff", icon: UsersRound },
   { to: "/admin/firms", label: "Firm Management", icon: Building2 },
@@ -144,6 +148,28 @@ export default function AppSidebar() {
                   {badgeCount > 9 ? "9+" : badgeCount}
                 </span>
               )}
+            </RouterNavLink>
+          );
+        })}
+
+        <div className="mt-6 mb-2 px-3">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Business Development</span>
+        </div>
+        {bdItems.map((item) => {
+          const isActive = location.pathname === item.to || location.pathname.startsWith(item.to);
+          return (
+            <RouterNavLink
+              key={item.label}
+              to={item.to}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-secondary text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+              )}
+            >
+              <item.icon className="w-[18px] h-[18px]" />
+              <span className="flex-1">{item.label}</span>
             </RouterNavLink>
           );
         })}
