@@ -18,9 +18,12 @@ import {
   ExternalLink,
   Pencil,
   Plus,
+  Shield,
+  X,
 } from "lucide-react";
 import EditFirmDialog from "@/components/EditFirmDialog";
 import InviteAdvisorDialog from "@/components/InviteAdvisorDialog";
+import AddFirmAdminDialog from "@/components/AddFirmAdminDialog";
 import { formatFullCurrency } from "@/data/sampleData";
 import { useToast } from "@/hooks/use-toast";
 import type { Firm } from "@/hooks/useFirms";
@@ -30,6 +33,30 @@ interface FirmAdvisor {
   is_lead_advisor: boolean;
   full_name: string | null;
   email: string | null;
+  last_sign_in: string | null;
+  status: string | null;
+}
+
+interface FirmAdmin {
+  membership_id: string;
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+}
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return "Never";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(months / 12)}y ago`;
 }
 
 function getInitials(name: string | null, email: string | null) {
@@ -56,6 +83,8 @@ export default function FirmDetail() {
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
 
   const { data: firm, isLoading: firmLoading } = useQuery({
     queryKey: ["firm", id],
@@ -86,17 +115,56 @@ export default function FirmDetail() {
       const userIds = memberships.map((m) => m.user_id);
       const { data: profiles, error: pErr } = await supabase
         .from("profiles")
+        .select("user_id, full_name, email, last_sign_in, status")
+        .in("user_id", userIds);
+      if (pErr) throw pErr;
+
+      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) ?? []);
+      return memberships.map((m) => {
+        const p = profileMap.get(m.user_id);
+        return {
+          user_id: m.user_id,
+          is_lead_advisor: m.is_lead_advisor,
+          full_name:
+            p?.full_name || p?.email?.split("@")[0] || "Advisor",
+          email: p?.email ?? null,
+          last_sign_in: p?.last_sign_in ?? null,
+          status: p?.status ?? null,
+        };
+      });
+    },
+  });
+
+  const { data: admins = [] } = useQuery({
+    queryKey: ["firm_admins", id],
+    enabled: !!id,
+    queryFn: async (): Promise<FirmAdmin[]> => {
+      const { data: memberships, error } = await supabase
+        .from("firm_memberships")
+        .select("id, user_id, role")
+        .eq("firm_id", id!)
+        .in("role", ["admin", "advisor_admin"]);
+      if (error) throw error;
+      if (!memberships || memberships.length === 0) return [];
+
+      const userIds = memberships.map((m) => m.user_id);
+      const { data: profiles, error: pErr } = await supabase
+        .from("profiles")
         .select("user_id, full_name, email")
         .in("user_id", userIds);
       if (pErr) throw pErr;
 
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) ?? []);
-      return memberships.map((m) => ({
-        user_id: m.user_id,
-        is_lead_advisor: m.is_lead_advisor,
-        full_name: profileMap.get(m.user_id)?.full_name ?? null,
-        email: profileMap.get(m.user_id)?.email ?? null,
-      }));
+      return memberships.map((m) => {
+        const p = profileMap.get(m.user_id);
+        return {
+          membership_id: m.id,
+          user_id: m.user_id,
+          full_name:
+            p?.full_name || p?.email?.split("@")[0] || "User",
+          email: p?.email ?? null,
+        };
+      });
     },
   });
 
@@ -153,6 +221,23 @@ export default function FirmDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["firm_advisors", id] });
       toast({ title: "Lead advisor updated" });
+    },
+    onError: (e: any) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const removeAdmin = useMutation({
+    mutationFn: async (membershipId: string) => {
+      const { error } = await supabase
+        .from("firm_memberships")
+        .delete()
+        .eq("id", membershipId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["firm_admins", id] });
+      toast({ title: "Admin removed" });
     },
     onError: (e: any) => {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -427,17 +512,27 @@ export default function FirmDetail() {
                   className="flex items-center justify-between gap-3 px-5 py-3"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
                       {getInitials(a.full_name, a.email)}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="text-sm font-semibold text-foreground truncate">
-                          {a.full_name || "Unnamed advisor"}
+                          {a.full_name}
                         </p>
                         {a.is_lead_advisor && (
                           <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                         )}
+                        <Badge
+                          variant="outline"
+                          className={
+                            a.status === "inactive"
+                              ? "border-red-500/40 text-red-600 dark:text-red-400 text-[10px] px-1.5 py-0 h-4"
+                              : "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-[10px] px-1.5 py-0 h-4"
+                          }
+                        >
+                          {a.status === "inactive" ? "Inactive" : "Active"}
+                        </Badge>
                       </div>
                       {a.email && (
                         <p className="text-xs text-muted-foreground truncate">
@@ -447,6 +542,9 @@ export default function FirmDetail() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-xs text-muted-foreground hidden md:inline">
+                      {timeAgo(a.last_sign_in)}
+                    </span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground hidden sm:inline">
                         Lead Advisor
@@ -467,6 +565,77 @@ export default function FirmDetail() {
                       <ChevronRight className="w-5 h-5" />
                     </Link>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* SECTION 2b — Firm Admins */}
+      <Card className="mb-6">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Shield className="w-4 h-4" /> Firm Admins
+          </CardTitle>
+          <Button size="sm" onClick={() => setAddAdminOpen(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1" /> Add Admin
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          {admins.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+              <Shield className="w-10 h-10 text-muted-foreground/40 mb-2" />
+              <p className="text-sm font-medium text-foreground">No firm admins yet</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Firm admins can manage advisors and households across this firm.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-3"
+                onClick={() => setAddAdminOpen(true)}
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" /> Add Admin
+              </Button>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {admins.map((a) => (
+                <div
+                  key={a.membership_id}
+                  className="flex items-center justify-between gap-3 px-5 py-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
+                      {getInitials(a.full_name, a.email)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {a.full_name}
+                        </p>
+                        <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/15 border-0 text-[10px] px-1.5 py-0 h-4">
+                          Firm Admin
+                        </Badge>
+                      </div>
+                      {a.email && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {a.email}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={removeAdmin.isPending}
+                    onClick={() => removeAdmin.mutate(a.membership_id)}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    aria-label="Remove admin"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -562,6 +731,13 @@ export default function FirmDetail() {
 
       <EditFirmDialog open={editOpen} onOpenChange={setEditOpen} firm={firm} />
       <InviteAdvisorDialog open={inviteOpen} onOpenChange={setInviteOpen} defaultFirmId={id} />
+      {id && (
+        <AddFirmAdminDialog
+          open={addAdminOpen}
+          onOpenChange={setAddAdminOpen}
+          firmId={id}
+        />
+      )}
     </div>
   );
 }
