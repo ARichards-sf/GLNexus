@@ -178,8 +178,6 @@ export default function HouseholdProfile() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
   const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false);
-  const [deleteMemberId, setDeleteMemberId] = useState<string | null>(null);
-  const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
   // Reparent + archive contact state
@@ -195,7 +193,6 @@ export default function HouseholdProfile() {
 
   const archiveHousehold = useArchiveHousehold();
   const archiveContact = useArchiveContact();
-  const deleteMember = useDeleteHouseholdMember();
   const deleteAccount = useDeleteAccount();
 
   const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
