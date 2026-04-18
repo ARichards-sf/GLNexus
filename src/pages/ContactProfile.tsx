@@ -110,6 +110,27 @@ export default function ContactProfile() {
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
               <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Contact
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="px-2">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setReparentOpen(true)}>
+                  <ArrowRightLeft className="w-4 h-4 mr-2" />
+                  Move to Another Household
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setArchiveOpen(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Archive className="w-4 h-4 mr-2" />
+                  Archive Contact
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
