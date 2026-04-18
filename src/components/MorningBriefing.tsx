@@ -6,8 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { streamChat } from "@/lib/aiChat";
 import { formatCurrency } from "@/data/sampleData";
 
-const STORAGE_KEY = "goodie_morning_briefing";
-
 interface BriefingCache {
   date: string;
   text: string;
@@ -20,6 +18,7 @@ interface MorningBriefingProps {
   upcomingEvents: any[];
   pendingTasks: any[];
   firstName: string;
+  userId: string;
 }
 
 export default function MorningBriefing({
@@ -28,7 +27,9 @@ export default function MorningBriefing({
   upcomingEvents,
   pendingTasks,
   firstName,
+  userId,
 }: MorningBriefingProps) {
+  const STORAGE_KEY = `goodie_morning_briefing_${userId}`;
   const today = new Date().toISOString().split("T")[0];
 
   const initialCache: BriefingCache | null = (() => {
@@ -48,6 +49,13 @@ export default function MorningBriefing({
   const [dismissed, setDismissed] = useState(false);
   const hasGeneratedRef = useRef(!!initialCache);
 
+  // Clean up old non-scoped cache on mount
+  useEffect(() => {
+    try {
+      localStorage.removeItem("goodie_morning_briefing");
+    } catch { /* ignore */ }
+  }, []);
+
   // Persist minimized state
   useEffect(() => {
     if (!text) return;
@@ -59,7 +67,7 @@ export default function MorningBriefing({
     } catch {
       // ignore quota errors
     }
-  }, [minimized, text, today]);
+  }, [minimized, text, today, STORAGE_KEY]);
 
   // Generate briefing once if no cache
   useEffect(() => {
