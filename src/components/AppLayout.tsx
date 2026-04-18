@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { Bot, Bell, PhoneOff } from "lucide-react";
 import AppSidebar from "./AppSidebar";
 import ImpersonationBar from "./ImpersonationBar";
@@ -49,8 +49,10 @@ function TopBar() {
 function LayoutInner() {
   const { sessionEvent, isInSession, endSession } = useInSession();
   const { user } = useAuth();
+  const { pathname } = useLocation();
   const createTask = useCreateTask();
   const showPanel = isInSession && sessionEvent && sessionEvent.household_id;
+  const isDashboard = pathname === "/";
   const householdName = sessionEvent?.households?.name;
   const headerTitle = householdName ? `In Session · ${householdName}` : "In Session";
 
@@ -94,13 +96,13 @@ function LayoutInner() {
           <main
             className={cn(
               "flex-1 overflow-y-auto transition-all duration-300",
-              showPanel && "lg:mr-[480px]"
+              showPanel && !isDashboard && "lg:mr-[480px]"
             )}
           >
             <Outlet />
           </main>
         </div>
-        {showPanel && (
+        {showPanel && !isDashboard && (
           <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[480px] border-l border-border bg-background shadow-lg z-40 flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background sticky top-0 z-10">
               <div className="flex items-center gap-2 min-w-0">

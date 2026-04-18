@@ -1,17 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
-import { supabase } from "@/integrations/supabase/client";
 import { Bot, Send, Loader2 } from "lucide-react";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
-import { formatCurrency } from "@/data/sampleData";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { ParsedToolCall, useAiActions } from "@/hooks/useAiActions";
 import ActionCard from "@/components/ActionCard";
-
-type Msg = { role: "user" | "assistant"; content: string; toolCalls?: ParsedToolCall[] };
+import { buildContextSnapshot, streamChat, type AiMsg as Msg } from "@/lib/aiChat";
+import { cn } from "@/lib/utils";
 
 function buildContextSnapshot(households: any[], notes: any[]): string {
   const totalAUM = households.reduce((s, h) => s + Number(h.total_aum), 0);
