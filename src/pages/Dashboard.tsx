@@ -17,6 +17,7 @@ import {
   CalendarDays,
   HelpCircle,
   TicketCheck,
+  CheckSquare,
   Plus,
 } from "lucide-react";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
@@ -32,6 +33,7 @@ import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import { toast } from "sonner";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import GoodieSuggests from "@/components/GoodieSuggests";
+import { useTasks } from "@/hooks/useTasks";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
