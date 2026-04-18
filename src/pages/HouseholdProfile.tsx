@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   useHousehold, useHouseholdMembers, useComplianceNotes, useHouseholdSnapshots,
-  useAccountSnapshots, useArchiveHousehold, useDeleteHouseholdMember,
+  useAccountSnapshots, useArchiveHousehold,
   useArchiveContact, useArchivedHouseholdMembers,
   type MemberRow,
 } from "@/hooks/useHouseholds";
