@@ -226,8 +226,11 @@ export type Database = {
           account_registration: string | null
           account_type: string
           advisor_id: string
+          archived_at: string | null
           balance: number
           br_suitability: string | null
+          closed_at: string | null
+          closed_reason: string | null
           created_at: string
           data_source: string | null
           description: string | null
@@ -239,6 +242,7 @@ export type Database = {
           lpl_type: string | null
           member_id: string
           objective: string | null
+          status: string
           tier_schedule: string | null
           updated_at: string
         }
@@ -249,8 +253,11 @@ export type Database = {
           account_registration?: string | null
           account_type?: string
           advisor_id: string
+          archived_at?: string | null
           balance?: number
           br_suitability?: string | null
+          closed_at?: string | null
+          closed_reason?: string | null
           created_at?: string
           data_source?: string | null
           description?: string | null
@@ -262,6 +269,7 @@ export type Database = {
           lpl_type?: string | null
           member_id: string
           objective?: string | null
+          status?: string
           tier_schedule?: string | null
           updated_at?: string
         }
@@ -272,8 +280,11 @@ export type Database = {
           account_registration?: string | null
           account_type?: string
           advisor_id?: string
+          archived_at?: string | null
           balance?: number
           br_suitability?: string | null
+          closed_at?: string | null
+          closed_reason?: string | null
           created_at?: string
           data_source?: string | null
           description?: string | null
@@ -285,6 +296,7 @@ export type Database = {
           lpl_type?: string | null
           member_id?: string
           objective?: string | null
+          status?: string
           tier_schedule?: string | null
           updated_at?: string
         }
@@ -394,6 +406,7 @@ export type Database = {
         Row: {
           advisor_id: string
           archived_at: string | null
+          archived_reason: string | null
           company: string | null
           created_at: string
           date_of_birth: string | null
@@ -410,6 +423,7 @@ export type Database = {
         Insert: {
           advisor_id: string
           archived_at?: string | null
+          archived_reason?: string | null
           company?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -426,6 +440,7 @@ export type Database = {
         Update: {
           advisor_id?: string
           archived_at?: string | null
+          archived_reason?: string | null
           company?: string | null
           created_at?: string
           date_of_birth?: string | null
