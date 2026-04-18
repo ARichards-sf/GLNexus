@@ -198,7 +198,7 @@ Recent activity: ${
   const bulletSection = parts[1]?.trim();
 
   return (
-    <Card className="mb-6 border-border shadow-none bg-gradient-to-br from-primary/[0.03] via-background to-emerald-50/30 dark:to-emerald-950/10">
+    <Card className="mb-6 border-border shadow-none bg-gradient-to-br from-primary/[0.03] via-background to-background">
       <CardContent className="pt-5 pb-5">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2.5 min-w-0">
