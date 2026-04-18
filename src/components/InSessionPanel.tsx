@@ -485,3 +485,275 @@ function HouseholdSessionPanel({ event, householdId, onClose }: { event: Calenda
     </div>
   );
 }
+
+// ============================================================
+// Prospect session panel
+// ============================================================
+
+function useProspectGoodieBrief(args: {
+  ready: boolean;
+  eventId: string;
+  prospectName: string;
+  company: string | null;
+  pipelineStage: string;
+  estimatedAum: number | null;
+  source: string | null;
+  referredBy: string | null;
+  notes: string | null;
+  meetingGoal: string | null;
+}) {
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const triggeredRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!args.ready) return;
+    if (triggeredRef.current === args.eventId) return;
+    triggeredRef.current = args.eventId;
+
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+      setText("");
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) throw new Error("Not authenticated");
+
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
+
+        const profileLines = [
+          `Name: ${args.prospectName}`,
+          args.company ? `Company: ${args.company}` : null,
+          `Pipeline stage: ${args.pipelineStage}`,
+          args.estimatedAum ? `Estimated AUM: ${formatFullCurrency(args.estimatedAum)}` : null,
+          args.source ? `Source: ${args.source}` : null,
+          args.referredBy ? `Referred by: ${args.referredBy}` : null,
+          args.notes ? `Notes: ${args.notes}` : null,
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        const userPrompt =
+          `Generate a concise pre-meeting brief for my upcoming Discovery Call with prospect ${args.prospectName}` +
+          `${args.company ? ` from ${args.company}` : ""}. ` +
+          `Based on their profile:\n${profileLines}\n\n` +
+          `Meeting goal: ${args.meetingGoal || "(not specified)"}.\n\n` +
+          `In 3-4 sentences highlight: what to uncover in this meeting, key financial planning gaps to explore based on their profile, and one specific opening question to build rapport. Be direct and advisor-focused.`;
+
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ messages: [{ role: "user", content: userPrompt }] }),
+        });
+
+        if (!resp.ok || !resp.body) {
+          if (resp.status === 429) throw new Error("Rate limited. Please try again shortly.");
+          if (resp.status === 402) throw new Error("AI credits exhausted.");
+          throw new Error("Failed to generate brief");
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        let done = false;
+        let acc = "";
+
+        while (!done) {
+          const { done: d, value } = await reader.read();
+          if (d) break;
+          buf += decoder.decode(value, { stream: true });
+          let idx: number;
+          while ((idx = buf.indexOf("\n")) !== -1) {
+            let line = buf.slice(0, idx);
+            buf = buf.slice(idx + 1);
+            if (line.endsWith("\r")) line = line.slice(0, -1);
+            if (!line.startsWith("data: ")) continue;
+            const json = line.slice(6).trim();
+            if (json === "[DONE]") {
+              done = true;
+              break;
+            }
+            try {
+              const parsed = JSON.parse(json);
+              const delta = parsed.choices?.[0]?.delta?.content as string | undefined;
+              if (delta) {
+                acc += delta;
+                setText(acc);
+              }
+            } catch {
+              buf = line + "\n" + buf;
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to generate brief");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [args.ready, args.eventId]);
+
+  return { text, loading, error };
+}
+
+function ProspectSessionPanel({ event, onClose }: { event: CalendarEvent; onClose?: () => void }) {
+  const { data: prospect, isLoading } = useProspect(event.prospect_id ?? undefined);
+  const eventColor = EVENT_TYPE_COLORS[event.event_type] || EVENT_TYPE_COLORS["Discovery Call"];
+  const startingSoon = useMemo(() => isStartingSoon(event.start_time), [event.start_time]);
+
+  const stage = PIPELINE_STAGES.find((s) => s.key === prospect?.pipeline_stage);
+  const fullName = prospect ? `${prospect.first_name} ${prospect.last_name}` : "Prospect";
+  const meetingGoal = event.meeting_context || event.description || null;
+
+  const goodie = useProspectGoodieBrief({
+    ready: !isLoading && !!prospect,
+    eventId: event.id,
+    prospectName: fullName,
+    company: prospect?.company ?? null,
+    pipelineStage: prospect?.pipeline_stage ?? "lead",
+    estimatedAum: prospect?.estimated_aum ?? null,
+    source: prospect?.source ?? null,
+    referredBy: prospect?.referred_by ?? null,
+    notes: prospect?.notes ?? null,
+    meetingGoal,
+  });
+
+  return (
+    <div className="space-y-4">
+      {/* HEADER */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-2 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-xl truncate">{event.title}</CardTitle>
+                <Badge className={`${eventColor.bg} ${eventColor.text} border-0`}>
+                  {event.event_type}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>{formatEventTime(event.start_time)}</span>
+                {startingSoon && (
+                  <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                    Starting soon
+                  </span>
+                )}
+              </div>
+            </div>
+            {onClose && (
+              <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* SECTION 1 — Prospect Snapshot */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground font-medium uppercase tracking-wide">
+            <TrendingUp className="h-4 w-4" />
+            Prospect Snapshot
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading || !prospect ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <div className="flex items-center justify-between md:col-span-2">
+                <Link
+                  to={`/prospects/${prospect.id}`}
+                  className="font-semibold text-base hover:underline transition-colors hover:text-primary"
+                >
+                  {fullName}
+                </Link>
+                {stage && <Badge className={`border-0 ${stage.color}`}>{stage.label}</Badge>}
+              </div>
+              {prospect.company && (
+                <div className="flex justify-between md:col-span-2">
+                  <span className="text-muted-foreground">Company</span>
+                  <span className="font-medium text-right">{prospect.company}</span>
+                </div>
+              )}
+              {prospect.estimated_aum != null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Est. AUM</span>
+                  <span className="font-medium">{formatFullCurrency(prospect.estimated_aum)}</span>
+                </div>
+              )}
+              {prospect.source && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Source</span>
+                  <span className="font-medium">{prospect.source}</span>
+                </div>
+              )}
+              {prospect.referred_by && (
+                <div className="flex justify-between md:col-span-2">
+                  <span className="text-muted-foreground">Referred by</span>
+                  <span className="font-medium text-right">{prospect.referred_by}</span>
+                </div>
+              )}
+              {meetingGoal && (
+                <div className="md:col-span-2 pt-2 border-t">
+                  <div className="text-muted-foreground mb-1">Meeting Goal</div>
+                  <p className="text-foreground/90 whitespace-pre-wrap">{meetingGoal}</p>
+                </div>
+              )}
+              <div className="md:col-span-2">
+                <Link to={`/prospects/${prospect.id}`}>
+                  <Button variant="outline" size="sm" className="w-full mt-3">
+                    View Full Profile
+                    <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* SECTION 2 — Goodie's Take */}
+      <Card className="border-amber-200/70 dark:border-amber-700/40 bg-amber-50/30 dark:bg-amber-950/10">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium">
+            <Bot className="h-4 w-4" />
+            Goodie's Take
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {goodie.error ? (
+            <p className="text-sm text-destructive">{goodie.error}</p>
+          ) : goodie.loading && !goodie.text ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ) : (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
+              {goodie.text || "Preparing brief..."}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
