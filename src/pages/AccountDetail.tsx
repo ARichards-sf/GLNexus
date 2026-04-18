@@ -55,17 +55,9 @@ export default function AccountDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [closeReason, setCloseReason] = useState("");
   const deleteAccount = useDeleteAccount();
   const navigate = useNavigate();
-
-  const isNewAccount = useMemo(() => {
-    if (!account?.created_at) return false;
-    const created = new Date(account.created_at);
-    const hoursSince = (Date.now() - created.getTime()) / (1000 * 60 * 60);
-    return hoursSince < 24;
-  }, [account?.created_at]);
 
   const goBackToContact = () => {
     if (account) navigate(`/contacts/${account.member_id}`);
@@ -97,18 +89,6 @@ export default function AccountDetail() {
       goBackToContact();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to archive account");
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!id || !account) return;
-    try {
-      await deleteAccount.mutateAsync({ accountId: id, action: "delete" });
-      toast.success("Account deleted");
-      setDeleteOpen(false);
-      goBackToContact();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete account");
     }
   };
 
