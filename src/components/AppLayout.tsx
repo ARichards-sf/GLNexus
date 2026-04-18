@@ -71,7 +71,6 @@ function LayoutInner() {
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
-          {user && <TopBar />}
           <main
             className={cn(
               "flex-1 overflow-y-auto transition-all duration-300",
