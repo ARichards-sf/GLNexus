@@ -620,23 +620,6 @@ export default function HouseholdProfile() {
                                 <DropdownMenuItem onClick={() => setArchiveAccountId(a.id)}>
                                   <Archive className="w-3.5 h-3.5 mr-2" /> Archive Account
                                 </DropdownMenuItem>
-                                {(() => {
-                                  const createdToday = a.created_at
-                                    ? new Date(a.created_at).toDateString() === new Date().toDateString()
-                                    : false;
-                                  if (!createdToday) return null;
-                                  return (
-                                    <>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        className="text-destructive focus:text-destructive"
-                                        onClick={() => setDeleteAccountId(a.id)}
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
-                                      </DropdownMenuItem>
-                                    </>
-                                  );
-                                })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
