@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { CalendarCheck, AlertTriangle, CalendarPlus } from "lucide-react";
+import { toast } from "sonner";
+import { CalendarCheck, AlertTriangle, CalendarPlus, Trash2, MoreHorizontal } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,18 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { useHousehold, useHouseholdMembers, useComplianceNotes, useHouseholdSnapshots, useAccountSnapshots } from "@/hooks/useHouseholds";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  useHousehold, useHouseholdMembers, useComplianceNotes, useHouseholdSnapshots,
+  useAccountSnapshots, useDeleteHousehold, useDeleteHouseholdMember,
+} from "@/hooks/useHouseholds";
+import { useDeleteAccount } from "@/hooks/useContacts";
 import { useHouseholdAccounts } from "@/hooks/useHouseholdAccounts";
 import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
 import AddMemberDialog from "@/components/AddMemberDialog";
@@ -156,6 +168,13 @@ export default function HouseholdProfile() {
   const [noteSearch, setNoteSearch] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
+  const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false);
+  const [deleteMemberId, setDeleteMemberId] = useState<string | null>(null);
+  const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+
+  const deleteHousehold = useDeleteHousehold();
+  const deleteMember = useDeleteHouseholdMember();
+  const deleteAccount = useDeleteAccount();
 
   const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
   const { data: accSnapshots = [] } = useAccountSnapshots(accountIds);
@@ -400,29 +419,55 @@ export default function HouseholdProfile() {
             </CardHeader>
             <CardContent className="space-y-4">
               {members.map((member) => (
-                <Link
+                <div
                   key={member.id}
-                  to={`/contacts/${member.id}`}
-                  className="block p-3 rounded-lg bg-secondary/40 hover:bg-secondary/70 transition-colors"
+                  className="relative p-3 rounded-lg bg-secondary/40 hover:bg-secondary/70 transition-colors group"
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-foreground hover:underline">{member.first_name} {member.last_name}</p>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">{member.relationship}</Badge>
+                  <Link to={`/contacts/${member.id}`} className="block">
+                    <div className="flex items-center justify-between mb-1 pr-8">
+                      <p className="text-sm font-medium text-foreground hover:underline">{member.first_name} {member.last_name}</p>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">{member.relationship}</Badge>
+                    </div>
+                    {member.date_of_birth && <p className="text-xs text-muted-foreground">Age {memberAge(member.date_of_birth)}</p>}
+                    {member.email && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <Mail className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">{member.email}</span>
+                      </div>
+                    )}
+                    {member.phone && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Phone className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">{member.phone}</span>
+                      </div>
+                    )}
+                  </Link>
+                  <div className="absolute top-2 right-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="w-3.5 h-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/contacts/${member.id}`)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteMemberId(member.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete Member
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  {member.date_of_birth && <p className="text-xs text-muted-foreground">Age {memberAge(member.date_of_birth)}</p>}
-                  {member.email && (
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <Mail className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">{member.email}</span>
-                    </div>
-                  )}
-                  {member.phone && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <Phone className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">{member.phone}</span>
-                    </div>
-                  )}
-                </Link>
+                </div>
               ))}
               {members.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No members added yet.</p>}
             </CardContent>
@@ -455,13 +500,14 @@ export default function HouseholdProfile() {
                         <TableHead>Institution</TableHead>
                         <TableHead className="text-right">Balance</TableHead>
                         <TableHead className="text-right">30d Trend</TableHead>
+                        <TableHead className="w-10" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {accounts.map((a) => (
                         <TableRow
                           key={a.id}
-                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          className="cursor-pointer hover:bg-muted/50 transition-colors group"
                           onClick={() => navigate(`/accounts/${a.id}`)}
                         >
                           <TableCell className="text-sm font-medium text-foreground">{a.account_name}</TableCell>
@@ -475,6 +521,19 @@ export default function HouseholdProfile() {
                             <div className="flex justify-end">
                               <AccountSparkline data={accountSparkData[a.id] || []} />
                             </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteAccountId(a.id);
+                              }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -551,6 +610,20 @@ export default function HouseholdProfile() {
         </TabsContent>
       </Tabs>
 
+      {/* Danger Zone */}
+      <div className="mt-8 pt-6 border-t border-border">
+        <h3 className="text-sm font-medium text-muted-foreground mb-3">Danger Zone</h3>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-destructive/40 text-destructive hover:bg-destructive/5"
+          onClick={() => setDeleteHouseholdOpen(true)}
+        >
+          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+          Delete Household
+        </Button>
+      </div>
+
       <AddMemberDialog open={addMemberOpen} onOpenChange={setAddMemberOpen} householdId={household.id} />
       <AddComplianceNoteDialog open={addNoteOpen} onOpenChange={setAddNoteOpen} householdId={household.id} />
       <QuickScheduleReviewDialog
@@ -568,6 +641,113 @@ export default function HouseholdProfile() {
           householdId: household.id,
         }}
       />
+
+      {/* Delete Household Confirmation */}
+      <AlertDialog open={deleteHouseholdOpen} onOpenChange={setDeleteHouseholdOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {household.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this household and all associated data including contacts,
+              financial accounts, and compliance notes. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                try {
+                  await deleteHousehold.mutateAsync(household.id);
+                  toast.success(`${household.name} deleted`);
+                  navigate("/households");
+                } catch (e: any) {
+                  toast.error(e?.message || "Failed to delete household");
+                }
+              }}
+            >
+              Delete Household
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Member Confirmation */}
+      <AlertDialog open={!!deleteMemberId} onOpenChange={(o) => !o && setDeleteMemberId(null)}>
+        <AlertDialogContent>
+          {(() => {
+            const m = members.find((x) => x.id === deleteMemberId);
+            const name = m ? `${m.first_name} ${m.last_name}` : "this contact";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete this contact and all their financial accounts.
+                    This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      if (!deleteMemberId) return;
+                      try {
+                        await deleteMember.mutateAsync(deleteMemberId);
+                        toast.success(`${name} deleted`);
+                        setDeleteMemberId(null);
+                      } catch (e: any) {
+                        toast.error(e?.message || "Failed to delete contact");
+                      }
+                    }}
+                  >
+                    Delete Member
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Account Confirmation */}
+      <AlertDialog open={!!deleteAccountId} onOpenChange={(o) => !o && setDeleteAccountId(null)}>
+        <AlertDialogContent>
+          {(() => {
+            const a = accounts.find((x) => x.id === deleteAccountId);
+            const name = a?.account_name || "this account";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete this account. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      if (!deleteAccountId) return;
+                      try {
+                        await deleteAccount.mutateAsync(deleteAccountId);
+                        toast.success(`${name} deleted`);
+                        setDeleteAccountId(null);
+                      } catch (e: any) {
+                        toast.error(e?.message || "Failed to delete account");
+                      }
+                    }}
+                  >
+                    Delete Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
