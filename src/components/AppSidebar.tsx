@@ -17,10 +17,10 @@ const DEFAULT_FIRM_VALUE = "__default__";
 const clientServiceItems = [
   { to: "/households", label: "Households", icon: Users },
   { to: "/contacts", label: "Contacts", icon: UserRound },
-  { to: "/calendar", label: "Calendar", icon: CalendarDays },
 ];
 
 const activityItems = [
+  { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/tasks", label: "Tasks", icon: CheckSquare, badgeKey: "tasks" as const },
   { to: "/my-requests", label: "My Requests", icon: TicketCheck, badgeKey: "myRequests" as const },
 ];
