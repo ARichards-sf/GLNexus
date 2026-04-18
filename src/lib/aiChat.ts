@@ -4,7 +4,7 @@ import type { ParsedToolCall } from "@/hooks/useAiActions";
 
 export type AiMsg = { role: "user" | "assistant"; content: string; toolCalls?: ParsedToolCall[] };
 
-export function buildContextSnapshot(households: any[], notes: any[]): string {
+export function buildContextSnapshot(households: any[], notes: any[], prospects?: any[]): string {
   const totalAUM = households.reduce((s, h) => s + Number(h.total_aum), 0);
   const active = households.filter((h) => h.status === "Active").length;
   const now = new Date();
