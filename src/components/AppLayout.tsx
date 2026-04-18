@@ -11,7 +11,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   useTaskNotificationCount,
   useMarkNotificationsRead,
+  useCreateTask,
 } from "@/hooks/useTasks";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 function TopBar() {
@@ -47,9 +49,40 @@ function TopBar() {
 function LayoutInner() {
   const { sessionEvent, isInSession, endSession } = useInSession();
   const { user } = useAuth();
+  const createTask = useCreateTask();
   const showPanel = isInSession && sessionEvent && sessionEvent.household_id;
   const householdName = sessionEvent?.households?.name;
   const headerTitle = householdName ? `In Session · ${householdName}` : "In Session";
+
+  const handleEndSession = () => {
+    if (user && sessionEvent && sessionEvent.household_id) {
+      const name = sessionEvent.households?.name ?? "client";
+      createTask.mutate(
+        {
+          title: `Send follow-up email — ${name}`,
+          description: `Review and send the Goodie-drafted follow-up email after your session with ${name}.`,
+          due_date: new Date().toISOString().split("T")[0],
+          priority: "high",
+          household_id: sessionEvent.household_id,
+          task_type: "follow_up_email",
+          assigned_to: user.id,
+          advisor_id: user.id,
+          status: "todo",
+          metadata: {
+            session_event_id: sessionEvent.id,
+            household_name: name,
+            event_type: sessionEvent.event_type,
+          },
+        },
+        {
+          onSuccess: () => {
+            toast.success("Session ended · Follow-up task added to your Tasks");
+          },
+        }
+      );
+    }
+    endSession();
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -74,7 +107,7 @@ function LayoutInner() {
                 <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <h2 className="text-sm font-semibold truncate">{headerTitle}</h2>
               </div>
-              <Button variant="ghost" size="icon" onClick={endSession} className="h-7 w-7">
+              <Button variant="ghost" size="icon" onClick={handleEndSession} className="h-7 w-7">
                 <X className="h-4 w-4" />
               </Button>
             </div>
