@@ -57,6 +57,26 @@ export default function AdvisorDetail() {
   const updateRole = useUpdateAdvisorRole();
   const toggleInternal = useToggleInternal();
   const toggleStatus = useToggleAdvisorStatus();
+  const deleteHouseholdAdmin = useDeleteHouseholdAdmin();
+  const { data: glProfile } = useGlProfile();
+  const showDangerZone = isAdmin && glProfile?.is_gl_internal === true;
+
+  // Danger zone state
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [confirmText, setConfirmText] = useState("");
+
+  const handleHardDelete = async () => {
+    if (!pendingDelete) return;
+    if (confirmText !== pendingDelete.name) return;
+    try {
+      await deleteHouseholdAdmin.mutateAsync(pendingDelete.id);
+      toast({ title: `${pendingDelete.name} permanently deleted` });
+      setPendingDelete(null);
+      setConfirmText("");
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e.message, variant: "destructive" });
+    }
+  };
 
   if (isLoading || !advisor) {
     return (
