@@ -150,7 +150,7 @@ export default function ReassignTaskDialog({
             <div className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{task.title}</span>
               <p className="mt-1">
-                Currently assigned to: {task.assigned_profile?.full_name || "Unknown"}
+                Currently assigned to: {assignees.find((a) => a.user_id === task.assigned_to)?.full_name || "Unknown"}
               </p>
             </div>
           )}
