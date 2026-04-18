@@ -125,6 +125,14 @@ export default function Dashboard() {
         <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
       </div>
 
+      <MorningBriefing
+        households={households}
+        recentNotes={recentNotes as any}
+        upcomingEvents={upcomingEvents as any}
+        pendingTasks={myTasks as any}
+        firstName={firstName}
+      />
+
       {/* Quick Actions bar */}
       <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-secondary/40 mb-6">
         <div className="flex items-center gap-2 flex-wrap">
