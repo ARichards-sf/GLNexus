@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   useHousehold, useHouseholdMembers, useComplianceNotes, useHouseholdSnapshots,
-  useAccountSnapshots, useDeleteHousehold, useDeleteHouseholdMember,
+  useAccountSnapshots, useArchiveHousehold, useDeleteHouseholdMember,
 } from "@/hooks/useHouseholds";
 import { useDeleteAccount } from "@/hooks/useContacts";
 import { useHouseholdAccounts } from "@/hooks/useHouseholdAccounts";
@@ -172,7 +172,7 @@ export default function HouseholdProfile() {
   const [deleteMemberId, setDeleteMemberId] = useState<string | null>(null);
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
 
-  const deleteHousehold = useDeleteHousehold();
+  const archiveHousehold = useArchiveHousehold();
   const deleteMember = useDeleteHouseholdMember();
   const deleteAccount = useDeleteAccount();
 
@@ -620,7 +620,7 @@ export default function HouseholdProfile() {
           onClick={() => setDeleteHouseholdOpen(true)}
         >
           <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-          Delete Household
+          Archive Household
         </Button>
       </div>
 
@@ -642,14 +642,14 @@ export default function HouseholdProfile() {
         }}
       />
 
-      {/* Delete Household Confirmation */}
+      {/* Archive Household Confirmation */}
       <AlertDialog open={deleteHouseholdOpen} onOpenChange={setDeleteHouseholdOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {household.name}?</AlertDialogTitle>
+            <AlertDialogTitle>Archive {household.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this household and all associated data including contacts,
-              financial accounts, and compliance notes. This action cannot be undone.
+              This household will be archived and hidden from your active list. Its data — contacts,
+              financial accounts, and compliance notes — will be preserved and can be restored later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -658,15 +658,15 @@ export default function HouseholdProfile() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={async () => {
                 try {
-                  await deleteHousehold.mutateAsync(household.id);
-                  toast.success(`${household.name} deleted`);
+                  await archiveHousehold.mutateAsync({ householdId: household.id });
+                  toast.success(`${household.name} archived`);
                   navigate("/households");
                 } catch (e: any) {
-                  toast.error(e?.message || "Failed to delete household");
+                  toast.error(e?.message || "Failed to archive household");
                 }
               }}
             >
-              Delete Household
+              Archive Household
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
