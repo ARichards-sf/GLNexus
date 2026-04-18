@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { CalendarCheck, AlertTriangle, CalendarPlus } from "lucide-react";
+import { toast } from "sonner";
+import { CalendarCheck, AlertTriangle, CalendarPlus, Trash2, MoreHorizontal } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,18 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { useHousehold, useHouseholdMembers, useComplianceNotes, useHouseholdSnapshots, useAccountSnapshots } from "@/hooks/useHouseholds";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  useHousehold, useHouseholdMembers, useComplianceNotes, useHouseholdSnapshots,
+  useAccountSnapshots, useDeleteHousehold, useDeleteHouseholdMember,
+} from "@/hooks/useHouseholds";
+import { useDeleteAccount } from "@/hooks/useContacts";
 import { useHouseholdAccounts } from "@/hooks/useHouseholdAccounts";
 import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
 import AddMemberDialog from "@/components/AddMemberDialog";
@@ -156,6 +168,13 @@ export default function HouseholdProfile() {
   const [noteSearch, setNoteSearch] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
+  const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false);
+  const [deleteMemberId, setDeleteMemberId] = useState<string | null>(null);
+  const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+
+  const deleteHousehold = useDeleteHousehold();
+  const deleteMember = useDeleteHouseholdMember();
+  const deleteAccount = useDeleteAccount();
 
   const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
   const { data: accSnapshots = [] } = useAccountSnapshots(accountIds);
