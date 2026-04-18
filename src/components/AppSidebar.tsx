@@ -141,14 +141,17 @@ export default function AppSidebar() {
               : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
           )}
         >
-          <LayoutDashboard className="w-[18px] h-[18px]" />
+          <LayoutDashboard className={cn(
+            "w-[18px] h-[18px] text-[#1B3A6B] dark:text-blue-300",
+            location.pathname === "/" ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
+          )} />
           <span className="flex-1">Dashboard</span>
         </RouterNavLink>
         <div className="mx-3 my-2 border-b border-border/50" />
 
         {/* GROUP 1 — Client Service */}
         <div className="mt-4 mb-1 px-3">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Client Service</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/40">Client Service</span>
         </div>
         {clientServiceItems.map((item) => {
           const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
@@ -157,13 +160,16 @@ export default function AppSidebar() {
               key={item.label}
               to={item.to}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "bg-secondary text-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
               )}
             >
-              <item.icon className="w-[18px] h-[18px]" />
+              <item.icon className={cn(
+                "w-[18px] h-[18px] text-blue-500 dark:text-blue-400",
+                isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
+              )} />
               <span className="flex-1">{item.label}</span>
             </RouterNavLink>
           );
@@ -171,7 +177,7 @@ export default function AppSidebar() {
 
         {/* GROUP 2 — Activity */}
         <div className="mt-4 mb-1 px-3">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Activity</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/40">Activity</span>
         </div>
         {activityItems.map((item) => {
           const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
@@ -185,13 +191,16 @@ export default function AppSidebar() {
               key={item.label}
               to={item.to}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "bg-secondary text-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
               )}
             >
-              <item.icon className="w-[18px] h-[18px]" />
+              <item.icon className={cn(
+                "w-[18px] h-[18px] text-amber-500 dark:text-amber-400",
+                isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
+              )} />
               <span className="flex-1">{item.label}</span>
               {badgeCount > 0 && (
                 <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-primary text-primary-foreground rounded-full">
@@ -204,7 +213,7 @@ export default function AppSidebar() {
 
         {/* GROUP 3 — Insights */}
         <div className="mt-4 mb-1 px-3">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Insights</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/40">Insights</span>
         </div>
         {insightsItems.map((item) => {
           const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
@@ -213,13 +222,16 @@ export default function AppSidebar() {
               key={item.label}
               to={item.to}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "bg-secondary text-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
               )}
             >
-              <item.icon className="w-[18px] h-[18px]" />
+              <item.icon className={cn(
+                "w-[18px] h-[18px] text-emerald-500 dark:text-emerald-400",
+                isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
+              )} />
               <span className="flex-1">{item.label}</span>
             </RouterNavLink>
           );
@@ -227,7 +239,7 @@ export default function AppSidebar() {
 
         {/* GROUP 4 — Business Development */}
         <div className="mt-4 mb-2 px-3">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Business Development</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/40">Business Development</span>
         </div>
         {bdItems.map((item) => {
           const isActive = location.pathname === item.to || location.pathname.startsWith(item.to);
@@ -236,13 +248,16 @@ export default function AppSidebar() {
               key={item.label}
               to={item.to}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "bg-secondary text-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
               )}
             >
-              <item.icon className="w-[18px] h-[18px]" />
+              <item.icon className={cn(
+                "w-[18px] h-[18px] text-purple-500 dark:text-purple-400",
+                isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
+              )} />
               <span className="flex-1">{item.label}</span>
             </RouterNavLink>
           );
@@ -325,7 +340,7 @@ export default function AppSidebar() {
                 : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
             )}
           >
-            <Settings className="w-[18px] h-[18px]" />
+            <Settings className="w-[18px] h-[18px] text-muted-foreground" />
             <span className="flex-1">Settings</span>
           </RouterNavLink>
         </div>
