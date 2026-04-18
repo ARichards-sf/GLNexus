@@ -267,14 +267,13 @@ export default function ContactProfile() {
         }}
       />
 
-      {/* Delete Contact Confirmation */}
+      {/* Remove Contact Confirmation */}
       <AlertDialog open={deleteContactOpen} onOpenChange={setDeleteContactOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {contact.first_name} {contact.last_name}?</AlertDialogTitle>
+            <AlertDialogTitle>Remove {contact.first_name} {contact.last_name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this contact and all their financial accounts.
-              This cannot be undone.
+              This contact will be removed from {householdName || "the household"}. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -284,14 +283,14 @@ export default function ContactProfile() {
               onClick={async () => {
                 try {
                   await deleteMember.mutateAsync(contact.id);
-                  toast.success("Contact deleted");
+                  toast.success("Contact removed");
                   navigate(contact.household_id ? `/household/${contact.household_id}` : "/contacts");
                 } catch (e: any) {
-                  toast.error(e?.message || "Failed to delete contact");
+                  toast.error(e?.message || "Failed to remove contact");
                 }
               }}
             >
-              Delete Contact
+              Remove Contact
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -308,7 +307,7 @@ export default function ContactProfile() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete this account. This cannot be undone.
+                    This financial account will be permanently deleted.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
