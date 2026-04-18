@@ -161,7 +161,8 @@ function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelet
 }
 
 interface TaskListProps {
-  filter: TaskFilter;
+  tasks: Task[];
+  isLoading: boolean;
   showAdvisor?: boolean;
   currentUserId: string;
   onEdit: (t: Task) => void;
@@ -169,8 +170,7 @@ interface TaskListProps {
   onDelete: (t: Task) => void;
 }
 
-function TaskList({ filter, showAdvisor, currentUserId, onEdit, onReassign, onDelete }: TaskListProps) {
-  const { data: tasks = [], isLoading } = useTasks(filter);
+function TaskList({ tasks, isLoading, showAdvisor, currentUserId, onEdit, onReassign, onDelete }: TaskListProps) {
   const [showDone, setShowDone] = useState(false);
 
   const todoTasks = useMemo(() => tasks.filter((t) => t.status === "todo"), [tasks]);
@@ -249,6 +249,8 @@ export default function Tasks() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const deleteTask = useDeleteTask();
+  const [activeTab, setActiveTab] = useState<TaskFilter>("mine");
+  const { data: tasks = [], isLoading } = useTasks(activeTab);
   const markRead = useMarkNotificationsRead();
 
   useEffect(() => {
@@ -312,7 +314,7 @@ export default function Tasks() {
         </Button>
       </div>
 
-      <Tabs defaultValue="mine" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TaskFilter)} className="space-y-6">
         <TabsList>
           <TabsTrigger value="mine">Assigned to Me</TabsTrigger>
           <TabsTrigger value="created">Created by Me</TabsTrigger>
@@ -320,16 +322,16 @@ export default function Tasks() {
         </TabsList>
 
         <TabsContent value="mine">
-          <TaskList filter="mine" currentUserId={user.id}
+          <TaskList tasks={activeTab === "mine" ? tasks : []} isLoading={activeTab === "mine" && isLoading} currentUserId={user.id}
             onEdit={setEditTask} onReassign={setReassignTask} onDelete={setDeleteCandidate} />
         </TabsContent>
         <TabsContent value="created">
-          <TaskList filter="created" currentUserId={user.id}
+          <TaskList tasks={activeTab === "created" ? tasks : []} isLoading={activeTab === "created" && isLoading} currentUserId={user.id}
             onEdit={setEditTask} onReassign={setReassignTask} onDelete={setDeleteCandidate} />
         </TabsContent>
         {showFirmView && (
           <TabsContent value="all">
-            <TaskList filter="all" showAdvisor currentUserId={user.id}
+            <TaskList tasks={activeTab === "all" ? tasks : []} isLoading={activeTab === "all" && isLoading} showAdvisor currentUserId={user.id}
               onEdit={setEditTask} onReassign={setReassignTask} onDelete={setDeleteCandidate} />
           </TabsContent>
         )}
