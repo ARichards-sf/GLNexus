@@ -408,30 +408,69 @@ export type Database = {
       firms: {
         Row: {
           accent_color: string | null
+          address_line1: string | null
+          address_line2: string | null
           allow_book_sharing: boolean
+          bd_number: string | null
+          city: string | null
+          crd_number: string | null
           created_at: string
+          email: string | null
+          founded_year: number | null
           id: string
           is_gl_internal: boolean
           logo_url: string | null
           name: string
+          notes: string | null
+          phone: string | null
+          state: string | null
+          total_aum: number | null
+          website: string | null
+          zip: string | null
         }
         Insert: {
           accent_color?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
           allow_book_sharing?: boolean
+          bd_number?: string | null
+          city?: string | null
+          crd_number?: string | null
           created_at?: string
+          email?: string | null
+          founded_year?: number | null
           id?: string
           is_gl_internal?: boolean
           logo_url?: string | null
           name: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          total_aum?: number | null
+          website?: string | null
+          zip?: string | null
         }
         Update: {
           accent_color?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
           allow_book_sharing?: boolean
+          bd_number?: string | null
+          city?: string | null
+          crd_number?: string | null
           created_at?: string
+          email?: string | null
+          founded_year?: number | null
           id?: string
           is_gl_internal?: boolean
           logo_url?: string | null
           name?: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          total_aum?: number | null
+          website?: string | null
+          zip?: string | null
         }
         Relationships: []
       }
