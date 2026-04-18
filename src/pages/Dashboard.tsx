@@ -156,6 +156,14 @@ export default function Dashboard() {
         )}
       </div>
 
+      <MorningBriefing
+        households={households}
+        recentNotes={recentNotes as any}
+        upcomingEvents={upcomingEvents as any}
+        pendingTasks={myTasks as any}
+        firstName={firstName}
+      />
+
       {/* Your Next Meeting — only when within 60 minutes */}
       {imminentMeeting && (
         <Card className="mb-6 border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/10 shadow-none">
