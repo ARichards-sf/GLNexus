@@ -136,7 +136,7 @@ export default function AiAssistant() {
       toast.error("Failed to reach the AI assistant.");
       setIsLoading(false);
     }
-  }, [isLoading, messages, households, recentNotes]);
+  }, [isLoading, messages, households, recentNotes, prospects]);
 
   const send = useCallback(() => sendWithText(input), [input, sendWithText]);
 
