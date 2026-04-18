@@ -481,10 +481,22 @@ export default function HouseholdProfile() {
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => setDeleteMemberId(member.id)}
+                          onClick={() => {
+                            setReparentMember(member);
+                            setReparentOpen(true);
+                          }}
                         >
-                          <Trash2 className="w-3.5 h-3.5 mr-2" /> Remove Contact
+                          <ArrowRightLeft className="w-3.5 h-3.5 mr-2" /> Move to Another Household
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setArchiveMember(member);
+                            setArchiveOpen(true);
+                          }}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Archive className="w-3.5 h-3.5 mr-2" /> Archive Contact
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -492,6 +504,46 @@ export default function HouseholdProfile() {
                 </div>
               ))}
               {members.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No members added yet.</p>}
+
+              {/* Archived Contacts collapsible */}
+              {archivedMembers.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <button
+                    onClick={() => setShowArchived(!showArchived)}
+                    className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+                  >
+                    {showArchived ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
+                    {archivedMembers.length} archived contact{archivedMembers.length !== 1 ? "s" : ""}
+                  </button>
+
+                  {showArchived && (
+                    <div className="mt-3 space-y-2">
+                      {archivedMembers.map((m) => (
+                        <div
+                          key={m.id}
+                          className="flex items-center justify-between p-3 rounded-lg bg-secondary/20 opacity-60"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">
+                              {m.first_name} {m.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Archived {m.archived_at ? new Date(m.archived_at).toLocaleDateString() : "—"}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px]">
+                            Archived
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
