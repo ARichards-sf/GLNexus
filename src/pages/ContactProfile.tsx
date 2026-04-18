@@ -8,18 +8,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
   Edit, Wallet, Plus, HelpCircle, ChevronRight, Trash2,
+  Archive, ArrowRightLeft, MoreHorizontal, X,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
-import { useDeleteHouseholdMember } from "@/hooks/useHouseholds";
+import { useDeleteHouseholdMember, useArchiveContact } from "@/hooks/useHouseholds";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
 import AddAccountDialog from "@/components/AddAccountDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
+import ReparentContactDialog from "@/components/ReparentContactDialog";
 
 export default function ContactProfile() {
   const { id } = useParams();
@@ -31,8 +38,14 @@ export default function ContactProfile() {
   const [assistOpen, setAssistOpen] = useState(false);
   const [deleteContactOpen, setDeleteContactOpen] = useState(false);
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+  const [reparentOpen, setReparentOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [closeAccountId, setCloseAccountId] = useState<string | null>(null);
+  const [closeReason, setCloseReason] = useState("");
+  const [archiveAccountId, setArchiveAccountId] = useState<string | null>(null);
   const deleteMember = useDeleteHouseholdMember();
   const deleteAccount = useDeleteAccount();
+  const archiveContact = useArchiveContact();
 
   if (isLoading) {
     return (
@@ -97,6 +110,27 @@ export default function ContactProfile() {
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
               <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Contact
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="px-2">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setReparentOpen(true)}>
+                  <ArrowRightLeft className="w-4 h-4 mr-2" />
+                  Move to Another Household
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setArchiveOpen(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Archive className="w-4 h-4 mr-2" />
+                  Archive Contact
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
@@ -229,17 +263,55 @@ export default function ContactProfile() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteAccountId(account.id);
-                                }}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCloseAccountId(account.id);
+                                      setCloseReason("");
+                                    }}
+                                  >
+                                    <X className="w-4 h-4 mr-2" />
+                                    Close Account
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setArchiveAccountId(account.id);
+                                    }}
+                                  >
+                                    <Archive className="w-4 h-4 mr-2" />
+                                    Archive Account
+                                  </DropdownMenuItem>
+                                  {account.created_at &&
+                                    new Date(account.created_at).toDateString() === new Date().toDateString() && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          className="text-destructive focus:text-destructive"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeleteAccountId(account.id);
+                                          }}
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          Delete
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                               <ChevronRight className="w-4 h-4 text-muted-foreground" />
                             </div>
                           </TableCell>
@@ -369,6 +441,153 @@ export default function ContactProfile() {
           })()}
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Archive Contact Confirmation */}
+      <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive {contact.first_name} {contact.last_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This contact will be archived and hidden from your active view. Their history will be retained for compliance.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                try {
+                  await archiveContact.mutateAsync({ memberId: contact.id });
+                  toast.success("Contact archived");
+                  navigate(contact.household_id ? `/household/${contact.household_id}` : "/contacts");
+                } catch (e: any) {
+                  toast.error(e?.message || "Failed to archive contact");
+                }
+              }}
+            >
+              Archive Contact
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Close Account Confirmation */}
+      <AlertDialog
+        open={!!closeAccountId}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCloseAccountId(null);
+            setCloseReason("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          {(() => {
+            const a = accounts.find((x) => x.id === closeAccountId);
+            const name = a?.account_name || "this account";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Close {name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This account will be marked as closed. The record will be retained for compliance.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-2">
+                  <Textarea
+                    placeholder="Optional: reason for closure"
+                    value={closeReason}
+                    onChange={(e) => setCloseReason(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={async () => {
+                      if (!closeAccountId) return;
+                      try {
+                        await deleteAccount.mutateAsync({
+                          accountId: closeAccountId,
+                          action: "close",
+                          reason: closeReason || undefined,
+                        });
+                        toast.success(`${name} closed`);
+                        setCloseAccountId(null);
+                        setCloseReason("");
+                      } catch (e: any) {
+                        toast.error(e?.message || "Failed to close account");
+                      }
+                    }}
+                  >
+                    Close Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Archive Account Confirmation */}
+      <AlertDialog open={!!archiveAccountId} onOpenChange={(o) => !o && setArchiveAccountId(null)}>
+        <AlertDialogContent>
+          {(() => {
+            const a = accounts.find((x) => x.id === archiveAccountId);
+            const name = a?.account_name || "this account";
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Archive {name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This account will be archived and hidden from active views. Its history will be retained.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={async () => {
+                      if (!archiveAccountId) return;
+                      try {
+                        await deleteAccount.mutateAsync({
+                          accountId: archiveAccountId,
+                          action: "archive",
+                        });
+                        toast.success(`${name} archived`);
+                        setArchiveAccountId(null);
+                      } catch (e: any) {
+                        toast.error(e?.message || "Failed to archive account");
+                      }
+                    }}
+                  >
+                    Archive Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reparent Dialog */}
+      {reparentOpen && contact.household_id && (
+        <ReparentContactDialog
+          open={reparentOpen}
+          onOpenChange={setReparentOpen}
+          contact={{
+            id: contact.id,
+            first_name: contact.first_name,
+            last_name: contact.last_name,
+            household_id: contact.household_id,
+            household_name: householdName || "Current Household",
+          }}
+          accounts={accounts}
+          onComplete={() => {
+            setReparentOpen(false);
+            navigate(`/household/${contact.household_id}`);
+          }}
+        />
+      )}
     </div>
   );
 }
