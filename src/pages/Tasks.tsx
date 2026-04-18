@@ -197,9 +197,11 @@ interface TaskListProps {
   onEdit: (t: Task) => void;
   onReassign: (t: Task) => void;
   onDelete: (t: Task) => void;
+  onClearFilters?: () => void;
+  isFiltered?: boolean;
 }
 
-function TaskList({ tasks, isLoading, showAdvisor, currentUserId, onEdit, onReassign, onDelete }: TaskListProps) {
+function TaskList({ tasks, isLoading, showAdvisor, currentUserId, onEdit, onReassign, onDelete, onClearFilters, isFiltered }: TaskListProps) {
   const [showDone, setShowDone] = useState(false);
 
   const todoTasks = useMemo(() => tasks.filter((t) => t.status === "todo"), [tasks]);
@@ -214,6 +216,19 @@ function TaskList({ tasks, isLoading, showAdvisor, currentUserId, onEdit, onReas
   }
 
   if (tasks.length === 0) {
+    if (isFiltered && onClearFilters) {
+      return (
+        <Card className="border-border shadow-none">
+          <CardContent className="py-16 text-center">
+            <Filter className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
+            <h3 className="text-base font-semibold text-foreground">No tasks match the current filters</h3>
+            <Button variant="outline" size="sm" className="mt-4" onClick={onClearFilters}>
+              Clear filters
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
     return (
       <Card className="border-border shadow-none">
         <CardContent className="py-16 text-center">
