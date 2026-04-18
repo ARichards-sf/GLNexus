@@ -1,12 +1,25 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Wallet, Lock, Edit } from "lucide-react";
-import { useAccount } from "@/hooks/useContacts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Wallet, Lock, Edit, Trash2 } from "lucide-react";
+import { useAccount, useDeleteAccount } from "@/hooks/useContacts";
 import { formatFullCurrency } from "@/data/sampleData";
 import EditAccountSheet from "@/components/EditAccountSheet";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
