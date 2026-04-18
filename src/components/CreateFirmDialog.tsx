@@ -21,6 +21,7 @@ const HEX_RE = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
 export default function CreateFirmDialog({ open, onOpenChange }: Props) {
   const [name, setName] = useState("");
   const [accentColor, setAccentColor] = useState("#1B3A6B");
+  const [secondaryColor, setSecondaryColor] = useState("");
   const [allowBookSharing, setAllowBookSharing] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export default function CreateFirmDialog({ open, onOpenChange }: Props) {
   const reset = () => {
     setName("");
     setAccentColor("#1B3A6B");
+    setSecondaryColor("");
     setAllowBookSharing(false);
     setLogoFile(null);
     setLogoPreview(null);
@@ -86,6 +88,7 @@ export default function CreateFirmDialog({ open, onOpenChange }: Props) {
       await createFirm.mutateAsync({
         name: name.trim(),
         accent_color: accentColor || null,
+        secondary_color: secondaryColor.trim() || null,
         allow_book_sharing: allowBookSharing,
         logo_url: logoUrl,
       });
@@ -184,6 +187,32 @@ export default function CreateFirmDialog({ open, onOpenChange }: Props) {
               <div
                 className="w-9 h-9 rounded-md border border-border shrink-0"
                 style={{ backgroundColor: validHex ? accentColor : "transparent" }}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="secondary-color">Secondary color</Label>
+            <p className="text-xs text-muted-foreground -mt-1">
+              Used for subtle page accents and highlights
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                id="secondary-color"
+                value={secondaryColor}
+                onChange={(e) => setSecondaryColor(e.target.value)}
+                placeholder="#C9A96E (optional)"
+                className="font-mono"
+              />
+              <div
+                className="w-9 h-9 rounded-md border border-border shrink-0"
+                style={{ 
+                  backgroundColor: 
+                    /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(
+                      secondaryColor
+                    ) 
+                    ? secondaryColor 
+                    : "transparent" 
+                }}
               />
             </div>
           </div>
