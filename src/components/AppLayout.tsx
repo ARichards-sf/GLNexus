@@ -301,17 +301,18 @@ function LayoutInner() {
       </div>
       <AiAssistant />
 
-      {laneDialogOpen && sessionSnapshot.current?.prospect_id && (
-        <ExecutionLaneDialog
-          open={laneDialogOpen}
-          onOpenChange={setLaneDialogOpen}
-          prospectId={sessionSnapshot.current.prospect_id}
-          prospectName={
-            sessionSnapshot.current.prospects
-              ? `${sessionSnapshot.current.prospects.first_name} ${sessionSnapshot.current.prospects.last_name}`
-              : "this prospect"
+      {endSessionOpen && (
+        <EndSessionDialog
+          open={endSessionOpen}
+          onOpenChange={(open) => {
+            if (!open) setEndSessionOpen(false);
+          }}
+          sessionEvent={sessionSnapshot.current}
+          isProspectSession={
+            !!sessionSnapshot.current?.prospect_id &&
+            !sessionSnapshot.current?.household_id
           }
-          onLaneSelected={() => setLaneDialogOpen(false)}
+          onComplete={handleEndSessionConfirm}
         />
       )}
     </div>
