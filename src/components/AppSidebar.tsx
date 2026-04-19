@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap, LayoutGrid,
 } from "lucide-react";
 import glLogo from "@/assets/gl-logo.png";
 
@@ -42,6 +42,7 @@ const internalItems = [
   { to: "/admin/requests", label: "All Requests", icon: TicketCheck, badgeKey: "allRequests" as const },
   { to: "/admin/staff", label: "GL Staff", icon: UsersRound },
   { to: "/admin/firms", label: "Firm Management", icon: Building2 },
+  { to: "/vpm/workspace", label: "VPM Workspace", icon: LayoutGrid },
   { to: "/admin/vpm-requests", label: "VPM Requests", icon: Zap },
   { to: "/admin/retention", label: "Data Retention", icon: Database },
   { to: "/admin/developer", label: "Developer Tools", icon: Terminal },
@@ -440,6 +441,7 @@ export default function AppSidebar() {
               if (item.to === "/admin/requests" && !hasAllRequestsAccess) return null;
               if (item.to === "/admin/staff" && !hasStaffAccess) return null;
               if (item.to === "/admin/firms" && !hasFirmAccess) return null;
+              if (item.to === "/vpm/workspace" && !hasVpmAccess) return null;
               if (item.to === "/admin/vpm-requests" && !hasVpmAccess) return null;
               if (item.to === "/admin/retention" && !hasRetentionAccess) return null;
               if (item.to === "/admin/developer" && !hasDevAccess) return null;
