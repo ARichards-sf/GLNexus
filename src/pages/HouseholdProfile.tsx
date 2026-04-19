@@ -299,6 +299,70 @@ export default function HouseholdProfile() {
     return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
   };
 
+  const hh = household as any;
+
+  const handleApproveTierChange = async () => {
+    if (!hh.tier_pending_review) return;
+    const { error } = await supabase
+      .from("households")
+      .update({
+        wealth_tier: hh.tier_pending_review,
+        tier_score: hh.tier_pending_score,
+        tier_pending_review: null,
+        tier_pending_score: null,
+        tier_pending_reason: null,
+      } as any)
+      .eq("id", household.id);
+    if (error) {
+      toast.error("Failed to update tier");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["household", id] });
+    queryClient.invalidateQueries({ queryKey: ["households"] });
+    const tierName = hh.tier_pending_review.charAt(0).toUpperCase() + hh.tier_pending_review.slice(1);
+    toast.success(`Tier updated to ${tierName}`);
+    setTierDialogOpen(false);
+  };
+
+  const handleDismissTierReview = async () => {
+    const { error } = await supabase
+      .from("households")
+      .update({
+        tier_pending_review: null,
+        tier_pending_score: null,
+        tier_pending_reason: null,
+      } as any)
+      .eq("id", household.id);
+    if (error) {
+      toast.error("Failed to dismiss");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["household", id] });
+    queryClient.invalidateQueries({ queryKey: ["households"] });
+    toast.success("Tier review dismissed");
+  };
+
+  const handleManualTierSet = async (tier: string) => {
+    const { error } = await supabase
+      .from("households")
+      .update({
+        wealth_tier: tier,
+        tier_pending_review: null,
+        tier_pending_score: null,
+        tier_pending_reason: null,
+      } as any)
+      .eq("id", household.id);
+    if (error) {
+      toast.error("Failed to set tier");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["household", id] });
+    queryClient.invalidateQueries({ queryKey: ["households"] });
+    const tierName = tier.charAt(0).toUpperCase() + tier.slice(1);
+    toast.success(`Tier set to ${tierName}`);
+    setTierDialogOpen(false);
+  };
+
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
       {/* Header */}
