@@ -66,6 +66,7 @@ interface MorningBriefingProps {
   firstName: string;
   userId: string;
   accentColor?: string;
+  prospects?: any[];
 }
 
 interface PromptData {
@@ -85,6 +86,9 @@ interface PromptData {
   activeCount: number;
   recentNotes: any[];
   tomorrowsMeetings: any[];
+  activeProspects: any[];
+  hotProspects: any[];
+  pipelineValue: number;
 }
 
 function fmtTime(iso: string) {
