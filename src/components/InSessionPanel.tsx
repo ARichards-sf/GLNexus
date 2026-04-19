@@ -612,6 +612,38 @@ function ProspectSessionPanel({ event, onClose }: { event: CalendarEvent; onClos
   const fullName = prospect ? `${prospect.first_name} ${prospect.last_name}` : "Prospect";
   const meetingGoal = event.meeting_context || event.description || null;
 
+  // Pillars checklist (Discovery Call only — this panel renders only for prospect sessions)
+  const pillarsKey = `session_pillars_${event.id}`;
+  const [coveredPillars, setCoveredPillars] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(pillarsKey);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const togglePillar = (key: string) => {
+    setCoveredPillars((prev) => {
+      const next = prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key];
+      try {
+        localStorage.setItem(pillarsKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Expose pillars on window for End Session dialog (AppLayout) to read
+  useEffect(() => {
+    (window as any).__session_pillars = coveredPillars;
+  }, [coveredPillars]);
+
+  useEffect(() => {
+    return () => {
+      delete (window as any).__session_pillars;
+    };
+  }, []);
+
   const goodie = useProspectGoodieBrief({
     ready: !isLoading && !!prospect,
     eventId: event.id,
