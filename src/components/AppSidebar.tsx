@@ -411,11 +411,11 @@ export default function AppSidebar() {
               <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Internal</span>
             </div>
             {internalItems.map((item) => {
-              const department = (glProfile as any)?.department;
-              const isVpmStaff = isGlInternal && (department === "vpm" || isSuperAdmin || isDeveloper);
-              if ((item as any).requireSuperAdmin && !isSuperAdmin) return null;
-              if ((item as any).requireDeveloper && !isDeveloper) return null;
-              if ((item as any).requireVpm && !isVpmStaff) return null;
+              if (item.to === "/admin/staff" && !hasStaffAccess) return null;
+              if (item.to === "/admin/firms" && !hasFirmAccess) return null;
+              if (item.to === "/admin/vpm-requests" && !hasVpmQueueAccess) return null;
+              if (item.to === "/admin/retention" && !hasRetentionAccess) return null;
+              if (item.to === "/admin/developer" && !hasDevAccess) return null;
               const isActive = location.pathname.startsWith(item.to);
               return (
                 <RouterNavLink
