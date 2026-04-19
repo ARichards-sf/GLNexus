@@ -156,7 +156,7 @@ export default function AppSidebar() {
 
   return (
     <aside
-      className="hidden lg:flex flex-col w-64 border-r border-border bg-card h-screen sticky top-0 px-4 py-6"
+      className="hidden lg:flex flex-col w-64 border-r border-border bg-card h-screen px-4 py-6 shrink-0"
       style={brandingFirm?.accent_color ? { "--firm-accent": brandingFirm.accent_color } as React.CSSProperties : undefined}
     >
       <div className="flex flex-col gap-1 px-3 mb-4">
