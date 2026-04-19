@@ -6,6 +6,7 @@ import { useUnreadRequestCounts } from "@/hooks/useUnreadRequestCounts";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useTaskNotificationCount } from "@/hooks/useTasks";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap,
