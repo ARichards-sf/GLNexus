@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultHouseholdId?: string;
 }
 
 const REQUEST_TYPES = [
@@ -43,10 +44,17 @@ const PRIORITIES = [
   { value: "urgent", label: "Urgent", icon: AlertCircle, className: "text-destructive" },
 ] as const;
 
-export default function VpmRequestDialog({ open, onOpenChange }: Props) {
+export default function VpmRequestDialog({ open, onOpenChange, defaultHouseholdId }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: households = [] } = useHouseholds();
+
+  useEffect(() => {
+    if (open && defaultHouseholdId) {
+      const match = households.find((h) => h.id === defaultHouseholdId);
+      if (match) setSelectedHousehold(match);
+    }
+  }, [open, defaultHouseholdId, households]);
 
   const [requestType, setRequestType] = useState("");
   const [subject, setSubject] = useState("");

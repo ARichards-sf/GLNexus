@@ -76,6 +76,26 @@ export function useIsGlInternal() {
   });
 }
 
+export function useVpmStatus() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["vpm_status", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("vpm_enabled, vpm_billing_type")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return {
+        isVpm: !!(data as any)?.vpm_enabled,
+        isPrimePartner: (data as any)?.vpm_billing_type === "prime_partner",
+      };
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useIsAdmin() {
   const { data: roles = [], isLoading: rolesLoading } = useUserRole();
   const { data: isInternal = false, isLoading: internalLoading } = useIsInternal();
