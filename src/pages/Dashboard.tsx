@@ -426,6 +426,7 @@ export default function Dashboard() {
       </div>
 
       <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
+      <VpmRequestDialog open={vpmOpen} onOpenChange={setVpmOpen} />
       <QuickLogNoteDialog open={logNoteOpen} onOpenChange={setLogNoteOpen} />
       <CreateHouseholdDialog
         open={createHouseholdOpen}
