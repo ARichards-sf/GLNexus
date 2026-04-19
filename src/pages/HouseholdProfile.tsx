@@ -512,6 +512,7 @@ export default function HouseholdProfile() {
           annualReviewDate={household.annual_review_date}
           lastReviewDate={household.last_review_date}
           onSchedule={() => setScheduleOpen(true)}
+          hasBookedMeeting={hasBookedAnnualReview}
         />
       </div>
 
