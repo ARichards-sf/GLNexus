@@ -68,6 +68,7 @@ export default function Dashboard() {
   const { data: upcomingEvents = [] } = useUpcomingEvents(20);
   const { data: myRequests = [] } = useMyServiceRequests();
   const { data: myTasks = [] } = useTasks("mine");
+  const { data: prospects = [] } = useProspects();
   const generateSnapshot = useGenerateSnapshot();
   const [assistOpen, setAssistOpen] = useState(false);
   const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
