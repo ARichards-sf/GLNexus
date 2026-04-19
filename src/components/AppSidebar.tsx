@@ -64,8 +64,8 @@ export default function AppSidebar() {
 
   // Feature access flags
   const hasVpmAccess = isGlUser && (department === "vpm" || isAdmin);
-  const hasFirmAccess = isGlUser && (isAdmin || isManager);
-  const hasAdvisorAccess = isGlUser && isAdmin;
+  const hasFirmAccess = isGlUser;
+  const hasAdvisorAccess = isGlUser;
   const hasAllRequestsAccess = isGlUser && isAdmin;
   const hasStaffAccess = isGlUser && isAdmin;
   const hasRetentionAccess = isGlUser && isSuperAdmin;
