@@ -207,7 +207,7 @@ export default function Dashboard() {
         households={households}
         recentNotes={recentNotes as any}
         upcomingEvents={upcomingEvents as any}
-        pendingTasks={myTasks as any}
+        pendingTasks={allPendingTasks as any}
         firstName={firstName}
         userId={user?.id || "anonymous"}
         accentColor={firmAccentColor}
