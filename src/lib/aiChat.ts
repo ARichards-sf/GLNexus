@@ -4,7 +4,7 @@ import type { ParsedToolCall } from "@/hooks/useAiActions";
 
 export type AiMsg = { role: "user" | "assistant"; content: string; toolCalls?: ParsedToolCall[] };
 
-export function buildContextSnapshot(households: any[], notes: any[], prospects?: any[]): string {
+export function buildContextSnapshot(households: any[], notes: any[], prospects?: any[], calendarEvents?: any[]): string {
   const totalAUM = households.reduce((s, h) => s + Number(h.total_aum), 0);
   const active = households.filter((h) => h.status === "Active").length;
   const now = new Date();
@@ -30,9 +30,16 @@ export function buildContextSnapshot(households: any[], notes: any[], prospects?
   });
 
   if (upcoming.length > 0) {
-    ctx += "\nUPCOMING REVIEWS (next 60 days):\n";
+    ctx += "\nANNUAL REVIEWS DUE (next 60 days):\n";
+    ctx += "NOTE: These are TARGET DUE DATES. Only mention a review as 'scheduled' if it has a booked calendar event.\n";
     upcoming.forEach((h: any) => {
-      ctx += `- ${h.name}: ${new Date(h.annual_review_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}\n`;
+      const hasBooked = (calendarEvents || []).some((e: any) =>
+        e.household_id === h.id &&
+        e.event_type === "Annual Review" &&
+        e.status === "scheduled" &&
+        new Date(e.start_time) > new Date()
+      );
+      ctx += `- ${h.name}: due ${new Date(h.annual_review_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} — ${hasBooked ? "meeting booked" : "not yet scheduled"}\n`;
     });
   }
 
