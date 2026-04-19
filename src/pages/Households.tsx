@@ -178,6 +178,19 @@ export default function Households() {
             </SelectContent>
           </Select>
 
+          <Select value={tierFilter} onValueChange={setTierFilter}>
+            <SelectTrigger className="h-9 w-[150px]">
+              <SelectValue placeholder="Tier" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tiers</SelectItem>
+              <SelectItem value="platinum">🏆 Platinum</SelectItem>
+              <SelectItem value="gold">⭐ Gold</SelectItem>
+              <SelectItem value="silver">◆ Silver</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+            </SelectContent>
+          </Select>
+
           {hasActiveFilters && (
             <Button
               variant="ghost"
@@ -186,6 +199,7 @@ export default function Households() {
               onClick={() => {
                 setStatusFilter("all");
                 setRiskFilter("all");
+                setTierFilter("all");
               }}
             >
               <X className="w-3.5 h-3.5 mr-1" />
@@ -246,7 +260,10 @@ export default function Households() {
                       <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
                         {h.name.split(" ")[1]?.[0] || h.name[0]}
                       </div>
-                      <span className="text-sm font-medium text-foreground">{h.name}</span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-medium text-foreground">{h.name}</span>
+                        <TierBadge tier={h.wealth_tier} size="sm" showUnassigned pending={!!h.tier_pending_review} />
+                      </div>
                     </Link>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
