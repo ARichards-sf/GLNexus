@@ -227,6 +227,22 @@ export default function HouseholdProfile() {
   const archiveContact = useArchiveContact();
   const deleteAccount = useDeleteAccount();
 
+  const { data: householdEvents = [] } = useQuery({
+    queryKey: ["household_events", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("calendar_events")
+        .select("*")
+        .eq("household_id", id!)
+        .eq("event_type", "Annual Review")
+        .eq("status", "scheduled")
+        .gt("start_time", new Date().toISOString());
+      return data || [];
+    },
+    enabled: !!id,
+  });
+  const hasBookedAnnualReview = householdEvents.length > 0;
+
   // Firm branding accent
   const { currentFirm } = useFirmContext();
   const { selectedFirmId } = useSelectedFirm();
