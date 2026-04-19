@@ -39,6 +39,7 @@ import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import GoodieSuggests from "@/components/GoodieSuggests";
 import MorningBriefing from "@/components/MorningBriefing";
 import { useTasks } from "@/hooks/useTasks";
+import { useProspects } from "@/hooks/useProspects";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useFirms } from "@/hooks/useFirms";
@@ -67,6 +68,7 @@ export default function Dashboard() {
   const { data: upcomingEvents = [] } = useUpcomingEvents(20);
   const { data: myRequests = [] } = useMyServiceRequests();
   const { data: myTasks = [] } = useTasks("mine");
+  const { data: prospects = [] } = useProspects();
   const generateSnapshot = useGenerateSnapshot();
   const [assistOpen, setAssistOpen] = useState(false);
   const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
@@ -203,6 +205,7 @@ export default function Dashboard() {
         firstName={firstName}
         userId={user?.id || "anonymous"}
         accentColor={firmAccentColor}
+        prospects={prospects}
       />
 
       {/* Your Next Meeting — only when within 60 minutes */}

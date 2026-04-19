@@ -49,7 +49,7 @@ const PERIODS = {
 } as const;
 
 const getCacheKey = (period: BriefingPeriod, userId: string) =>
-  `goodie_brief_${period}_${userId}_${new Date().toISOString().split("T")[0]}_v1`;
+  `goodie_brief_${period}_${userId}_${new Date().toISOString().split("T")[0]}_v2`;
 
 interface BriefingCache {
   date: string;
@@ -66,6 +66,7 @@ interface MorningBriefingProps {
   firstName: string;
   userId: string;
   accentColor?: string;
+  prospects?: any[];
 }
 
 interface PromptData {
@@ -85,6 +86,9 @@ interface PromptData {
   activeCount: number;
   recentNotes: any[];
   tomorrowsMeetings: any[];
+  activeProspects: any[];
+  hotProspects: any[];
+  pipelineValue: number;
 }
 
 function fmtTime(iso: string) {
@@ -104,6 +108,18 @@ function buildPrompt(period: BriefingPeriod, d: PromptData): string {
       ? "None"
       : arr.map((t) => `"${t.title}"${t.households?.name ? ` (${t.households.name})` : ""}`).join(", ");
 
+  const pipelineText = (active: any[], hot: any[], value: number) => {
+    if (active.length === 0) return "No active prospects";
+    const valueStr = value > 0 ? ` · $${(value / 1000000).toFixed(1)}M estimated` : "";
+    const hotStr =
+      hot.length > 0
+        ? `. Action needed: ${hot
+            .map((p: any) => `${p.first_name} ${p.last_name} (${p.pipeline_stage.replace(/_/g, " ")})`)
+            .join(", ")}`
+        : "";
+    return `${active.length} active prospects${valueStr}${hotStr}`;
+  };
+
   if (period === "morning") {
     return `Today is ${d.todayFormatted}.
 
@@ -116,7 +132,7 @@ PART 2 — After the narrative, add a line break then write "KEY ITEMS:" followe
 - Any overdue tasks by name
 - Any tasks due today by name
 - Any households with overdue annual reviews
-- One proactive suggestion based on the data
+- One proactive suggestion based on the data — this could reference a prospect ready to advance, a referral opportunity, or a client action needed
 
 Keep the entire briefing under 150 words.
 Be direct and advisor-focused.
@@ -130,6 +146,7 @@ Overdue annual reviews: ${d.overdueReviews.length === 0 ? "None" : d.overdueRevi
 Total AUM: ${formatCurrency(d.totalAUM)}
 Active households: ${d.activeCount} of ${d.householdCount}
 Onboarding: ${d.onboardingCount} household(s) in onboarding
+Pipeline: ${pipelineText(d.activeProspects, d.hotProspects, d.pipelineValue)}
 Recent activity: ${d.recentNotes.slice(0, 3).map((n) => `${n.type} for ${n.households?.name || "household"} on ${n.date}`).join(", ") || "None"}`;
   }
 
@@ -154,7 +171,8 @@ Remaining meetings today: ${meetingsList(d.remainingMeetings)}
 Meetings already completed today: ${meetingsList(d.pastMeetings)}
 Tasks completed today: ${tasksList(d.completedTodayTasks)}
 Tasks still pending today: ${tasksList(d.pendingTodayTasks)}
-Overdue tasks: ${tasksList(d.overdueTasks)}`;
+Overdue tasks: ${tasksList(d.overdueTasks)}
+Pipeline: ${pipelineText(d.activeProspects, d.hotProspects, d.pipelineValue)}`;
   }
 
   // eod
@@ -177,7 +195,8 @@ DATA:
 Meetings today: ${meetingsList(d.todaysMeetings)}
 Tasks completed today: ${tasksList(d.completedTodayTasks)}
 Outstanding tasks: ${tasksList([...d.pendingTodayTasks, ...d.overdueTasks])}
-Upcoming tomorrow: ${meetingsList(d.tomorrowsMeetings)}`;
+Upcoming tomorrow: ${meetingsList(d.tomorrowsMeetings)}
+Active pipeline: ${pipelineText(d.activeProspects, d.hotProspects, d.pipelineValue)}`;
 }
 
 export default function MorningBriefing({
@@ -188,6 +207,7 @@ export default function MorningBriefing({
   firstName,
   userId,
   accentColor,
+  prospects,
 }: MorningBriefingProps) {
   const currentPeriod = getCurrentPeriod();
   const periodConfig = PERIODS[currentPeriod];
@@ -217,6 +237,10 @@ export default function MorningBriefing({
       localStorage.removeItem("goodie_morning_briefing");
       localStorage.removeItem(`goodie_morning_briefing_${userId}`);
       localStorage.removeItem(`goodie_morning_briefing_${userId}_v2`);
+      const dateStr = new Date().toISOString().split("T")[0];
+      localStorage.removeItem(`goodie_brief_morning_${userId}_${dateStr}_v1`);
+      localStorage.removeItem(`goodie_brief_afternoon_${userId}_${dateStr}_v1`);
+      localStorage.removeItem(`goodie_brief_eod_${userId}_${dateStr}_v1`);
     } catch {
       /* ignore */
     }
@@ -301,6 +325,18 @@ export default function MorningBriefing({
     ).length;
     const onboardingCount = households.filter((h) => h.status === "Onboarding").length;
 
+    const activeProspects = (prospects || []).filter(
+      (p: any) => p.pipeline_stage !== "converted" && p.pipeline_stage !== "lost"
+    );
+    const hotProspects = activeProspects.filter(
+      (p: any) =>
+        p.pipeline_stage === "discovery_complete" || p.pipeline_stage === "proposal_sent"
+    );
+    const pipelineValue = activeProspects.reduce(
+      (sum: number, p: any) => sum + Number(p.estimated_aum || 0),
+      0
+    );
+
     const prompt = buildPrompt(currentPeriod, {
       firstName,
       todayFormatted,
@@ -318,6 +354,9 @@ export default function MorningBriefing({
       activeCount,
       recentNotes,
       tomorrowsMeetings,
+      activeProspects,
+      hotProspects,
+      pipelineValue,
     });
 
     setIsGenerating(true);
