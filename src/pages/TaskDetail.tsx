@@ -297,6 +297,8 @@ export default function TaskDetail() {
     refetchItems();
     toast.success("Item added");
   };
+
+  return (
     <div className="p-6 lg:p-10 max-w-4xl space-y-6">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
         <Link to="/tasks">
