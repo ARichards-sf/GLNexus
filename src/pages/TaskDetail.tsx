@@ -120,6 +120,42 @@ export default function TaskDetail() {
   const { data: notes = [] } = useComplianceNotes(householdId);
   const { data: allEvents = [] } = useCalendarEvents();
 
+  const isJumpReview = task?.task_type === "jump_review";
+
+  const { data: reviewItems = [], refetch: refetchItems } = useQuery({
+    queryKey: ["jump_review_items", task?.id],
+    enabled: !!isJumpReview && !!task?.id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("jump_review_items")
+        .select("*")
+        .eq("task_id", task!.id)
+        .order("created_at");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const grouped = useMemo(() => {
+    const groups: Record<string, any[]> = {
+      assets: [],
+      retirement: [],
+      estate: [],
+      risk: [],
+      other: [],
+    };
+    (reviewItems as any[]).forEach((item) => {
+      const key = item.pillar || "other";
+      if (groups[key]) groups[key].push(item);
+      else groups.other.push(item);
+    });
+    return groups;
+  }, [reviewItems]);
+
+  const pendingCount = (reviewItems as any[]).filter(
+    (i) => i.status === "pending"
+  ).length;
+
   const upcomingEvents = useMemo(() => {
     if (!householdId) return [];
     const now = Date.now();
