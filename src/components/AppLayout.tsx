@@ -72,51 +72,133 @@ function LayoutInner() {
           : "Session"))
     : null;
 
-  const handleEndSession = () => {
-    // Snapshot before ending
-    sessionSnapshot.current = sessionEvent;
+  const handleEndSessionConfirm = async (data: {
+    pillars: string[];
+    summary: string;
+    noteType: string;
+    lane?: string;
+  }) => {
+    const snap = sessionSnapshot.current;
+    if (!snap || !user) {
+      endSession();
+      setEndSessionOpen(false);
+      return;
+    }
 
-    const wasProspectSession =
-      !!sessionEvent?.prospect_id && !sessionEvent?.household_id;
+    const wasProspect = !!snap.prospect_id && !snap.household_id;
+    const name =
+      snap.households?.name ||
+      (snap.prospects
+        ? `${snap.prospects.first_name} ${snap.prospects.last_name}`
+        : "client");
 
-    if (user && sessionEvent && (sessionEvent.household_id || sessionEvent.prospect_id)) {
-      const name =
-        sessionEvent.households?.name ||
-        (sessionEvent.prospects
-          ? `${sessionEvent.prospects.first_name} ${sessionEvent.prospects.last_name}`
-          : "client");
-
-      createTask.mutate(
-        {
-          title: `Send follow-up email — ${name}`,
-          description: `Review and send the Goodie-drafted follow-up email after your session with ${name}.`,
-          due_date: new Date().toISOString().split("T")[0],
-          priority: "high",
-          household_id: sessionEvent.household_id ?? undefined,
-          task_type: "follow_up_email",
-          assigned_to: user.id,
+    // 1. Compliance note (client sessions only)
+    if (data.summary.trim() && snap.household_id) {
+      try {
+        await supabase.from("compliance_notes").insert({
+          household_id: snap.household_id,
           advisor_id: user.id,
+          advisor_name: (user.user_metadata as any)?.full_name || null,
+          type: data.noteType,
+          summary: data.summary.trim(),
+          date: new Date().toISOString().split("T")[0],
+          pillars_covered: data.pillars,
+          auto_generated: true,
+        } as any);
+        queryClient.invalidateQueries({ queryKey: ["compliance_notes"] });
+        queryClient.invalidateQueries({ queryKey: ["all_compliance_notes"] });
+      } catch (err) {
+        console.error("Failed to save note:", err);
+      }
+    }
+
+    // 2. Follow-up email task
+    createTask.mutate({
+      title: `Send follow-up email — ${name}`,
+      description: `Review and send follow-up after session with ${name}.`,
+      due_date: new Date().toISOString().split("T")[0],
+      priority: "high",
+      household_id: snap.household_id ?? undefined,
+      task_type: "follow_up_email",
+      assigned_to: user.id,
+      advisor_id: user.id,
+      status: "todo",
+      metadata: {
+        session_event_id: snap.id,
+        name,
+        prospect_id: snap.prospect_id ?? undefined,
+        event_type: snap.event_type,
+        pillars_covered: data.pillars,
+        lane: data.lane,
+      },
+    });
+
+    // 3. Prospect stage update + lane task
+    if (wasProspect && snap.prospect_id && data.lane && data.lane !== "skip") {
+      await supabase
+        .from("prospects")
+        .update({
+          pipeline_stage: data.lane === "handoff" ? "lost" : "discovery_complete",
+          ...(data.lane === "handoff" && { lost_reason: "Routed to Compass desk" }),
+        })
+        .eq("id", snap.prospect_id);
+
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+
+      const laneTasks: Record<string, { title: string; type: string; days: number }> = {
+        financial_planning: {
+          title: `Financial planning intake — ${name}`,
+          type: "financial_planning",
+          days: 7,
+        },
+        portfolio_construction: {
+          title: `Portfolio proposal — ${name}`,
+          type: "portfolio_construction",
+          days: 7,
+        },
+        point_solution: {
+          title: `Product recommendation — ${name}`,
+          type: "point_solution",
+          days: 5,
+        },
+        handoff: {
+          title: `Handoff — ${name}`,
+          type: "handoff",
+          days: 2,
+        },
+      };
+
+      const lt = laneTasks[data.lane];
+      if (lt) {
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + lt.days);
+        createTask.mutate({
+          title: lt.title,
+          priority: data.lane === "handoff" ? "medium" : "high",
+          task_type: lt.type,
+          due_date: dueDate.toISOString().split("T")[0],
+          advisor_id: user.id,
+          assigned_to: user.id,
           status: "todo",
           metadata: {
-            session_event_id: sessionEvent.id,
-            name,
-            prospect_id: sessionEvent.prospect_id ?? undefined,
-            event_type: sessionEvent.event_type,
+            prospect_id: snap.prospect_id,
+            lane: data.lane,
           },
-        },
-        {
-          onSuccess: () => {
-            toast.success("Session ended · Follow-up task added to your Tasks");
-          },
-        }
-      );
+        });
+      }
     }
 
+    // 4. End session
     endSession();
+    setEndSessionOpen(false);
 
-    if (wasProspectSession) {
-      setLaneDialogOpen(true);
-    }
+    const noteMsg = data.summary.trim() ? " · Note logged" : "";
+    const laneMsg =
+      data.lane && data.lane !== "skip"
+        ? ` · ${data.lane.replace(/_/g, " ")} lane selected`
+        : "";
+
+    toast.success(`Session ended${noteMsg}${laneMsg} · Follow-up task created`);
   };
 
   return (
