@@ -867,6 +867,7 @@ export type Database = {
           phone: string | null
           pipeline_stage: string
           referred_by: string | null
+          referred_by_household_id: string | null
           source: string | null
           updated_at: string
         }
@@ -887,6 +888,7 @@ export type Database = {
           phone?: string | null
           pipeline_stage?: string
           referred_by?: string | null
+          referred_by_household_id?: string | null
           source?: string | null
           updated_at?: string
         }
@@ -907,6 +909,7 @@ export type Database = {
           phone?: string | null
           pipeline_stage?: string
           referred_by?: string | null
+          referred_by_household_id?: string | null
           source?: string | null
           updated_at?: string
         }
@@ -921,6 +924,20 @@ export type Database = {
           {
             foreignKeyName: "prospects_converted_household_id_fkey"
             columns: ["converted_household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_referred_by_household_id_fkey"
+            columns: ["referred_by_household_id"]
+            isOneToOne: false
+            referencedRelation: "active_households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_referred_by_household_id_fkey"
+            columns: ["referred_by_household_id"]
             isOneToOne: false
             referencedRelation: "households"
             referencedColumns: ["id"]
