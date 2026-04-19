@@ -19,6 +19,7 @@ import {
   Pencil,
   Plus,
   Shield,
+  Star,
   X,
 } from "lucide-react";
 import EditFirmDialog from "@/components/EditFirmDialog";
@@ -35,6 +36,8 @@ interface FirmAdvisor {
   email: string | null;
   last_sign_in: string | null;
   status: string | null;
+  is_prime_partner: boolean;
+  vpm_enabled: boolean;
 }
 
 interface FirmAdmin {
@@ -115,13 +118,13 @@ export default function FirmDetail() {
       const userIds = memberships.map((m) => m.user_id);
       const { data: profiles, error: pErr } = await supabase
         .from("profiles")
-        .select("user_id, full_name, email, last_sign_in, status")
+        .select("user_id, full_name, email, last_sign_in, status, is_prime_partner, vpm_enabled")
         .in("user_id", userIds);
       if (pErr) throw pErr;
 
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) ?? []);
       return memberships.map((m) => {
-        const p = profileMap.get(m.user_id);
+        const p = profileMap.get(m.user_id) as any;
         return {
           user_id: m.user_id,
           is_lead_advisor: m.is_lead_advisor,
@@ -130,6 +133,8 @@ export default function FirmDetail() {
           email: p?.email ?? null,
           last_sign_in: p?.last_sign_in ?? null,
           status: p?.status ?? null,
+          is_prime_partner: !!p?.is_prime_partner,
+          vpm_enabled: !!p?.vpm_enabled,
         };
       });
     },
@@ -335,7 +340,7 @@ export default function FirmDetail() {
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${(advisors.filter((a) => a.is_prime_partner).length > 0 || advisors.some((a) => a.vpm_enabled)) ? "lg:grid-cols-5" : "lg:grid-cols-4"} gap-4 mb-8`}>
         <Card>
           <CardContent className="p-5">
             <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
@@ -380,6 +385,24 @@ export default function FirmDetail() {
             <p className="text-xs text-muted-foreground mt-1">Household sharing</p>
           </CardContent>
         </Card>
+        {(advisors.filter((a) => a.is_prime_partner).length > 0 || advisors.some((a) => a.vpm_enabled)) && (
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                  Prime Partners
+                </p>
+                <Star className="w-4 h-4 text-amber-500" />
+              </div>
+              <p className="text-2xl font-semibold text-foreground mt-1">
+                {advisors.filter((a) => a.is_prime_partner).length}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {advisors.filter((a) => a.vpm_enabled).length} on VPM
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* SECTION 1 — Firm Information */}
@@ -538,6 +561,20 @@ export default function FirmDetail() {
                         <p className="text-xs text-muted-foreground truncate">
                           {a.email}
                         </p>
+                      )}
+                      {(a.is_prime_partner || a.vpm_enabled) && (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {a.is_prime_partner && (
+                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 hover:bg-amber-100 border-0 text-[10px] px-1.5 py-0 h-4">
+                              ⭐ Prime
+                            </Badge>
+                          )}
+                          {a.vpm_enabled && (
+                            <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 hover:bg-blue-100 border-0 text-[10px] px-1.5 py-0 h-4">
+                              VPM
+                            </Badge>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
