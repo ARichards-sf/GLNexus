@@ -325,6 +325,18 @@ export default function MorningBriefing({
     ).length;
     const onboardingCount = households.filter((h) => h.status === "Onboarding").length;
 
+    const activeProspects = (prospects || []).filter(
+      (p: any) => p.pipeline_stage !== "converted" && p.pipeline_stage !== "lost"
+    );
+    const hotProspects = activeProspects.filter(
+      (p: any) =>
+        p.pipeline_stage === "discovery_complete" || p.pipeline_stage === "proposal_sent"
+    );
+    const pipelineValue = activeProspects.reduce(
+      (sum: number, p: any) => sum + Number(p.estimated_aum || 0),
+      0
+    );
+
     const prompt = buildPrompt(currentPeriod, {
       firstName,
       todayFormatted,
@@ -342,6 +354,9 @@ export default function MorningBriefing({
       activeCount,
       recentNotes,
       tomorrowsMeetings,
+      activeProspects,
+      hotProspects,
+      pipelineValue,
     });
 
     setIsGenerating(true);
