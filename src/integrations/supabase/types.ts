@@ -690,6 +690,10 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+          vpm_billing_type: string | null
+          vpm_enabled: boolean
+          vpm_hourly_rate: number | null
+          vpm_notes: string | null
         }
         Insert: {
           created_at?: string
@@ -706,6 +710,10 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
+          vpm_billing_type?: string | null
+          vpm_enabled?: boolean
+          vpm_hourly_rate?: number | null
+          vpm_notes?: string | null
         }
         Update: {
           created_at?: string
@@ -722,6 +730,10 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+          vpm_billing_type?: string | null
+          vpm_enabled?: boolean
+          vpm_hourly_rate?: number | null
+          vpm_notes?: string | null
         }
         Relationships: [
           {
@@ -870,8 +882,13 @@ export type Database = {
           household_id: string | null
           household_name: string | null
           id: string
+          is_vpm: boolean
           status: string
           updated_at: string
+          vpm_hours_logged: number | null
+          vpm_hours_notes: string | null
+          vpm_request_type: string | null
+          vpm_timeline: string | null
         }
         Insert: {
           account_id?: string | null
@@ -886,8 +903,13 @@ export type Database = {
           household_id?: string | null
           household_name?: string | null
           id?: string
+          is_vpm?: boolean
           status?: string
           updated_at?: string
+          vpm_hours_logged?: number | null
+          vpm_hours_notes?: string | null
+          vpm_request_type?: string | null
+          vpm_timeline?: string | null
         }
         Update: {
           account_id?: string | null
@@ -902,8 +924,13 @@ export type Database = {
           household_id?: string | null
           household_name?: string | null
           id?: string
+          is_vpm?: boolean
           status?: string
           updated_at?: string
+          vpm_hours_logged?: number | null
+          vpm_hours_notes?: string | null
+          vpm_request_type?: string | null
+          vpm_timeline?: string | null
         }
         Relationships: []
       }
