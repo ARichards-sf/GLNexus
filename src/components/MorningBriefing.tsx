@@ -132,7 +132,7 @@ PART 2 — After the narrative, add a line break then write "KEY ITEMS:" followe
 - Any overdue tasks by name
 - Any tasks due today by name
 - Any households with overdue annual reviews
-- One proactive suggestion based on the data
+- One proactive suggestion based on the data — this could reference a prospect ready to advance, a referral opportunity, or a client action needed
 
 Keep the entire briefing under 150 words.
 Be direct and advisor-focused.
@@ -146,6 +146,7 @@ Overdue annual reviews: ${d.overdueReviews.length === 0 ? "None" : d.overdueRevi
 Total AUM: ${formatCurrency(d.totalAUM)}
 Active households: ${d.activeCount} of ${d.householdCount}
 Onboarding: ${d.onboardingCount} household(s) in onboarding
+Pipeline: ${pipelineText(d.activeProspects, d.hotProspects, d.pipelineValue)}
 Recent activity: ${d.recentNotes.slice(0, 3).map((n) => `${n.type} for ${n.households?.name || "household"} on ${n.date}`).join(", ") || "None"}`;
   }
 
