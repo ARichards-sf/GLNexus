@@ -19,6 +19,7 @@ import {
   Pencil,
   Plus,
   Shield,
+  Star,
   X,
 } from "lucide-react";
 import EditFirmDialog from "@/components/EditFirmDialog";
@@ -35,6 +36,8 @@ interface FirmAdvisor {
   email: string | null;
   last_sign_in: string | null;
   status: string | null;
+  is_prime_partner: boolean;
+  vpm_enabled: boolean;
 }
 
 interface FirmAdmin {
@@ -115,13 +118,13 @@ export default function FirmDetail() {
       const userIds = memberships.map((m) => m.user_id);
       const { data: profiles, error: pErr } = await supabase
         .from("profiles")
-        .select("user_id, full_name, email, last_sign_in, status")
+        .select("user_id, full_name, email, last_sign_in, status, is_prime_partner, vpm_enabled")
         .in("user_id", userIds);
       if (pErr) throw pErr;
 
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) ?? []);
       return memberships.map((m) => {
-        const p = profileMap.get(m.user_id);
+        const p = profileMap.get(m.user_id) as any;
         return {
           user_id: m.user_id,
           is_lead_advisor: m.is_lead_advisor,
@@ -130,6 +133,8 @@ export default function FirmDetail() {
           email: p?.email ?? null,
           last_sign_in: p?.last_sign_in ?? null,
           status: p?.status ?? null,
+          is_prime_partner: !!p?.is_prime_partner,
+          vpm_enabled: !!p?.vpm_enabled,
         };
       });
     },
