@@ -231,7 +231,7 @@ export default function Dashboard() {
           className="border-border shadow-none"
           style={{
             borderTopColor: "var(--firm-accent, hsl(var(--primary)))",
-            borderTopWidth: "2px",
+            borderTopWidth: "3px",
           }}
         >
           <CardContent className="pt-6">
