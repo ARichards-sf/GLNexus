@@ -195,6 +195,8 @@ export default function HouseholdProfile() {
   const { data: vpmStatus } = useVpmStatus();
   const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [tierDialogOpen, setTierDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   // Reparent + archive contact state
   const [reparentMember, setReparentMember] = useState<MemberRow | null>(null);
