@@ -136,11 +136,11 @@ async function callAdmin(action: string, payload: Record<string, any> = {}) {
 }
 
 export function useAdminStats() {
-  const { isAdmin } = useIsAdmin();
+  const { isGLInternal } = useIsAdmin();
   return useQuery({
     queryKey: ["admin_stats"],
     queryFn: () => callAdmin("system_stats"),
-    enabled: isAdmin,
+    enabled: isGLInternal,
     refetchInterval: 60_000,
   });
 }
