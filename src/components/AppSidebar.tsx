@@ -6,6 +6,7 @@ import { useUnreadRequestCounts } from "@/hooks/useUnreadRequestCounts";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useTaskNotificationCount } from "@/hooks/useTasks";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap,
@@ -60,8 +61,41 @@ export default function AppSidebar() {
   const { data: taskNotifCount = 0 } = useTaskNotificationCount();
   const { currentFirm, allFirms } = useFirmContext();
   const { selectedFirmId, setSelectedFirmId, clearSelectedFirm } = useSelectedFirm();
+  const { impersonatedUser } = useImpersonation();
+
+  // User has an advisor role when they have a firm membership AND are not GL internal
+  const hasAdvisorRole = !!currentFirm && !isGlInternal;
+
+  // Show advisor nav when:
+  // - user is an advisor (has firm, not GL internal)
+  // - OR a GL internal user is currently impersonating an advisor
+  const showAdvisorNav = hasAdvisorRole || !!impersonatedUser;
 
   const showInternal = isAdmin || isGlInternal;
+
+  // Determine role label for the user footer
+  const roleLabel = (() => {
+    if (isGlInternal) {
+      const dept = (glProfile as any)?.department;
+      const deptLabels: Record<string, string> = {
+        vpm: "VPM",
+        wam: "WAM",
+        marketing: "Marketing",
+        transitions: "Transitions",
+        compliance: "Compliance",
+        accounting: "Accounting",
+        operations: "Operations",
+      };
+      if (dept && deptLabels[dept]) return deptLabels[dept];
+      if (isSuperAdmin) return "Super Admin";
+      if (isDeveloper) return "Developer";
+      return "GL Internal";
+    }
+    if (currentFirm) {
+      return "Advisor";
+    }
+    return "Advisor";
+  })();
 
   const displayName = user?.user_metadata?.full_name || user?.email || "Advisor";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -162,145 +196,149 @@ export default function AppSidebar() {
           )} />
           <span className="flex-1">Dashboard</span>
         </RouterNavLink>
-        <div className="mx-3 my-2 border-b border-border/50" />
+        {showAdvisorNav && (
+          <>
+            <div className="mx-3 my-2 border-b border-border/50" />
 
-        {/* GROUP 1 — Client Service */}
-        <div className="mt-4 mb-1 px-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Client Service</span>
-        </div>
-        {clientServiceItems.map((item) => {
-          const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
-          return (
-            <RouterNavLink
-              key={item.label}
-              to={item.to}
-              className={cn(
-                "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
-                isActive
-                  ? "bg-secondary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                isActive && !brandingFirm?.accent_color && "border-transparent"
-              )}
-              style={
-                isActive && brandingFirm?.accent_color
-                  ? { borderColor: brandingFirm.accent_color }
-                  : undefined
-              }
-            >
-              <item.icon className={cn(
-                "w-[18px] h-[18px] text-blue-500 dark:text-blue-400",
-                isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
-              )} />
-              <span className="flex-1">{item.label}</span>
-            </RouterNavLink>
-          );
-        })}
+            {/* GROUP 1 — Client Service */}
+            <div className="mt-4 mb-1 px-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Client Service</span>
+            </div>
+            {clientServiceItems.map((item) => {
+              const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
+              return (
+                <RouterNavLink
+                  key={item.label}
+                  to={item.to}
+                  className={cn(
+                    "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
+                    isActive
+                      ? "bg-secondary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                    isActive && !brandingFirm?.accent_color && "border-transparent"
+                  )}
+                  style={
+                    isActive && brandingFirm?.accent_color
+                      ? { borderColor: brandingFirm.accent_color }
+                      : undefined
+                  }
+                >
+                  <item.icon className={cn(
+                    "w-[18px] h-[18px] text-blue-500 dark:text-blue-400",
+                    isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
+                  )} />
+                  <span className="flex-1">{item.label}</span>
+                </RouterNavLink>
+              );
+            })}
 
-        {/* GROUP 2 — Activity */}
-        <div className="mt-4 mb-1 px-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Activity</span>
-        </div>
-        {activityItems.map((item) => {
-          const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
-          const badgeCount = item.badgeKey === "tasks"
-            ? taskNotifCount
-            : item.badgeKey && unreadCounts
-              ? (unreadCounts as any)[item.badgeKey]
-              : 0;
-          return (
-            <RouterNavLink
-              key={item.label}
-              to={item.to}
-              className={cn(
-                "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
-                isActive
-                  ? "bg-secondary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                isActive && !brandingFirm?.accent_color && "border-transparent"
-              )}
-              style={
-                isActive && brandingFirm?.accent_color
-                  ? { borderColor: brandingFirm.accent_color }
-                  : undefined
-              }
-            >
-              <item.icon className={cn(
-                "w-[18px] h-[18px] text-amber-500 dark:text-amber-400",
-                isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
-              )} />
-              <span className="flex-1">{item.label}</span>
-              {badgeCount > 0 && (
-                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-primary text-primary-foreground rounded-full">
-                  {badgeCount > 9 ? "9+" : badgeCount}
-                </span>
-              )}
-            </RouterNavLink>
-          );
-        })}
+            {/* GROUP 2 — Activity */}
+            <div className="mt-4 mb-1 px-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Activity</span>
+            </div>
+            {activityItems.map((item) => {
+              const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
+              const badgeCount = item.badgeKey === "tasks"
+                ? taskNotifCount
+                : item.badgeKey && unreadCounts
+                  ? (unreadCounts as any)[item.badgeKey]
+                  : 0;
+              return (
+                <RouterNavLink
+                  key={item.label}
+                  to={item.to}
+                  className={cn(
+                    "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
+                    isActive
+                      ? "bg-secondary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                    isActive && !brandingFirm?.accent_color && "border-transparent"
+                  )}
+                  style={
+                    isActive && brandingFirm?.accent_color
+                      ? { borderColor: brandingFirm.accent_color }
+                      : undefined
+                  }
+                >
+                  <item.icon className={cn(
+                    "w-[18px] h-[18px] text-amber-500 dark:text-amber-400",
+                    isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
+                  )} />
+                  <span className="flex-1">{item.label}</span>
+                  {badgeCount > 0 && (
+                    <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-primary text-primary-foreground rounded-full">
+                      {badgeCount > 9 ? "9+" : badgeCount}
+                    </span>
+                  )}
+                </RouterNavLink>
+              );
+            })}
 
-        {/* GROUP 3 — Insights */}
-        <div className="mt-4 mb-1 px-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Insights</span>
-        </div>
-        {insightsItems.map((item) => {
-          const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
-          return (
-            <RouterNavLink
-              key={item.label}
-              to={item.to}
-              className={cn(
-                "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
-                isActive
-                  ? "bg-secondary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                isActive && !brandingFirm?.accent_color && "border-transparent"
-              )}
-              style={
-                isActive && brandingFirm?.accent_color
-                  ? { borderColor: brandingFirm.accent_color }
-                  : undefined
-              }
-            >
-              <item.icon className={cn(
-                "w-[18px] h-[18px] text-emerald-500 dark:text-emerald-400",
-                isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
-              )} />
-              <span className="flex-1">{item.label}</span>
-            </RouterNavLink>
-          );
-        })}
+            {/* GROUP 3 — Insights */}
+            <div className="mt-4 mb-1 px-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Insights</span>
+            </div>
+            {insightsItems.map((item) => {
+              const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
+              return (
+                <RouterNavLink
+                  key={item.label}
+                  to={item.to}
+                  className={cn(
+                    "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
+                    isActive
+                      ? "bg-secondary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                    isActive && !brandingFirm?.accent_color && "border-transparent"
+                  )}
+                  style={
+                    isActive && brandingFirm?.accent_color
+                      ? { borderColor: brandingFirm.accent_color }
+                      : undefined
+                  }
+                >
+                  <item.icon className={cn(
+                    "w-[18px] h-[18px] text-emerald-500 dark:text-emerald-400",
+                    isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
+                  )} />
+                  <span className="flex-1">{item.label}</span>
+                </RouterNavLink>
+              );
+            })}
 
-        {/* GROUP 4 — Business Development */}
-        <div className="mt-4 mb-2 px-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Business Development</span>
-        </div>
-        {bdItems.map((item) => {
-          const isActive = location.pathname === item.to || location.pathname.startsWith(item.to);
-          return (
-            <RouterNavLink
-              key={item.label}
-              to={item.to}
-              className={cn(
-                "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
-                isActive
-                  ? "bg-secondary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                isActive && !brandingFirm?.accent_color && "border-transparent"
-              )}
-              style={
-                isActive && brandingFirm?.accent_color
-                  ? { borderColor: brandingFirm.accent_color }
-                  : undefined
-              }
-            >
-              <item.icon className={cn(
-                "w-[18px] h-[18px] text-purple-500 dark:text-purple-400",
-                isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
-              )} />
-              <span className="flex-1">{item.label}</span>
-            </RouterNavLink>
-          );
-        })}
+            {/* GROUP 4 — Business Development */}
+            <div className="mt-4 mb-2 px-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Business Development</span>
+            </div>
+            {bdItems.map((item) => {
+              const isActive = location.pathname === item.to || location.pathname.startsWith(item.to);
+              return (
+                <RouterNavLink
+                  key={item.label}
+                  to={item.to}
+                  className={cn(
+                    "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
+                    isActive
+                      ? "bg-secondary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                    isActive && !brandingFirm?.accent_color && "border-transparent"
+                  )}
+                  style={
+                    isActive && brandingFirm?.accent_color
+                      ? { borderColor: brandingFirm.accent_color }
+                      : undefined
+                  }
+                >
+                  <item.icon className={cn(
+                    "w-[18px] h-[18px] text-purple-500 dark:text-purple-400",
+                    isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
+                  )} />
+                  <span className="flex-1">{item.label}</span>
+                </RouterNavLink>
+              );
+            })}
+          </>
+        )}
 
         {isAdmin && (
           <>
@@ -413,7 +451,7 @@ export default function AppSidebar() {
             <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground">{initials}</div>
             <div>
               <p className="text-sm font-medium text-foreground">{displayName}</p>
-              <p className="text-xs text-muted-foreground">{isAdmin ? "Admin" : "Advisor"}</p>
+              <p className="text-xs text-muted-foreground">{roleLabel}</p>
             </div>
           </div>
           <button onClick={signOut} className="text-muted-foreground hover:text-foreground transition-colors" title="Sign out">
