@@ -5,10 +5,24 @@ interface ImpersonatedUser {
   name: string;
 }
 
+interface VpmAdvisor {
+  id: string;
+  name: string;
+  firmName?: string | null;
+  vpmBillingType?: string | null;
+  isPrime?: boolean;
+}
+
 interface ImpersonationContextType {
   impersonatedUser: ImpersonatedUser | null;
   startImpersonating: (user: ImpersonatedUser) => void;
   stopImpersonating: () => void;
+
+  vpmAdvisor: VpmAdvisor | null;
+  startVpmSession: (advisor: VpmAdvisor) => void;
+  stopVpmSession: () => void;
+  isVpmSession: boolean;
+
   targetAdvisorId: (currentUserId: string) => string;
 }
 
@@ -16,6 +30,10 @@ const ImpersonationContext = createContext<ImpersonationContextType>({
   impersonatedUser: null,
   startImpersonating: () => {},
   stopImpersonating: () => {},
+  vpmAdvisor: null,
+  startVpmSession: () => {},
+  stopVpmSession: () => {},
+  isVpmSession: false,
   targetAdvisorId: (id) => id,
 });
 
@@ -23,6 +41,15 @@ export const useImpersonation = () => useContext(ImpersonationContext);
 
 export function ImpersonationProvider({ children }: { children: ReactNode }) {
   const [impersonatedUser, setImpersonatedUser] = useState<ImpersonatedUser | null>(null);
+
+  const [vpmAdvisor, setVpmAdvisor] = useState<VpmAdvisor | null>(() => {
+    try {
+      const saved = localStorage.getItem("vpm_session");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const startImpersonating = useCallback((user: ImpersonatedUser) => {
     setImpersonatedUser(user);
@@ -32,13 +59,41 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
     setImpersonatedUser(null);
   }, []);
 
+  const startVpmSession = useCallback((advisor: VpmAdvisor) => {
+    setVpmAdvisor(advisor);
+    try {
+      localStorage.setItem("vpm_session", JSON.stringify(advisor));
+    } catch {}
+  }, []);
+
+  const stopVpmSession = useCallback(() => {
+    setVpmAdvisor(null);
+    try {
+      localStorage.removeItem("vpm_session");
+    } catch {}
+  }, []);
+
+  const isVpmSession = !!vpmAdvisor && !impersonatedUser;
+
   const targetAdvisorId = useCallback(
-    (currentUserId: string) => impersonatedUser?.id || currentUserId,
-    [impersonatedUser]
+    (currentUserId: string) =>
+      impersonatedUser?.id || vpmAdvisor?.id || currentUserId,
+    [impersonatedUser, vpmAdvisor]
   );
 
   return (
-    <ImpersonationContext.Provider value={{ impersonatedUser, startImpersonating, stopImpersonating, targetAdvisorId }}>
+    <ImpersonationContext.Provider
+      value={{
+        impersonatedUser,
+        startImpersonating,
+        stopImpersonating,
+        vpmAdvisor,
+        startVpmSession,
+        stopVpmSession,
+        isVpmSession,
+        targetAdvisorId,
+      }}
+    >
       {children}
     </ImpersonationContext.Provider>
   );
