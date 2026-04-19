@@ -360,7 +360,7 @@ export default function AppSidebar() {
           </>
         )}
 
-        {isAdmin && (
+        {hasAllRequestsAccess && (
           <>
             <div className="mt-6 mb-2 px-3">
               <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Admin</span>
