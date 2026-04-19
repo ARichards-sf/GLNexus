@@ -351,63 +351,22 @@ export default function AppSidebar() {
           </>
         )}
 
-        {hasAllRequestsAccess && (
-          <>
-            <div className="mt-6 mb-2 px-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Admin</span>
-            </div>
-            {adminItems.map((item) => {
-              const isActive = location.pathname.startsWith(item.to);
-              const badgeCount = item.badgeKey && unreadCounts ? unreadCounts[item.badgeKey] : 0;
-              return (
-                <RouterNavLink
-                  key={item.label}
-                  to={item.to}
-                  className={cn(
-                    "flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
-                    isActive
-                      ? "bg-secondary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                    isActive && !brandingFirm?.accent_color && "border-transparent"
-                  )}
-                  style={
-                    isActive && brandingFirm?.accent_color
-                      ? { borderColor: brandingFirm.accent_color }
-                      : undefined
-                  }
-                >
-                  <item.icon className="w-[18px] h-[18px]" />
-                  <span className="flex-1">{item.label}</span>
-                  <span className="flex items-center gap-1">
-                    {item.badgeKey === "allRequests" && (unreadCounts?.newRequests ?? 0) > 0 && (
-                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-destructive text-destructive-foreground rounded-full">
-                        {(unreadCounts?.newRequests ?? 0) > 9 ? "9+" : unreadCounts?.newRequests}
-                      </span>
-                    )}
-                    {badgeCount > 0 && (
-                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-primary text-primary-foreground rounded-full">
-                        {badgeCount > 9 ? "9+" : badgeCount}
-                      </span>
-                    )}
-                  </span>
-                </RouterNavLink>
-              );
-            })}
-          </>
-        )}
-
         {showInternal && (
           <>
             <div className="mt-6 mb-2 px-3">
               <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Internal</span>
             </div>
             {internalItems.map((item) => {
+              if (item.to === "/admin/advisors" && !hasAdvisorAccess) return null;
+              if (item.to === "/admin/requests" && !hasAllRequestsAccess) return null;
               if (item.to === "/admin/staff" && !hasStaffAccess) return null;
               if (item.to === "/admin/firms" && !hasFirmAccess) return null;
-              if (item.to === "/admin/vpm-requests" && !hasVpmQueueAccess) return null;
+              if (item.to === "/admin/vpm-requests" && !hasVpmAccess) return null;
               if (item.to === "/admin/retention" && !hasRetentionAccess) return null;
               if (item.to === "/admin/developer" && !hasDevAccess) return null;
               const isActive = location.pathname.startsWith(item.to);
+              const badgeKey = (item as any).badgeKey as string | undefined;
+              const badgeCount = badgeKey && unreadCounts ? (unreadCounts as any)[badgeKey] : 0;
               return (
                 <RouterNavLink
                   key={item.label}
@@ -427,6 +386,20 @@ export default function AppSidebar() {
                 >
                   <item.icon className="w-[18px] h-[18px]" />
                   <span className="flex-1">{item.label}</span>
+                  {badgeKey && (
+                    <span className="flex items-center gap-1">
+                      {badgeKey === "allRequests" && (unreadCounts?.newRequests ?? 0) > 0 && (
+                        <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-destructive text-destructive-foreground rounded-full">
+                          {(unreadCounts?.newRequests ?? 0) > 9 ? "9+" : unreadCounts?.newRequests}
+                        </span>
+                      )}
+                      {badgeCount > 0 && (
+                        <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[11px] font-semibold bg-primary text-primary-foreground rounded-full">
+                          {badgeCount > 9 ? "9+" : badgeCount}
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </RouterNavLink>
               );
             })}
