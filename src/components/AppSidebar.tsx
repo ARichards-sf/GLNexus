@@ -44,24 +44,42 @@ const adminItems = [
 const internalItems = [
   { to: "/admin/staff", label: "GL Staff", icon: UsersRound },
   { to: "/admin/firms", label: "Firm Management", icon: Building2 },
-  { to: "/admin/vpm-requests", label: "VPM Requests", icon: Zap, requireVpm: true as const },
-  { to: "/admin/retention", label: "Data Retention", icon: Database, requireSuperAdmin: true as const },
-  { to: "/admin/developer", label: "Developer Tools", icon: Terminal, requireDeveloper: true as const },
+  { to: "/admin/vpm-requests", label: "VPM Requests", icon: Zap },
+  { to: "/admin/retention", label: "Data Retention", icon: Database },
+  { to: "/admin/developer", label: "Developer Tools", icon: Terminal },
 ];
 
 export default function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin: isLegacyRoleAdmin } = useIsAdmin();
   const { data: isGlInternal = false } = useIsGlInternal();
   const { data: glProfile } = useGlProfile();
-  const isSuperAdmin = !!glProfile?.is_gl_internal && glProfile?.platform_role === "super_admin";
-  const isDeveloper = !!glProfile?.is_gl_internal && (glProfile?.platform_role === "developer" || glProfile?.platform_role === "super_admin");
   const { data: unreadCounts } = useUnreadRequestCounts();
   const { data: taskNotifCount = 0 } = useTaskNotificationCount();
-  const { currentFirm, allFirms } = useFirmContext();
+  const { currentFirm, allFirms, membershipRole } = useFirmContext();
   const { selectedFirmId, setSelectedFirmId, clearSelectedFirm } = useSelectedFirm();
   const { impersonatedUser } = useImpersonation();
+
+  // ── Expanded role model ──
+  const platformRole = glProfile?.platform_role || "user";
+  const department = (glProfile as any)?.department || null;
+  const isSuperAdmin = platformRole === "super_admin";
+  const isDeveloper = platformRole === "developer" || isSuperAdmin;
+  const isAdmin = platformRole === "admin" || isSuperAdmin || isDeveloper;
+  const isManager = platformRole === "manager" || isAdmin;
+  const isGlUser = !!glProfile?.is_gl_internal;
+
+  // Feature access by department
+  const hasVpmAccess = isGlUser && (department === "vpm" || isAdmin);
+
+  // What GL internal users see:
+  const hasFirmAccess = isGlUser && isAdmin;
+  const hasStaffAccess = isGlUser && isAdmin;
+  const hasAllRequestsAccess = isGlUser && isAdmin;
+  const hasRetentionAccess = isGlUser && isSuperAdmin;
+  const hasDevAccess = isGlUser && isDeveloper;
+  const hasVpmQueueAccess = isGlUser && hasVpmAccess;
 
   // User has an advisor role when they have a firm membership AND are not GL internal
   const hasAdvisorRole = !!currentFirm && !isGlInternal;
@@ -71,30 +89,32 @@ export default function AppSidebar() {
   // - OR a GL internal user is currently impersonating an advisor
   const showAdvisorNav = hasAdvisorRole || !!impersonatedUser;
 
-  const showInternal = isAdmin || isGlInternal;
+  const showInternal = isLegacyRoleAdmin || isGlInternal;
 
   // Determine role label for the user footer
   const roleLabel = (() => {
-    if (isGlInternal) {
-      const dept = (glProfile as any)?.department;
-      const deptLabels: Record<string, string> = {
-        vpm: "VPM",
-        wam: "WAM",
-        marketing: "Marketing",
-        transitions: "Transitions",
-        compliance: "Compliance",
-        accounting: "Accounting",
-        operations: "Operations",
-      };
-      if (dept && deptLabels[dept]) return deptLabels[dept];
-      if (isSuperAdmin) return "Super Admin";
-      if (isDeveloper) return "Developer";
-      return "GL Internal";
+    if (!isGlUser) {
+      return membershipRole === "advisor_admin" ? "Firm Admin" : "Advisor";
     }
-    if (currentFirm) {
-      return "Advisor";
-    }
-    return "Advisor";
+    const deptLabels: Record<string, string> = {
+      vpm: "VPM",
+      wam: "WAM",
+      marketing: "Marketing",
+      transitions: "Transitions",
+      compliance: "Compliance",
+      accounting: "Accounting",
+      operations: "Operations",
+    };
+    const deptLabel = department ? deptLabels[department] : null;
+    const roleLabels: Record<string, string> = {
+      user: "GL Internal",
+      manager: "Manager",
+      admin: "Admin",
+      super_admin: "Super Admin",
+      developer: "Developer",
+    };
+    const rl = roleLabels[platformRole] || "GL Internal";
+    return deptLabel ? `${deptLabel} · ${rl}` : rl;
   })();
 
   const displayName = user?.user_metadata?.full_name || user?.email || "Advisor";
@@ -340,7 +360,7 @@ export default function AppSidebar() {
           </>
         )}
 
-        {isAdmin && (
+        {hasAllRequestsAccess && (
           <>
             <div className="mt-6 mb-2 px-3">
               <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Admin</span>
@@ -391,11 +411,11 @@ export default function AppSidebar() {
               <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/60">Internal</span>
             </div>
             {internalItems.map((item) => {
-              const department = (glProfile as any)?.department;
-              const isVpmStaff = isGlInternal && (department === "vpm" || isSuperAdmin || isDeveloper);
-              if ((item as any).requireSuperAdmin && !isSuperAdmin) return null;
-              if ((item as any).requireDeveloper && !isDeveloper) return null;
-              if ((item as any).requireVpm && !isVpmStaff) return null;
+              if (item.to === "/admin/staff" && !hasStaffAccess) return null;
+              if (item.to === "/admin/firms" && !hasFirmAccess) return null;
+              if (item.to === "/admin/vpm-requests" && !hasVpmQueueAccess) return null;
+              if (item.to === "/admin/retention" && !hasRetentionAccess) return null;
+              if (item.to === "/admin/developer" && !hasDevAccess) return null;
               const isActive = location.pathname.startsWith(item.to);
               return (
                 <RouterNavLink
