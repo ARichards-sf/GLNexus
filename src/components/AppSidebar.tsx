@@ -48,7 +48,7 @@ const internalItems = [
 export default function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { isAdmin: isLegacyRoleAdmin } = useIsAdmin();
+  const { isAdmin, isManager, isSuperAdmin, isDeveloper } = useIsAdmin();
   const { data: isGlInternal = false } = useIsGlInternal();
   const { data: glProfile } = useGlProfile();
   const { data: unreadCounts } = useUnreadRequestCounts();
@@ -60,22 +60,16 @@ export default function AppSidebar() {
   // ── Expanded role model ──
   const platformRole = glProfile?.platform_role || "user";
   const department = (glProfile as any)?.department || null;
-  const isSuperAdmin = platformRole === "super_admin";
-  const isDeveloper = platformRole === "developer" || isSuperAdmin;
-  const isAdmin = platformRole === "admin" || isSuperAdmin || isDeveloper;
-  const isManager = platformRole === "manager" || isAdmin;
   const isGlUser = !!glProfile?.is_gl_internal;
 
-  // Feature access by department
+  // Feature access flags
   const hasVpmAccess = isGlUser && (department === "vpm" || isAdmin);
-
-  // What GL internal users see:
-  const hasFirmAccess = isGlUser && isAdmin;
-  const hasStaffAccess = isGlUser && isAdmin;
+  const hasFirmAccess = isGlUser && (isAdmin || isManager);
+  const hasAdvisorAccess = isGlUser && isAdmin;
   const hasAllRequestsAccess = isGlUser && isAdmin;
+  const hasStaffAccess = isGlUser && isAdmin;
   const hasRetentionAccess = isGlUser && isSuperAdmin;
   const hasDevAccess = isGlUser && isDeveloper;
-  const hasVpmQueueAccess = isGlUser && hasVpmAccess;
 
   // User has an advisor role when they have a firm membership AND are not GL internal
   const hasAdvisorRole = !!currentFirm && !isGlInternal;
@@ -85,7 +79,8 @@ export default function AppSidebar() {
   // - OR a GL internal user is currently impersonating an advisor
   const showAdvisorNav = hasAdvisorRole || !!impersonatedUser;
 
-  const showInternal = isLegacyRoleAdmin || isGlInternal;
+  // Show internal section to any GL internal user
+  const showInternal = isGlUser;
 
   // Determine role label for the user footer
   const roleLabel = (() => {
