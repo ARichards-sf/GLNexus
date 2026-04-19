@@ -42,6 +42,10 @@ import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
 import QuickScheduleReviewDialog from "@/components/QuickScheduleReviewDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import ReparentContactDialog from "@/components/ReparentContactDialog";
+import { cn } from "@/lib/utils";
+import { useFirmContext } from "@/hooks/useFirmContext";
+import { useSelectedFirm } from "@/contexts/FirmContext";
+import { useFirms } from "@/hooks/useFirms";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -195,6 +199,15 @@ export default function HouseholdProfile() {
   const archiveContact = useArchiveContact();
   const deleteAccount = useDeleteAccount();
 
+  // Firm branding accent
+  const { currentFirm } = useFirmContext();
+  const { selectedFirmId } = useSelectedFirm();
+  const { data: allFirms = [] } = useFirms();
+  const brandingFirm = selectedFirmId
+    ? allFirms.find((f) => f.id === selectedFirmId) ?? currentFirm
+    : currentFirm;
+  const firmAccent = (brandingFirm as any)?.accent_color || null;
+
   const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
   const { data: accSnapshots = [] } = useAccountSnapshots(accountIds);
 
@@ -281,8 +294,8 @@ export default function HouseholdProfile() {
         </Link>
         <div className="flex items-center justify-between">
           <div
-            className="pl-4 border-l-2"
-            style={{ borderColor: "var(--firm-accent, hsl(var(--primary)))" }}
+            className={cn(firmAccent && "pl-4 border-l-2")}
+            style={firmAccent ? { borderColor: firmAccent } : undefined}
           >
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">{household.name}</h1>
             <p className="text-muted-foreground mt-1">{household.investment_objective}</p>

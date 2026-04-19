@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 import {
   DollarSign,
@@ -77,6 +78,7 @@ export default function Dashboard() {
     ? firms.find((f) => f.id === selectedFirmId) ?? currentFirm
     : currentFirm;
   const firmAccentColor = (brandingFirm as any)?.accent_color || undefined;
+  const firmAccent = (brandingFirm as any)?.accent_color || null;
 
   const openRequests = useMemo(() => {
     return myRequests.filter(r => r.status !== "resolved" && r.status !== "closed");
@@ -133,8 +135,8 @@ export default function Dashboard() {
   return (
     <div className="p-6 lg:p-8">
       <div
-        className="mb-6 pl-4 border-l-2"
-        style={{ borderColor: "var(--firm-accent, hsl(var(--primary)))" }}
+        className={cn("mb-6", firmAccent && "pl-4 border-l-2")}
+        style={firmAccent ? { borderColor: firmAccent } : undefined}
       >
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
         <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
@@ -142,11 +144,11 @@ export default function Dashboard() {
 
       {/* Quick Actions bar */}
       <div
-        className="flex items-center justify-between gap-4 p-3 rounded-lg bg-secondary/40 mb-6 border-l-[3px]"
-        style={{
-          borderColor:
-            "var(--firm-secondary, var(--firm-accent, hsl(var(--primary))))",
-        }}
+        className={cn(
+          "flex items-center justify-between gap-4 p-3 rounded-lg bg-secondary/40 mb-6",
+          firmAccent && "border-l-[3px]"
+        )}
+        style={firmAccent ? { borderColor: firmAccent } : undefined}
       >
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={() => setLogNoteOpen(true)}>
@@ -235,10 +237,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <Card
           className="border-border shadow-none"
-          style={{
-            borderTopColor: "var(--firm-accent, hsl(var(--primary)))",
-            borderTopWidth: "3px",
-          }}
+          style={firmAccent ? { borderTopColor: firmAccent, borderTopWidth: "3px" } : undefined}
         >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-3">
@@ -255,10 +254,7 @@ export default function Dashboard() {
 
         <Card
           className="border-border shadow-none"
-          style={{
-            borderTopColor: "var(--firm-accent, hsl(var(--primary)))",
-            borderTopWidth: "3px",
-          }}
+          style={firmAccent ? { borderTopColor: firmAccent, borderTopWidth: "3px" } : undefined}
         >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-3">
@@ -272,10 +268,7 @@ export default function Dashboard() {
 
         <Card
           className="border-border shadow-none"
-          style={{
-            borderTopColor: "var(--firm-accent, hsl(var(--primary)))",
-            borderTopWidth: "3px",
-          }}
+          style={firmAccent ? { borderTopColor: firmAccent, borderTopWidth: "3px" } : undefined}
         >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-3">
