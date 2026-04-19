@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { calculateTierScore, scoreToTier } from "@/lib/tierScoring";
 
 export interface Prospect {
   id: string;
@@ -270,6 +271,125 @@ export function useConvertProspect() {
         });
 
         queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      }
+
+      // Step 4 — Initial tier assessment
+      try {
+        const { data: allHouseholds } = await supabase
+          .from("households")
+          .select("total_aum")
+          .eq("advisor_id", advisorId)
+          .is("archived_at", null);
+
+        const bookAverage = allHouseholds?.length
+          ? allHouseholds.reduce(
+              (s, h) => s + Number(h.total_aum || 0), 0
+            ) / allHouseholds.length
+          : 0;
+
+        const { count: referralCount } = await supabase
+          .from("prospects")
+          .select("id", { count: "exact" })
+          .eq("referred_by_household_id", household.id);
+
+        const { data: newHousehold } = await supabase
+          .from("households")
+          .select(`
+            *,
+            household_members(
+              date_of_birth,
+              relationship
+            )
+          `)
+          .eq("id", household.id)
+          .single();
+
+        if (!newHousehold) throw new Error();
+
+        const primary = (newHousehold as any).household_members?.find(
+          (m: any) => m.relationship === "Primary"
+        );
+
+        const age = primary?.date_of_birth
+          ? Math.floor(
+              (Date.now() - new Date(primary.date_of_birth).getTime()) /
+              (365.25 * 24 * 60 * 60 * 1000)
+            )
+          : null;
+
+        let referredByTier: string | null = null;
+        if (prospect.referred_by_household_id) {
+          const { data: referrer } = await supabase
+            .from("households")
+            .select("wealth_tier")
+            .eq("id", prospect.referred_by_household_id)
+            .single();
+          referredByTier = referrer?.wealth_tier || null;
+        }
+
+        const scoreResult = calculateTierScore({
+          householdAum: Number(newHousehold.total_aum || 0),
+          bookAverageAum: bookAverage,
+          annualIncome: (newHousehold as any).annual_income || null,
+          primaryMemberAge: age,
+          referralsSent: referralCount || 0,
+          referredByTier,
+        });
+
+        const suggestedTier = scoreResult.recommendedTier;
+        const reason =
+          `Initial tier assessment: ` +
+          `score ${scoreResult.total}/100 ` +
+          `recommends ${suggestedTier}. ` +
+          `${scoreResult.flags[0] || ""}`;
+
+        await supabase
+          .from("households")
+          .update({
+            tier_score: scoreResult.total,
+            tier_pending_review: suggestedTier,
+            tier_pending_score: scoreResult.total,
+            tier_pending_reason: reason.trim(),
+            tier_last_assessed: new Date().toISOString(),
+          })
+          .eq("id", household.id);
+
+        await supabase.from("tasks").insert({
+          advisor_id: advisorId,
+          assigned_to: advisorId,
+          created_by: advisorId,
+          title:
+            `Assign tier — ` +
+            `${prospect.first_name} ` +
+            `${prospect.last_name} ` +
+            `(${suggestedTier.charAt(0).toUpperCase() + suggestedTier.slice(1)} ` +
+            `recommended)`,
+          description: reason.trim(),
+          priority: "medium",
+          status: "todo",
+          task_type: "tier_review",
+          due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+          household_id: household.id,
+          metadata: {
+            current_tier: null,
+            suggested_tier: suggestedTier,
+            score: scoreResult.total,
+            trigger: "prospect_converted",
+            score_breakdown: {
+              aum: scoreResult.aumScore,
+              income: scoreResult.incomeScore,
+              age: scoreResult.ageScore,
+              referral: scoreResult.referralScore,
+            },
+          },
+        });
+
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        queryClient.invalidateQueries({ queryKey: ["households"] });
+      } catch (err) {
+        console.error("Tier check failed:", err);
       }
 
       return { householdId: household.id };
