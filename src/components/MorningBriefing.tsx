@@ -237,6 +237,10 @@ export default function MorningBriefing({
       localStorage.removeItem("goodie_morning_briefing");
       localStorage.removeItem(`goodie_morning_briefing_${userId}`);
       localStorage.removeItem(`goodie_morning_briefing_${userId}_v2`);
+      const dateStr = new Date().toISOString().split("T")[0];
+      localStorage.removeItem(`goodie_brief_morning_${userId}_${dateStr}_v1`);
+      localStorage.removeItem(`goodie_brief_afternoon_${userId}_${dateStr}_v1`);
+      localStorage.removeItem(`goodie_brief_eod_${userId}_${dateStr}_v1`);
     } catch {
       /* ignore */
     }
