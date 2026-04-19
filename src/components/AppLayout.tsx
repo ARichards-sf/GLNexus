@@ -54,7 +54,7 @@ function LayoutInner() {
     return localStorage.getItem("goodie-panel-collapsed") === "true";
   });
 
-  const [laneDialogOpen, setLaneDialogOpen] = useState(false);
+  const [endSessionOpen, setEndSessionOpen] = useState(false);
   const sessionSnapshot = useRef<CalendarEvent | null>(null);
 
   const togglePanel = () => {
