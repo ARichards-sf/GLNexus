@@ -195,7 +195,8 @@ DATA:
 Meetings today: ${meetingsList(d.todaysMeetings)}
 Tasks completed today: ${tasksList(d.completedTodayTasks)}
 Outstanding tasks: ${tasksList([...d.pendingTodayTasks, ...d.overdueTasks])}
-Upcoming tomorrow: ${meetingsList(d.tomorrowsMeetings)}`;
+Upcoming tomorrow: ${meetingsList(d.tomorrowsMeetings)}
+Active pipeline: ${pipelineText(d.activeProspects, d.hotProspects, d.pipelineValue)}`;
 }
 
 export default function MorningBriefing({
