@@ -26,6 +26,7 @@ function LayoutInner() {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const createTask = useCreateTask();
+  const queryClient = useQueryClient();
 
   // Firm branding colors
   const { currentFirm, allFirms } = useFirmContext();
