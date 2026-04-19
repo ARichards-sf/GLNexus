@@ -9,6 +9,12 @@ import {
   Pencil,
   FileText,
   Clock,
+  Zap,
+  Check,
+  X,
+  CheckCircle2,
+  XCircle,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -114,6 +120,42 @@ export default function TaskDetail() {
   const { data: notes = [] } = useComplianceNotes(householdId);
   const { data: allEvents = [] } = useCalendarEvents();
 
+  const isJumpReview = task?.task_type === "jump_review";
+
+  const { data: reviewItems = [], refetch: refetchItems } = useQuery({
+    queryKey: ["jump_review_items", task?.id],
+    enabled: !!isJumpReview && !!task?.id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("jump_review_items")
+        .select("*")
+        .eq("task_id", task!.id)
+        .order("created_at");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const grouped = useMemo(() => {
+    const groups: Record<string, any[]> = {
+      assets: [],
+      retirement: [],
+      estate: [],
+      risk: [],
+      other: [],
+    };
+    (reviewItems as any[]).forEach((item) => {
+      const key = item.pillar || "other";
+      if (groups[key]) groups[key].push(item);
+      else groups.other.push(item);
+    });
+    return groups;
+  }, [reviewItems]);
+
+  const pendingCount = (reviewItems as any[]).filter(
+    (i) => i.status === "pending"
+  ).length;
+
   const upcomingEvents = useMemo(() => {
     if (!householdId) return [];
     const now = Date.now();
@@ -201,6 +243,61 @@ export default function TaskDetail() {
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
   };
 
+  const handleApprove = async (item: any) => {
+    const { error } = await (supabase as any)
+      .from("jump_review_items")
+      .update({
+        status: "approved",
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", item.id);
+    if (error) {
+      toast.error("Failed to approve item");
+      return;
+    }
+    refetchItems();
+    toast.success("Item approved");
+  };
+
+  const handleDismiss = async (itemId: string) => {
+    const { error } = await (supabase as any)
+      .from("jump_review_items")
+      .update({
+        status: "dismissed",
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", itemId);
+    if (error) {
+      toast.error("Failed to dismiss item");
+      return;
+    }
+    refetchItems();
+  };
+
+  const handleAddItem = async () => {
+    const summary = window.prompt("Describe the item to add:");
+    if (!summary?.trim() || !user) return;
+    const { error } = await (supabase as any)
+      .from("jump_review_items")
+      .insert({
+        task_id: task.id,
+        household_id: task.household_id || null,
+        prospect_id: (task.metadata as any)?.prospect_id || null,
+        advisor_id: user.id,
+        item_type: "note",
+        pillar: null,
+        content: { summary: summary.trim() },
+        source: "manual",
+        status: "pending",
+      });
+    if (error) {
+      toast.error("Failed to add item");
+      return;
+    }
+    refetchItems();
+    toast.success("Item added");
+  };
+
   return (
     <div className="p-6 lg:p-10 max-w-4xl space-y-6">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
@@ -258,6 +355,79 @@ export default function TaskDetail() {
           </div>
         </div>
       </div>
+
+      {/* Jump Review */}
+      {isJumpReview && (
+        <Card className="border-border shadow-none">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-amber-500" /> Jump Review
+                  {pendingCount > 0 && (
+                    <Badge variant="secondary" className="ml-1 text-xs">
+                      {pendingCount} pending
+                    </Badge>
+                  )}
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  Review and approve items extracted from your meeting. Approved
+                  items will be saved to the CRM.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddItem}
+                className="shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Item
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {reviewItems.length === 0 && (
+              <div className="text-center py-8 border border-dashed border-border rounded-md">
+                <Zap className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm font-medium text-foreground">
+                  No items to review yet
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Items will appear here when Jump is connected, or you can add them manually
+                </p>
+              </div>
+            )}
+
+            {Object.entries(grouped).map(([pillar, items]) => {
+              if (items.length === 0) return null;
+              return (
+                <div key={pillar} className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide capitalize">
+                    {pillar === "other" ? "General" : pillar}
+                  </div>
+                  <div className="space-y-2">
+                    {items.map((item: any) => (
+                      <ReviewItemRow
+                        key={item.id}
+                        item={item}
+                        onApprove={() => handleApprove(item)}
+                        onDismiss={() => handleDismiss(item.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {pendingCount === 0 && reviewItems.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 pt-2">
+                <CheckCircle2 className="w-4 h-4" />
+                All items reviewed
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Section 1 — Task Details */}
       <Card className="border-border shadow-none">
@@ -507,6 +677,96 @@ function DetailRow({
         {label}
       </div>
       <div className="text-sm">{children}</div>
+    </div>
+  );
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  contact: "Contact",
+  account: "Account",
+  note: "Note",
+  planning_gap: "Planning Gap",
+  commitment: "Commitment",
+};
+
+function ReviewItemRow({
+  item,
+  onApprove,
+  onDismiss,
+}: {
+  item: any;
+  onApprove: () => void;
+  onDismiss: () => void;
+}) {
+  const isApproved = item.status === "approved";
+  const isDismissed = item.status === "dismissed";
+
+  const summary =
+    item.content?.summary ||
+    item.content?.description ||
+    item.content?.name ||
+    JSON.stringify(item.content);
+
+  return (
+    <div
+      className={cn(
+        "flex items-start justify-between gap-3 p-3 rounded-md border bg-card transition-colors",
+        isApproved && "border-emerald-300/60 bg-emerald-50/40 dark:bg-emerald-950/10",
+        isDismissed && "border-border opacity-60",
+        !isApproved && !isDismissed && "border-border hover:bg-secondary/30"
+      )}
+    >
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className="text-[10px] capitalize">
+            {TYPE_LABELS[item.item_type] || item.item_type}
+          </Badge>
+          {item.source === "jump_ai" && (
+            <Badge className="text-[10px] border-0 bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+              <Zap className="w-2.5 h-2.5 mr-0.5" /> Jump
+            </Badge>
+          )}
+        </div>
+        <p className="text-sm text-foreground leading-relaxed break-words">
+          {summary}
+        </p>
+        {item.content?.details && (
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {item.content.details}
+          </p>
+        )}
+      </div>
+
+      {!isApproved && !isDismissed && (
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button size="sm" onClick={onApprove} className="h-8">
+            <Check className="w-3.5 h-3.5 mr-1" /> Approve
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onDismiss}
+            className="h-8 w-8 p-0"
+            aria-label="Dismiss"
+          >
+            <X className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      )}
+
+      {isApproved && (
+        <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 shrink-0">
+          <CheckCircle2 className="w-4 h-4" />
+          Approved
+        </div>
+      )}
+
+      {isDismissed && (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+          <XCircle className="w-4 h-4" />
+          Dismissed
+        </div>
+      )}
     </div>
   );
 }
