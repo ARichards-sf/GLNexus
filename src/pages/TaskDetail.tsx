@@ -680,3 +680,93 @@ function DetailRow({
     </div>
   );
 }
+
+const TYPE_LABELS: Record<string, string> = {
+  contact: "Contact",
+  account: "Account",
+  note: "Note",
+  planning_gap: "Planning Gap",
+  commitment: "Commitment",
+};
+
+function ReviewItemRow({
+  item,
+  onApprove,
+  onDismiss,
+}: {
+  item: any;
+  onApprove: () => void;
+  onDismiss: () => void;
+}) {
+  const isApproved = item.status === "approved";
+  const isDismissed = item.status === "dismissed";
+
+  const summary =
+    item.content?.summary ||
+    item.content?.description ||
+    item.content?.name ||
+    JSON.stringify(item.content);
+
+  return (
+    <div
+      className={cn(
+        "flex items-start justify-between gap-3 p-3 rounded-md border bg-card transition-colors",
+        isApproved && "border-emerald-300/60 bg-emerald-50/40 dark:bg-emerald-950/10",
+        isDismissed && "border-border opacity-60",
+        !isApproved && !isDismissed && "border-border hover:bg-secondary/30"
+      )}
+    >
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className="text-[10px] capitalize">
+            {TYPE_LABELS[item.item_type] || item.item_type}
+          </Badge>
+          {item.source === "jump_ai" && (
+            <Badge className="text-[10px] border-0 bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+              <Zap className="w-2.5 h-2.5 mr-0.5" /> Jump
+            </Badge>
+          )}
+        </div>
+        <p className="text-sm text-foreground leading-relaxed break-words">
+          {summary}
+        </p>
+        {item.content?.details && (
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {item.content.details}
+          </p>
+        )}
+      </div>
+
+      {!isApproved && !isDismissed && (
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button size="sm" onClick={onApprove} className="h-8">
+            <Check className="w-3.5 h-3.5 mr-1" /> Approve
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onDismiss}
+            className="h-8 w-8 p-0"
+            aria-label="Dismiss"
+          >
+            <X className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      )}
+
+      {isApproved && (
+        <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 shrink-0">
+          <CheckCircle2 className="w-4 h-4" />
+          Approved
+        </div>
+      )}
+
+      {isDismissed && (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+          <XCircle className="w-4 h-4" />
+          Dismissed
+        </div>
+      )}
+    </div>
+  );
+}
