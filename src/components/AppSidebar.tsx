@@ -35,13 +35,9 @@ const bdItems = [
   { to: "/pipeline", label: "Pipeline", icon: TrendingUp },
 ];
 
-const adminItems = [
+const internalItems = [
   { to: "/admin/advisors", label: "Advisors", icon: ShieldCheck },
   { to: "/admin/requests", label: "All Requests", icon: TicketCheck, badgeKey: "allRequests" as const },
-];
-
-
-const internalItems = [
   { to: "/admin/staff", label: "GL Staff", icon: UsersRound },
   { to: "/admin/firms", label: "Firm Management", icon: Building2 },
   { to: "/admin/vpm-requests", label: "VPM Requests", icon: Zap },
