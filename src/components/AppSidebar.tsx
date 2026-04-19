@@ -44,9 +44,9 @@ const adminItems = [
 const internalItems = [
   { to: "/admin/staff", label: "GL Staff", icon: UsersRound },
   { to: "/admin/firms", label: "Firm Management", icon: Building2 },
-  { to: "/admin/vpm-requests", label: "VPM Requests", icon: Zap, requireVpm: true as const },
-  { to: "/admin/retention", label: "Data Retention", icon: Database, requireSuperAdmin: true as const },
-  { to: "/admin/developer", label: "Developer Tools", icon: Terminal, requireDeveloper: true as const },
+  { to: "/admin/vpm-requests", label: "VPM Requests", icon: Zap },
+  { to: "/admin/retention", label: "Data Retention", icon: Database },
+  { to: "/admin/developer", label: "Developer Tools", icon: Terminal },
 ];
 
 export default function AppSidebar() {
