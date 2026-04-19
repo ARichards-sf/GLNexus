@@ -57,6 +57,16 @@ export default function AppSidebar() {
   const { data: glProfile } = useGlProfile();
   const isSuperAdmin = !!glProfile?.is_gl_internal && glProfile?.platform_role === "super_admin";
   const isDeveloper = !!glProfile?.is_gl_internal && (glProfile?.platform_role === "developer" || glProfile?.platform_role === "super_admin");
+  const { impersonatedUser } = useImpersonation();
+
+  // User has an advisor role when they have a firm membership AND are not GL internal
+  const hasAdvisorRole = !!currentFirm && !isGlInternal;
+
+  // Show advisor nav when:
+  // - user is an advisor (has firm, not GL internal)
+  // - OR a GL internal user is currently impersonating an advisor
+  const showAdvisorNav = hasAdvisorRole || !!impersonatedUser;
+
   const { data: unreadCounts } = useUnreadRequestCounts();
   const { data: taskNotifCount = 0 } = useTaskNotificationCount();
   const { currentFirm, allFirms } = useFirmContext();
