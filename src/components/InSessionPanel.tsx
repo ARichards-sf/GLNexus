@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bot, X, Calendar, TrendingUp, FileText, Users, ChevronRight, ArrowRight } from "lucide-react";
+import { Bot, X, Calendar, TrendingUp, FileText, Users, ChevronRight, ArrowRight, CheckSquare, Check, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
