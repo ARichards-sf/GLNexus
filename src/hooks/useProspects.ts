@@ -241,6 +241,37 @@ export function useConvertProspect() {
         .eq("id", prospect.id);
       if (updErr) throw updErr;
 
+      // 3. Magic Moment thank-you task — only when referred by an existing household
+      if (prospect.referred_by_household_id) {
+        const referrerName = prospect.referred_by || "your client";
+        const convertedName = `${prospect.first_name} ${prospect.last_name}`;
+
+        await supabase.from("tasks").insert({
+          advisor_id: advisorId,
+          assigned_to: advisorId,
+          created_by: advisorId,
+          title: `Send thank-you to ${referrerName} — referral converted! 🎉`,
+          description: `${convertedName} has just become a client. ${referrerName} referred them — reach out to acknowledge this referral and strengthen the relationship.`,
+          priority: "high",
+          status: "todo",
+          task_type: "magic_moment",
+          due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+          household_id: prospect.referred_by_household_id,
+          metadata: {
+            magic_moment_type: "referral_converted",
+            converted_prospect_id: prospect.id,
+            converted_household_id: household.id,
+            converted_name: convertedName,
+            referrer_household_id: prospect.referred_by_household_id,
+            referrer_name: referrerName,
+          },
+        });
+
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      }
+
       return { householdId: household.id };
     },
     onSuccess: (_, prospect) => {
