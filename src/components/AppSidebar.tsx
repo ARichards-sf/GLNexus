@@ -377,11 +377,16 @@ export default function AppSidebar() {
           <RouterNavLink
             to="/settings"
             className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              "flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
               location.pathname === "/settings"
                 ? "bg-secondary text-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
             )}
+            style={
+              location.pathname === "/settings"
+                ? { borderColor: "var(--firm-accent, hsl(var(--primary)))" }
+                : undefined
+            }
           >
             <Settings className="w-[18px] h-[18px] text-muted-foreground" />
             <span className="flex-1">Settings</span>
