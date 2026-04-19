@@ -97,24 +97,36 @@ export function useVpmStatus() {
 }
 
 export function useIsAdmin() {
-  const { data: roles = [], isLoading: rolesLoading } = useUserRole();
-  const { data: isInternal = false, isLoading: internalLoading } = useIsInternal();
-  const { data: glProfile, isLoading: glLoading } = useGlProfile();
-
-  const glIsAdmin =
-    !!glProfile?.is_gl_internal &&
-    (glProfile.platform_role === "admin" || glProfile.platform_role === "super_admin");
+  const { data: glProfile, isLoading } = useGlProfile();
+  const platformRole = glProfile?.platform_role || "user";
 
   const isSuperAdmin =
-    !!glProfile?.is_gl_internal && glProfile.platform_role === "super_admin";
+    !!glProfile?.is_gl_internal && platformRole === "super_admin";
 
-  const isGLInternal = !!glProfile?.is_gl_internal;
+  const isDeveloper =
+    !!glProfile?.is_gl_internal &&
+    (platformRole === "developer" || isSuperAdmin);
+
+  const isAdmin =
+    !!glProfile?.is_gl_internal &&
+    (platformRole === "admin" || isDeveloper);
+
+  const isManager =
+    !!glProfile?.is_gl_internal &&
+    (platformRole === "manager" || isAdmin);
+
+  // isAdmin check for AdminRoute — any GL internal user can access
+  // admin routes, individual pages handle their own visibility
+  const canAccessAdmin = !!glProfile?.is_gl_internal;
 
   return {
-    isAdmin: roles.includes("admin") || isInternal || glIsAdmin,
+    isAdmin,
+    isManager,
     isSuperAdmin,
-    isGLInternal,
-    isLoading: rolesLoading || internalLoading || glLoading,
+    isDeveloper,
+    canAccessAdmin,
+    isGLInternal: !!glProfile?.is_gl_internal,
+    isLoading,
   };
 }
 
