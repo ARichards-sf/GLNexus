@@ -44,13 +44,14 @@ export function useGlProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("is_gl_internal, platform_role")
+        .select("is_gl_internal, platform_role, department")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
       return {
         is_gl_internal: !!data?.is_gl_internal,
         platform_role: (data?.platform_role ?? null) as string | null,
+        department: (data?.department ?? null) as string | null,
       };
     },
     enabled: !!user,
