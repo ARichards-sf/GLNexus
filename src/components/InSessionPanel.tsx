@@ -769,6 +769,64 @@ function ProspectSessionPanel({ event, onClose }: { event: CalendarEvent; onClos
         </CardContent>
       </Card>
 
+      {/* SECTION 1.5 — Interview Pillars (Discovery Call) */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground font-medium uppercase tracking-wide">
+            <CheckSquare className="h-4 w-4" />
+            Interview Pillars
+            {coveredPillars.length > 0 && (
+              <Badge variant="secondary" className="ml-auto text-[10px] font-medium normal-case tracking-normal">
+                {coveredPillars.length} of 4 covered
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {PILLARS.map((pillar) => {
+              const covered = coveredPillars.includes(pillar.key);
+              return (
+                <button
+                  key={pillar.key}
+                  type="button"
+                  onClick={() => togglePillar(pillar.key)}
+                  className={cn(
+                    "flex items-start gap-2.5 p-3 rounded-lg border text-left transition-all",
+                    covered
+                      ? "border-primary/60 bg-primary/5 text-foreground"
+                      : "border-border text-muted-foreground hover:border-primary/30 hover:bg-secondary/40"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                      covered ? "bg-primary border-primary text-primary-foreground" : "border-border"
+                    )}
+                  >
+                    {covered && <Check className="w-3 h-3" strokeWidth={3} />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className={cn("text-sm font-medium", covered ? "text-foreground" : "text-foreground/80")}>
+                      {pillar.label}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                      {pillar.hint}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {coveredPillars.length === 4 && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              All pillars covered
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* SECTION 2 — Goodie's Take */}
       <Card className="border-amber-200/70 dark:border-amber-700/40 bg-amber-50/30 dark:bg-amber-950/10">
         <CardHeader className="pb-3">
