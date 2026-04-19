@@ -174,30 +174,39 @@ export type Database = {
         Row: {
           advisor_id: string
           advisor_name: string | null
+          auto_generated: boolean
           created_at: string
           date: string
           household_id: string
           id: string
+          meeting_duration_minutes: number | null
+          pillars_covered: string[] | null
           summary: string
           type: string
         }
         Insert: {
           advisor_id: string
           advisor_name?: string | null
+          auto_generated?: boolean
           created_at?: string
           date?: string
           household_id: string
           id?: string
+          meeting_duration_minutes?: number | null
+          pillars_covered?: string[] | null
           summary: string
           type: string
         }
         Update: {
           advisor_id?: string
           advisor_name?: string | null
+          auto_generated?: boolean
           created_at?: string
           date?: string
           household_id?: string
           id?: string
+          meeting_duration_minutes?: number | null
+          pillars_covered?: string[] | null
           summary?: string
           type?: string
         }
@@ -670,6 +679,89 @@ export type Database = {
             columns: ["firm_id"]
             isOneToOne: false
             referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jump_review_items: {
+        Row: {
+          advisor_id: string
+          approved_record_id: string | null
+          approved_record_type: string | null
+          content: Json
+          created_at: string
+          household_id: string | null
+          id: string
+          item_type: string
+          pillar: string | null
+          prospect_id: string | null
+          reviewed_at: string | null
+          source: string
+          status: string
+          task_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          advisor_id: string
+          approved_record_id?: string | null
+          approved_record_type?: string | null
+          content?: Json
+          created_at?: string
+          household_id?: string | null
+          id?: string
+          item_type: string
+          pillar?: string | null
+          prospect_id?: string | null
+          reviewed_at?: string | null
+          source?: string
+          status?: string
+          task_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          advisor_id?: string
+          approved_record_id?: string | null
+          approved_record_type?: string | null
+          content?: Json
+          created_at?: string
+          household_id?: string | null
+          id?: string
+          item_type?: string
+          pillar?: string | null
+          prospect_id?: string | null
+          reviewed_at?: string | null
+          source?: string
+          status?: string
+          task_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jump_review_items_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "active_households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jump_review_items_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jump_review_items_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jump_review_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
