@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Users, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   PIPELINE_STAGES,
@@ -24,6 +25,7 @@ import {
   useCreateProspect,
   type Prospect,
 } from "@/hooks/useProspects";
+import { useHouseholds } from "@/hooks/useHouseholds";
 
 interface Props {
   open: boolean;
@@ -46,6 +48,7 @@ export default function AddProspectDialog({
   defaultStage = "lead",
 }: Props) {
   const createMut = useCreateProspect();
+  const { data: households = [] } = useHouseholds();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -56,8 +59,20 @@ export default function AddProspectDialog({
   const [stage, setStage] = useState<string>(defaultStage);
   const [source, setSource] = useState<string>("");
   const [estimatedAum, setEstimatedAum] = useState("");
-  const [referredBy, setReferredBy] = useState("");
+  const [referredByHousehold, setReferredByHousehold] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [referralSearch, setReferralSearch] = useState("");
   const [notes, setNotes] = useState("");
+
+  const filteredHouseholds = useMemo(() => {
+    if (!referralSearch.trim()) return [];
+    const q = referralSearch.toLowerCase();
+    return households
+      .filter((h) => h.name.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [households, referralSearch]);
 
   const reset = () => {
     setFirstName("");
@@ -69,7 +84,8 @@ export default function AddProspectDialog({
     setStage(defaultStage);
     setSource("");
     setEstimatedAum("");
-    setReferredBy("");
+    setReferredByHousehold(null);
+    setReferralSearch("");
     setNotes("");
   };
 
@@ -100,8 +116,12 @@ export default function AddProspectDialog({
         source: source || null,
         estimated_aum: estimatedAum ? Number(estimatedAum) : null,
         referred_by:
-          source === "referral" && referredBy.trim()
-            ? referredBy.trim()
+          source === "referral" && referredByHousehold
+            ? referredByHousehold.name
+            : null,
+        referred_by_household_id:
+          source === "referral" && referredByHousehold
+            ? referredByHousehold.id
             : null,
         notes: notes.trim() || null,
       });
@@ -232,7 +252,7 @@ export default function AddProspectDialog({
             </div>
           </div>
 
-          {/* Row 5: Estimated AUM + (conditional) Referred By */}
+          {/* Row 5: Estimated AUM + (conditional) Referred By household search */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="estimatedAum">Estimated AUM</Label>
@@ -247,13 +267,61 @@ export default function AddProspectDialog({
             </div>
             {source === "referral" && (
               <div className="space-y-2">
-                <Label htmlFor="referredBy">Referred By</Label>
-                <Input
-                  id="referredBy"
-                  value={referredBy}
-                  onChange={(e) => setReferredBy(e.target.value)}
-                  placeholder="Who referred them?"
-                />
+                <Label htmlFor="referredBy">
+                  Referred By <span className="text-destructive">*</span>
+                </Label>
+
+                {referredByHousehold ? (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/40">
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm flex-1 truncate">
+                      {referredByHousehold.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReferredByHousehold(null);
+                        setReferralSearch("");
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Input
+                      id="referredBy"
+                      placeholder="Search households…"
+                      value={referralSearch}
+                      onChange={(e) => setReferralSearch(e.target.value)}
+                    />
+                    {filteredHouseholds.length > 0 && (
+                      <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-56 overflow-y-auto">
+                        {filteredHouseholds.map((h) => (
+                          <button
+                            key={h.id}
+                            type="button"
+                            onClick={() => {
+                              setReferredByHousehold({
+                                id: h.id,
+                                name: h.name,
+                              });
+                              setReferralSearch("");
+                            }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-accent"
+                          >
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            {h.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Link to the client who made this referral
+                </p>
               </div>
             )}
           </div>
