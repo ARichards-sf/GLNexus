@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   BarChart3,
   AlertCircle,
@@ -11,6 +12,8 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowUpDown,
+  Gift,
+  Trophy,
 } from "lucide-react";
 import {
   BarChart,
@@ -39,8 +42,20 @@ import {
 } from "@/components/ui/table";
 import { useHouseholds, useAllComplianceNotes, type HouseholdRow } from "@/hooks/useHouseholds";
 import { useTasks } from "@/hooks/useTasks";
+import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { supabase } from "@/integrations/supabase/client";
+import { PIPELINE_STAGES } from "@/hooks/useProspects";
 import ScheduleEventDialog from "@/components/ScheduleEventDialog";
 import { cn } from "@/lib/utils";
+
+const formatCurrency = (n: number): string => {
+  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`;
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
+};
+
 
 // ---------- helpers ----------
 const formatAUM = (n: number): string => {
