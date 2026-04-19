@@ -260,7 +260,10 @@ function LayoutInner() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleEndSession}
+                        onClick={() => {
+                          sessionSnapshot.current = sessionEvent;
+                          setEndSessionOpen(true);
+                        }}
                         className="border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
                       >
                         <PhoneOff className="w-3.5 h-3.5 mr-1.5" />
