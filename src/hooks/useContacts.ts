@@ -207,10 +207,12 @@ export function useUpdateAccount() {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: (_d, vars) => {
+    onSuccess: async (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["contact_account", vars.id] });
       queryClient.invalidateQueries({ queryKey: ["contact_accounts"] });
       queryClient.invalidateQueries({ queryKey: ["household_accounts"] });
+      const householdId = await getHouseholdIdForAccount(vars.id);
+      if (householdId) await checkTierAfterAumChange(householdId);
     },
   });
 }
@@ -294,9 +296,11 @@ export function useCreateAccount() {
         .insert({ ...data, advisor_id: user!.id });
       if (error) throw error;
     },
-    onSuccess: (_d, vars) => {
+    onSuccess: async (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["contact_accounts", vars.member_id] });
       queryClient.invalidateQueries({ queryKey: ["household_accounts"] });
+      const householdId = await getHouseholdIdForMember(vars.member_id);
+      if (householdId) await checkTierAfterAumChange(householdId);
     },
   });
 }
