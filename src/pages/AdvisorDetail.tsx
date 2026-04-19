@@ -85,23 +85,8 @@ export default function AdvisorDetail() {
   const showDangerZone = isAdmin && glProfile?.is_gl_internal === true;
   const isGlInternal = glProfile?.is_gl_internal === true;
 
-  // VPM state
   const advisorVpm = advisor as any;
-  const [vpmEditing, setVpmEditing] = useState(false);
-  const [vpmEnabled, setVpmEnabled] = useState<boolean>(false);
-  const [vpmBillingType, setVpmBillingType] = useState<string>("none");
-  const [vpmHourlyRate, setVpmHourlyRate] = useState<string>("");
-  const [vpmNotes, setVpmNotes] = useState<string>("");
 
-  const openVpmEdit = () => {
-    setVpmEnabled(!!advisorVpm?.vpm_enabled);
-    setVpmBillingType(advisorVpm?.vpm_billing_type || "none");
-    setVpmHourlyRate(
-      advisorVpm?.vpm_hourly_rate != null ? String(advisorVpm.vpm_hourly_rate) : ""
-    );
-    setVpmNotes(advisorVpm?.vpm_notes || "");
-    setVpmEditing(true);
-  };
 
   // Service profile (Prime + VPM) — fetched separately so it stays in sync
   const { data: serviceProfile, refetch: refetchService } = useQuery({
