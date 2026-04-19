@@ -49,7 +49,7 @@ const PERIODS = {
 } as const;
 
 const getCacheKey = (period: BriefingPeriod, userId: string) =>
-  `goodie_brief_${period}_${userId}_${new Date().toISOString().split("T")[0]}_v1`;
+  `goodie_brief_${period}_${userId}_${new Date().toISOString().split("T")[0]}_v2`;
 
 interface BriefingCache {
   date: string;
