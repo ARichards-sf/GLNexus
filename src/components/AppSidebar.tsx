@@ -451,7 +451,7 @@ export default function AppSidebar() {
             <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground">{initials}</div>
             <div>
               <p className="text-sm font-medium text-foreground">{displayName}</p>
-              <p className="text-xs text-muted-foreground">{isAdmin ? "Admin" : "Advisor"}</p>
+              <p className="text-xs text-muted-foreground">{roleLabel}</p>
             </div>
           </div>
           <button onClick={signOut} className="text-muted-foreground hover:text-foreground transition-colors" title="Sign out">
