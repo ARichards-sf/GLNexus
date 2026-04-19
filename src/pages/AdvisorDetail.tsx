@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User, AlertTriangle, Trash2, Zap,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User, AlertTriangle,
+  Trash2, Zap, Star, Settings, Plus, Pencil,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -37,7 +47,19 @@ import { formatFullCurrency } from "@/data/sampleData";
 import { useToast } from "@/hooks/use-toast";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import FirmAssignmentCard from "@/components/FirmAssignmentCard";
+
+interface ServiceProfile {
+  is_prime_partner?: boolean;
+  prime_partner_since?: string | null;
+  prime_revenue_share?: number | null;
+  prime_notes?: string | null;
+  vpm_enabled?: boolean;
+  vpm_billing_type?: string | null;
+  vpm_hourly_rate?: number | null;
+  vpm_notes?: string | null;
+}
 
 export default function AdvisorDetail() {
   const { id } = useParams<{ id: string }>();
@@ -63,38 +85,103 @@ export default function AdvisorDetail() {
   const showDangerZone = isAdmin && glProfile?.is_gl_internal === true;
   const isGlInternal = glProfile?.is_gl_internal === true;
 
-  // VPM state
   const advisorVpm = advisor as any;
-  const [vpmEditing, setVpmEditing] = useState(false);
+
+
+  // Service profile (Prime + VPM) — fetched separately so it stays in sync
+  const { data: serviceProfile, refetch: refetchService } = useQuery({
+    queryKey: ["advisor_service", id],
+    queryFn: async (): Promise<ServiceProfile | null> => {
+      const { data, error } = await supabase.functions.invoke("admin-operations", {
+        body: { action: "get_advisor_service_profile", user_id: id },
+      });
+      if (error) throw error;
+      return (data || null) as ServiceProfile | null;
+    },
+    enabled: !!id && isGlInternal,
+  });
+
+  // ── Prime Partner edit dialog state ──
+  const [primeEditOpen, setPrimeEditOpen] = useState(false);
+  const [primeEnabled, setPrimeEnabled] = useState(false);
+  const [primeSince, setPrimeSince] = useState("");
+  const [primeRevShare, setPrimeRevShare] = useState("");
+  const [primeNotes, setPrimeNotes] = useState("");
+
+  const openPrimeEdit = () => {
+    setPrimeEnabled(!!serviceProfile?.is_prime_partner);
+    setPrimeSince(serviceProfile?.prime_partner_since ?? "");
+    setPrimeRevShare(
+      serviceProfile?.prime_revenue_share != null
+        ? String(serviceProfile.prime_revenue_share)
+        : ""
+    );
+    setPrimeNotes(serviceProfile?.prime_notes ?? "");
+    setPrimeEditOpen(true);
+  };
+
+  const handleSavePrime = async () => {
+    try {
+      await updateProfile.mutateAsync({
+        user_id: advisor!.user_id,
+        is_prime_partner: primeEnabled,
+        prime_partner_since: primeEnabled && primeSince ? primeSince : null,
+        prime_revenue_share:
+          primeEnabled && primeRevShare ? Number(primeRevShare) : null,
+        prime_notes: primeNotes || null,
+        // If newly Prime, auto-route VPM billing to prime_partner
+        ...(primeEnabled && serviceProfile?.vpm_enabled
+          ? { vpm_billing_type: "prime_partner" }
+          : {}),
+      } as any);
+      toast({ title: "Prime Partner settings updated" });
+      setPrimeEditOpen(false);
+      refetchService();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  // ── VPM edit dialog state ──
+  const [vpmEditOpen, setVpmEditOpen] = useState(false);
   const [vpmEnabled, setVpmEnabled] = useState<boolean>(false);
   const [vpmBillingType, setVpmBillingType] = useState<string>("none");
   const [vpmHourlyRate, setVpmHourlyRate] = useState<string>("");
   const [vpmNotes, setVpmNotes] = useState<string>("");
 
   const openVpmEdit = () => {
-    setVpmEnabled(!!advisorVpm?.vpm_enabled);
-    setVpmBillingType(advisorVpm?.vpm_billing_type || "none");
+    setVpmEnabled(!!serviceProfile?.vpm_enabled);
+    setVpmBillingType(serviceProfile?.vpm_billing_type || "none");
     setVpmHourlyRate(
-      advisorVpm?.vpm_hourly_rate != null ? String(advisorVpm.vpm_hourly_rate) : ""
+      serviceProfile?.vpm_hourly_rate != null
+        ? String(serviceProfile.vpm_hourly_rate)
+        : ""
     );
-    setVpmNotes(advisorVpm?.vpm_notes || "");
-    setVpmEditing(true);
+    setVpmNotes(serviceProfile?.vpm_notes || "");
+    setVpmEditOpen(true);
   };
 
   const handleSaveVpm = async () => {
     try {
+      const isPrime = !!serviceProfile?.is_prime_partner;
+      const effectiveBilling = vpmEnabled
+        ? isPrime
+          ? "prime_partner"
+          : vpmBillingType
+        : "none";
       await updateProfile.mutateAsync({
         user_id: advisor!.user_id,
         vpm_enabled: vpmEnabled,
-        vpm_billing_type: vpmEnabled ? vpmBillingType : "none",
+        vpm_billing_type: effectiveBilling,
         vpm_hourly_rate:
-          vpmEnabled && vpmBillingType === "hourly" && vpmHourlyRate
+          vpmEnabled && effectiveBilling === "hourly" && vpmHourlyRate
             ? Number(vpmHourlyRate)
             : null,
         vpm_notes: vpmNotes || null,
-      });
+      } as any);
       toast({ title: "VPM settings updated" });
-      setVpmEditing(false);
+      setVpmEditOpen(false);
+      refetchService();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -435,61 +522,213 @@ export default function AdvisorDetail() {
         </TabsContent>
       </Tabs>
 
-      {/* VPM Service — GL Internal only */}
+      {/* GL Internal — Prime Partner + GL Services */}
       {isGlInternal && advisor && (
-        <Card className="border-border shadow-none mt-8">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-500" />
-              <CardTitle className="text-base">VPM Service</CardTitle>
-            </div>
-            {!vpmEditing && (
-              <Button variant="outline" size="sm" onClick={openVpmEdit}>
-                Edit VPM Settings
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!vpmEditing ? (
-              <>
-                {advisorVpm?.vpm_enabled ? (
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* ── Prime Partner Card ── */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Star className="w-4 h-4 text-amber-500" />
+                  Prime Partner
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={openPrimeEdit}>
+                  <Pencil className="w-3.5 h-3.5 mr-1" />
+                  Edit
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {serviceProfile?.is_prime_partner ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200">
+                      ⭐ Prime Partner
+                    </Badge>
+                    {serviceProfile.prime_partner_since && (
+                      <span className="text-xs text-muted-foreground">
+                        Since {new Date(serviceProfile.prime_partner_since).toLocaleDateString("en-US", {
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  {serviceProfile.prime_revenue_share != null && (
+                    <div className="text-xs text-muted-foreground bg-secondary/40 rounded px-3 py-2">
+                      Revenue Share: {serviceProfile.prime_revenue_share}% — Internal Only
+                    </div>
+                  )}
+                  {serviceProfile.prime_notes && (
+                    <p className="text-sm text-muted-foreground italic">
+                      {serviceProfile.prime_notes}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                    <span className="text-sm">Not a Prime Partner</span>
+                  </div>
+                  <Button variant="outline" size="sm" className="text-xs" onClick={openPrimeEdit}>
+                    <Star className="w-3 h-3 mr-1 text-amber-500" />
+                    Designate Prime
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── GL Services Card ── */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Zap className="w-4 h-4 text-blue-500" />
+                GL Services
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {/* VPM Service Row */}
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border">
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <div
+                      className={cn(
+                        "w-2 h-2 rounded-full",
+                        serviceProfile?.vpm_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"
+                      )}
+                    />
                     <div>
-                      <p className="text-sm font-semibold text-foreground">VPM Active</p>
+                      <p className="text-sm font-medium">Virtual Practice Management</p>
                       <p className="text-xs text-muted-foreground">
-                        {advisorVpm.vpm_billing_type === "prime_partner"
-                          ? "⭐ Prime Partner"
-                          : advisorVpm.vpm_billing_type === "hourly"
-                          ? `Hourly${
-                              advisorVpm.vpm_hourly_rate
-                                ? ` · $${advisorVpm.vpm_hourly_rate}/hr`
-                                : ""
-                            }`
-                          : "Custom"}
+                        {serviceProfile?.vpm_enabled
+                          ? serviceProfile?.is_prime_partner ||
+                            serviceProfile?.vpm_billing_type === "prime_partner"
+                            ? "⭐ Included with Prime"
+                            : serviceProfile?.vpm_billing_type === "hourly"
+                            ? `$${serviceProfile?.vpm_hourly_rate ?? "—"}/hr`
+                            : "Active"
+                          : "Not enrolled"}
                       </p>
                     </div>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
-                    <p className="text-sm font-medium text-muted-foreground">VPM Not Active</p>
-                  </div>
-                )}
-                {advisorVpm?.vpm_notes && (
-                  <p className="text-xs italic text-muted-foreground">
-                    {advisorVpm.vpm_notes}
-                  </p>
-                )}
-              </>
-            ) : (
-              <div className="space-y-4 max-w-md">
-                <div className="flex items-center justify-between">
-                  <Label>VPM Service Active</Label>
-                  <Switch checked={vpmEnabled} onCheckedChange={setVpmEnabled} />
+                  <Button variant="ghost" size="sm" onClick={openVpmEdit}>
+                    <Settings className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
 
-                {vpmEnabled && (
+                {/* Future services placeholder */}
+                <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+                  <Plus className="w-3 h-3" />
+                  Additional services coming soon
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Prime Partner Edit Dialog ── */}
+      <Dialog open={primeEditOpen} onOpenChange={setPrimeEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Star className="w-4 h-4 text-amber-500" />
+              Prime Partner Settings
+            </DialogTitle>
+            <DialogDescription>
+              Internal only — these details are never shown to the advisor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between">
+              <Label>Prime Partner Status</Label>
+              <Switch checked={primeEnabled} onCheckedChange={setPrimeEnabled} />
+            </div>
+
+            {!primeEnabled && serviceProfile?.is_prime_partner && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <p>
+                  Disabling Prime Partner status will affect billing for all GL services this advisor
+                  uses.
+                </p>
+              </div>
+            )}
+
+            {primeEnabled && (
+              <>
+                <div className="space-y-2">
+                  <Label>Member Since</Label>
+                  <Input
+                    type="date"
+                    value={primeSince}
+                    onChange={(e) => setPrimeSince(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Revenue Share %</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 30"
+                    value={primeRevShare}
+                    onChange={(e) => setPrimeRevShare(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Internal only — not visible to advisor
+                  </p>
+                </div>
+              </>
+            )}
+
+            <div className="space-y-2">
+              <Label>Internal Notes</Label>
+              <Textarea
+                rows={3}
+                placeholder="Contract details, special arrangements..."
+                value={primeNotes}
+                onChange={(e) => setPrimeNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPrimeEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSavePrime} disabled={updateProfile.isPending}>
+              {updateProfile.isPending ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── VPM Edit Dialog ── */}
+      <Dialog open={vpmEditOpen} onOpenChange={setVpmEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-blue-500" />
+              Virtual Practice Management
+            </DialogTitle>
+            <DialogDescription>
+              Configure VPM service and billing for this advisor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between">
+              <Label>VPM Service Active</Label>
+              <Switch checked={vpmEnabled} onCheckedChange={setVpmEnabled} />
+            </div>
+
+            {vpmEnabled && (
+              <>
+                {serviceProfile?.is_prime_partner ? (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/40 p-3 text-xs text-amber-800 dark:text-amber-300">
+                    ⭐ Automatically included with Prime Partner status
+                  </div>
+                ) : (
                   <div className="space-y-2">
                     <Label>Billing Type</Label>
                     <Select value={vpmBillingType} onValueChange={setVpmBillingType}>
@@ -498,14 +737,13 @@ export default function AdvisorDetail() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="hourly">Hourly Billing</SelectItem>
-                        <SelectItem value="prime_partner">Prime Partner (Included)</SelectItem>
                         <SelectItem value="none">Custom / TBD</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 )}
 
-                {vpmEnabled && vpmBillingType === "hourly" && (
+                {!serviceProfile?.is_prime_partner && vpmBillingType === "hourly" && (
                   <div className="space-y-2">
                     <Label>Hourly Rate</Label>
                     <div className="flex items-center gap-2">
@@ -517,34 +755,34 @@ export default function AdvisorDetail() {
                         placeholder="150"
                         className="max-w-[140px]"
                       />
-                      <span className="text-sm text-muted-foreground">/ hour</span>
+                      <span className="text-sm text-muted-foreground">/hr</span>
                     </div>
                   </div>
                 )}
-
-                <div className="space-y-2">
-                  <Label>Internal Notes</Label>
-                  <Textarea
-                    rows={3}
-                    value={vpmNotes}
-                    onChange={(e) => setVpmNotes(e.target.value)}
-                    placeholder="Billing arrangement details, special terms..."
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <Button onClick={handleSaveVpm} disabled={updateProfile.isPending}>
-                    {updateProfile.isPending ? "Saving..." : "Save VPM Settings"}
-                  </Button>
-                  <Button variant="ghost" onClick={() => setVpmEditing(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
+              </>
             )}
-          </CardContent>
-        </Card>
-      )}
+
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                rows={3}
+                value={vpmNotes}
+                onChange={(e) => setVpmNotes(e.target.value)}
+                placeholder="Billing arrangement details, special terms..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setVpmEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveVpm} disabled={updateProfile.isPending}>
+              {updateProfile.isPending ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* GL Internal Admin — Danger Zone */}
       {showDangerZone && (
