@@ -207,6 +207,7 @@ export default function MorningBriefing({
   firstName,
   userId,
   accentColor,
+  prospects,
 }: MorningBriefingProps) {
   const currentPeriod = getCurrentPeriod();
   const periodConfig = PERIODS[currentPeriod];
