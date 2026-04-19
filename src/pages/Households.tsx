@@ -17,6 +17,7 @@ import { useHouseholds } from "@/hooks/useHouseholds";
 import { useAllContacts } from "@/hooks/useContacts";
 import { formatCurrency } from "@/data/sampleData";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
+import TierBadge from "@/components/TierBadge";
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLES: Record<string, string> = {
