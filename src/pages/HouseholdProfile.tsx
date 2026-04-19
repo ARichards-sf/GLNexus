@@ -41,6 +41,9 @@ import AddMemberDialog from "@/components/AddMemberDialog";
 import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
 import QuickScheduleReviewDialog from "@/components/QuickScheduleReviewDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
+import VpmRequestDialog from "@/components/VpmRequestDialog";
+import { useVpmStatus } from "@/hooks/useAdmin";
+import { Zap } from "lucide-react";
 import ReparentContactDialog from "@/components/ReparentContactDialog";
 import { cn } from "@/lib/utils";
 import { useFirmContext } from "@/hooks/useFirmContext";
@@ -181,6 +184,8 @@ export default function HouseholdProfile() {
   const [noteSearch, setNoteSearch] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
+  const [vpmOpen, setVpmOpen] = useState(false);
+  const { data: vpmStatus } = useVpmStatus();
   const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -304,6 +309,12 @@ export default function HouseholdProfile() {
             <Button variant="outline" size="sm" onClick={() => setAssistOpen(true)}>
               <HelpCircle className="w-3.5 h-3.5 mr-1.5" /> Request GL Assistance
             </Button>
+            {vpmStatus?.isVpm && (
+              <Button variant="outline" size="sm" onClick={() => setVpmOpen(true)} className="gap-2">
+                <Zap className="w-3.5 h-3.5 text-amber-500" />
+                {vpmStatus.isPrimePartner ? "VPM Support ⭐" : "VPM Support"}
+              </Button>
+            )}
             <Badge variant="secondary" className="text-xs font-medium">{household.status}</Badge>
           </div>
         </div>
@@ -748,6 +759,11 @@ export default function HouseholdProfile() {
           householdAum: Number(household.total_aum),
           householdId: household.id,
         }}
+      />
+      <VpmRequestDialog
+        open={vpmOpen}
+        onOpenChange={setVpmOpen}
+        defaultHouseholdId={household.id}
       />
 
       {/* Archive Household Confirmation */}
