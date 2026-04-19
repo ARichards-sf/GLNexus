@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   CalendarCheck, AlertTriangle, CalendarPlus, MoreHorizontal, Archive,
-  ArrowRightLeft, ChevronDown, ChevronUp, X,
+  ArrowRightLeft, ChevronDown, ChevronUp, X, Star, TrendingUp, Sparkles,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +28,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -45,6 +50,8 @@ import VpmRequestDialog from "@/components/VpmRequestDialog";
 import { useVpmStatus } from "@/hooks/useAdmin";
 import { Zap } from "lucide-react";
 import ReparentContactDialog from "@/components/ReparentContactDialog";
+import TierBadge from "@/components/TierBadge";
+import { calculateTierScore, type TierScoreBreakdown } from "@/lib/tierScoring";
 import { cn } from "@/lib/utils";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
@@ -188,6 +195,8 @@ export default function HouseholdProfile() {
   const { data: vpmStatus } = useVpmStatus();
   const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [tierDialogOpen, setTierDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   // Reparent + archive contact state
   const [reparentMember, setReparentMember] = useState<MemberRow | null>(null);
@@ -290,8 +299,104 @@ export default function HouseholdProfile() {
     return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
   };
 
+  const hh = household as any;
+
+  const handleApproveTierChange = async () => {
+    if (!hh.tier_pending_review) return;
+    const { error } = await supabase
+      .from("households")
+      .update({
+        wealth_tier: hh.tier_pending_review,
+        tier_score: hh.tier_pending_score,
+        tier_pending_review: null,
+        tier_pending_score: null,
+        tier_pending_reason: null,
+      } as any)
+      .eq("id", household.id);
+    if (error) {
+      toast.error("Failed to update tier");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["household", id] });
+    queryClient.invalidateQueries({ queryKey: ["households"] });
+    const tierName = hh.tier_pending_review.charAt(0).toUpperCase() + hh.tier_pending_review.slice(1);
+    toast.success(`Tier updated to ${tierName}`);
+    setTierDialogOpen(false);
+  };
+
+  const handleDismissTierReview = async () => {
+    const { error } = await supabase
+      .from("households")
+      .update({
+        tier_pending_review: null,
+        tier_pending_score: null,
+        tier_pending_reason: null,
+      } as any)
+      .eq("id", household.id);
+    if (error) {
+      toast.error("Failed to dismiss");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["household", id] });
+    queryClient.invalidateQueries({ queryKey: ["households"] });
+    toast.success("Tier review dismissed");
+  };
+
+  const handleManualTierSet = async (tier: string) => {
+    const { error } = await supabase
+      .from("households")
+      .update({
+        wealth_tier: tier,
+        tier_pending_review: null,
+        tier_pending_score: null,
+        tier_pending_reason: null,
+      } as any)
+      .eq("id", household.id);
+    if (error) {
+      toast.error("Failed to set tier");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["household", id] });
+    queryClient.invalidateQueries({ queryKey: ["households"] });
+    const tierName = tier.charAt(0).toUpperCase() + tier.slice(1);
+    toast.success(`Tier set to ${tierName}`);
+    setTierDialogOpen(false);
+  };
+
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
+      {/* Tier Pending Review Banner */}
+      {hh.tier_pending_review && (
+        <div className="mb-6 p-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/60 flex items-center gap-4">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                Tier Update Suggested
+              </p>
+              <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                {hh.tier_pending_reason || "Goodie recommends a tier change for this household"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <TierBadge tier={household.wealth_tier} size="sm" showUnassigned />
+              <span className="text-amber-600 dark:text-amber-400">→</span>
+              <TierBadge tier={hh.tier_pending_review} size="sm" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button size="sm" onClick={() => setTierDialogOpen(true)}>
+              Review
+            </Button>
+            <Button size="sm" variant="ghost" onClick={handleDismissTierReview}>
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <Link to="/households" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
@@ -321,7 +426,7 @@ export default function HouseholdProfile() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card className="border-border shadow-none">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-2">
@@ -338,6 +443,39 @@ export default function HouseholdProfile() {
               <span className="text-sm text-muted-foreground font-medium">Risk Tolerance</span>
             </div>
             <p className={`text-2xl font-semibold tracking-tight ${riskColors[household.risk_tolerance] || "text-foreground"}`}>{household.risk_tolerance}</p>
+          </CardContent>
+        </Card>
+        <Card
+          className={cn(
+            "border-border shadow-none cursor-pointer transition-all hover:border-primary/40 hover:shadow-md",
+            hh.tier_pending_review && "ring-2 ring-amber-400/60"
+          )}
+          onClick={() => setTierDialogOpen(true)}
+        >
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Star className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground font-medium">Client Tier</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <TierBadge tier={household.wealth_tier} size="lg" showUnassigned pending={!!hh.tier_pending_review} />
+              {hh.tier_score && (
+                <span className="text-xs text-muted-foreground">
+                  Score: {hh.tier_score}/100
+                </span>
+              )}
+            </div>
+            {hh.tier_last_assessed && (
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Assessed {new Date(hh.tier_last_assessed).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+              </p>
+            )}
+            {hh.tier_pending_review && (
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                <TrendingUp className="w-3 h-3" />
+                Upgrade to {hh.tier_pending_review.charAt(0).toUpperCase() + hh.tier_pending_review.slice(1)} suggested
+              </div>
+            )}
           </CardContent>
         </Card>
         <AnnualReviewWidget
@@ -948,6 +1086,88 @@ export default function HouseholdProfile() {
           }}
         />
       )}
+
+      {/* Tier Review Dialog */}
+      <Dialog open={tierDialogOpen} onOpenChange={setTierDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Star className="w-4 h-4 text-amber-500" />
+              Client Tier Review
+            </DialogTitle>
+            <DialogDescription>{household.name}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            {/* Score display */}
+            {hh.tier_pending_score && (
+              <div className="text-center py-3 rounded-lg bg-secondary/50">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">New Score</p>
+                <p className="text-3xl font-semibold tracking-tight text-foreground mt-1">
+                  {hh.tier_pending_score}
+                  <span className="text-base text-muted-foreground font-normal">/100</span>
+                </p>
+              </div>
+            )}
+
+            {/* Current → Suggested */}
+            {hh.tier_pending_review && (
+              <div className="flex items-center justify-center gap-4">
+                <div className="text-center">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1.5">Current</p>
+                  <TierBadge tier={household.wealth_tier} size="lg" showUnassigned />
+                </div>
+                <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1.5">Suggested</p>
+                  <TierBadge tier={hh.tier_pending_review} size="lg" />
+                </div>
+              </div>
+            )}
+
+            {/* Reason */}
+            {hh.tier_pending_reason && (
+              <div className="p-3 rounded-md border border-border bg-muted/40 text-sm text-muted-foreground italic">
+                "{hh.tier_pending_reason}"
+              </div>
+            )}
+
+            {/* Manual override */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                Set Tier
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {(["platinum", "gold", "silver"] as const).map((tier) => (
+                  <button
+                    key={tier}
+                    onClick={() => handleManualTierSet(tier)}
+                    className={cn(
+                      "p-2 rounded-lg border text-center transition-all",
+                      household.wealth_tier === tier
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/40"
+                    )}
+                  >
+                    <TierBadge tier={tier} size="sm" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={handleDismissTierReview}>
+              Dismiss
+            </Button>
+            {hh.tier_pending_review && (
+              <Button onClick={handleApproveTierChange}>
+                Approve Upgrade
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
