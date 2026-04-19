@@ -205,6 +205,7 @@ export default function Dashboard() {
         firstName={firstName}
         userId={user?.id || "anonymous"}
         accentColor={firmAccentColor}
+        prospects={prospects}
       />
 
       {/* Your Next Meeting — only when within 60 minutes */}
