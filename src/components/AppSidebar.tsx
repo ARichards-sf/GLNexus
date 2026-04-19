@@ -85,7 +85,7 @@ export default function AppSidebar() {
         </div>
         {showFirmName && (
           <p
-            className="text-xs font-medium"
+            className="text-xs font-semibold"
             style={{ color: brandingFirm?.accent_color || "hsl(var(--muted-foreground))" }}
           >
             {firmName}
