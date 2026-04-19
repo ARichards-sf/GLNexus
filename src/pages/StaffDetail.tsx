@@ -47,8 +47,26 @@ export default function StaffDetail() {
   const { toast } = useToast();
   const { data: staff = [], isLoading } = useInternalUsers();
   const { data: myProfile } = useGlProfile();
-  const isSuperAdmin = myProfile?.platform_role === "super_admin";
-  const availableRoles = isSuperAdmin ? ROLES : ROLES.filter((r) => r !== "developer");
+  const myRole = myProfile?.platform_role || "user";
+  const isSuperAdmin = myRole === "super_admin";
+  const isAdmin = myRole === "admin";
+
+  // What roles can the viewer assign?
+  const assignableRoles = (() => {
+    if (isSuperAdmin) {
+      // Super admin can assign anything
+      return ["user", "manager", "admin", "super_admin", "developer"];
+    }
+    if (isAdmin) {
+      // Admin can only assign user and manager
+      return ["user", "manager"];
+    }
+    // Manager and below cannot assign roles at all
+    return [];
+  })();
+
+  // If viewer cannot assign roles show role as read-only badge instead of a select
+  const canEditRole = assignableRoles.length > 0;
   const updateUser = useUpdateInternalUser();
   const toggleStatus = useToggleAdvisorStatus();
 
