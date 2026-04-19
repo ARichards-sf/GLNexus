@@ -20,7 +20,10 @@ import {
   TicketCheck,
   CheckSquare,
   Plus,
+  Zap,
 } from "lucide-react";
+import VpmRequestDialog from "@/components/VpmRequestDialog";
+import { useVpmStatus } from "@/hooks/useAdmin";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
 import QuickLogNoteDialog from "@/components/QuickLogNoteDialog";
 import { useInSession } from "@/contexts/InSessionContext";
@@ -68,6 +71,8 @@ export default function Dashboard() {
   const [assistOpen, setAssistOpen] = useState(false);
   const [createHouseholdOpen, setCreateHouseholdOpen] = useState(false);
   const [logNoteOpen, setLogNoteOpen] = useState(false);
+  const [vpmOpen, setVpmOpen] = useState(false);
+  const { data: vpmStatus } = useVpmStatus();
   const { startSession } = useInSession();
 
   // Firm branding
@@ -167,6 +172,17 @@ export default function Dashboard() {
             <HelpCircle className="w-4 h-4 mr-1.5" />
             Request GL Assistance
           </Button>
+          {vpmStatus?.isVpm && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setVpmOpen(true)}
+              className="gap-2"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-500" />
+              {vpmStatus.isPrimePartner ? "VPM Support ⭐" : "VPM Support"}
+            </Button>
+          )}
         </div>
         {openRequests.length > 0 && (
           <Link
