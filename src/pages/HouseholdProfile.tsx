@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   CalendarCheck, AlertTriangle, CalendarPlus, MoreHorizontal, Archive,
-  ArrowRightLeft, ChevronDown, ChevronUp, X,
+  ArrowRightLeft, ChevronDown, ChevronUp, X, Star, TrendingUp, Sparkles,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +28,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -45,6 +50,8 @@ import VpmRequestDialog from "@/components/VpmRequestDialog";
 import { useVpmStatus } from "@/hooks/useAdmin";
 import { Zap } from "lucide-react";
 import ReparentContactDialog from "@/components/ReparentContactDialog";
+import TierBadge from "@/components/TierBadge";
+import { calculateTierScore, type TierScoreBreakdown } from "@/lib/tierScoring";
 import { cn } from "@/lib/utils";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
