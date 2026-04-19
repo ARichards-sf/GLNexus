@@ -171,7 +171,8 @@ Remaining meetings today: ${meetingsList(d.remainingMeetings)}
 Meetings already completed today: ${meetingsList(d.pastMeetings)}
 Tasks completed today: ${tasksList(d.completedTodayTasks)}
 Tasks still pending today: ${tasksList(d.pendingTodayTasks)}
-Overdue tasks: ${tasksList(d.overdueTasks)}`;
+Overdue tasks: ${tasksList(d.overdueTasks)}
+Pipeline: ${pipelineText(d.activeProspects, d.hotProspects, d.pipelineValue)}`;
   }
 
   // eod
