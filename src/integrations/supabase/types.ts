@@ -600,6 +600,7 @@ export type Database = {
       households: {
         Row: {
           advisor_id: string
+          annual_income: number | null
           annual_review_date: string | null
           archived_at: string | null
           archived_reason: string | null
@@ -612,12 +613,18 @@ export type Database = {
           next_action_date: string | null
           risk_tolerance: string
           status: string
+          tier_last_assessed: string | null
+          tier_pending_reason: string | null
+          tier_pending_review: string | null
+          tier_pending_score: number | null
+          tier_score: number | null
           total_aum: number
           updated_at: string
           wealth_tier: string | null
         }
         Insert: {
           advisor_id: string
+          annual_income?: number | null
           annual_review_date?: string | null
           archived_at?: string | null
           archived_reason?: string | null
@@ -630,12 +637,18 @@ export type Database = {
           next_action_date?: string | null
           risk_tolerance?: string
           status?: string
+          tier_last_assessed?: string | null
+          tier_pending_reason?: string | null
+          tier_pending_review?: string | null
+          tier_pending_score?: number | null
+          tier_score?: number | null
           total_aum?: number
           updated_at?: string
           wealth_tier?: string | null
         }
         Update: {
           advisor_id?: string
+          annual_income?: number | null
           annual_review_date?: string | null
           archived_at?: string | null
           archived_reason?: string | null
@@ -648,6 +661,11 @@ export type Database = {
           next_action_date?: string | null
           risk_tolerance?: string
           status?: string
+          tier_last_assessed?: string | null
+          tier_pending_reason?: string | null
+          tier_pending_review?: string | null
+          tier_pending_score?: number | null
+          tier_score?: number | null
           total_aum?: number
           updated_at?: string
           wealth_tier?: string | null
