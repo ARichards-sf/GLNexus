@@ -141,7 +141,13 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Actions bar */}
-      <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-secondary/40 mb-6">
+      <div
+        className="flex items-center justify-between gap-4 p-3 rounded-lg bg-secondary/40 mb-6 border-l-[3px]"
+        style={{
+          borderColor:
+            "var(--firm-secondary, var(--firm-accent, hsl(var(--primary))))",
+        }}
+      >
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={() => setLogNoteOpen(true)}>
             <FileText className="w-4 h-4 mr-1.5" />
