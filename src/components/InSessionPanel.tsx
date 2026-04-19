@@ -42,6 +42,13 @@ const NOTE_TYPE_COLORS: Record<string, string> = {
   Compliance: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
 };
 
+const PILLARS = [
+  { key: "estate", label: "Estate", hint: "Will, trust, beneficiaries" },
+  { key: "risk", label: "Risk", hint: "Insurance, liability, coverage" },
+  { key: "retirement", label: "Retirement", hint: "401k, pension, Social Security" },
+  { key: "assets", label: "Assets", hint: "Holdings, held-away, real estate" },
+] as const;
+
 function formatEventTime(iso: string): string {
   const date = new Date(iso);
   const now = new Date();
