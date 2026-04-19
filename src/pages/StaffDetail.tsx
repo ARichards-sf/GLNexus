@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast";
 import ManageStaffFirmsDialog from "@/components/ManageStaffFirmsDialog";
 
 const DEPARTMENTS = ["vpm", "wam", "marketing", "transitions", "compliance", "accounting", "operations"] as const;
-const ROLES = ["admin", "super_admin", "developer"] as const;
 
 const DEPT_META: Record<string, { label: string; className: string }> = {
   vpm:         { label: "VPM",         className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
@@ -27,9 +26,11 @@ const DEPT_META: Record<string, { label: string; className: string }> = {
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
+  user:        "Standard User",
+  manager:     "Manager",
+  admin:       "Admin",
   super_admin: "Super Admin",
-  developer: "Developer",
+  developer:   "Developer",
 };
 
 const FIRM_OPTIONAL_DEPTS = new Set(["marketing", "transitions", "compliance", "accounting", "operations"]);
@@ -46,8 +47,26 @@ export default function StaffDetail() {
   const { toast } = useToast();
   const { data: staff = [], isLoading } = useInternalUsers();
   const { data: myProfile } = useGlProfile();
-  const isSuperAdmin = myProfile?.platform_role === "super_admin";
-  const availableRoles = isSuperAdmin ? ROLES : ROLES.filter((r) => r !== "developer");
+  const myRole = myProfile?.platform_role || "user";
+  const isSuperAdmin = myRole === "super_admin";
+  const isAdmin = myRole === "admin";
+
+  // What roles can the viewer assign?
+  const assignableRoles = (() => {
+    if (isSuperAdmin) {
+      // Super admin can assign anything
+      return ["user", "manager", "admin", "super_admin", "developer"];
+    }
+    if (isAdmin) {
+      // Admin can only assign user and manager
+      return ["user", "manager"];
+    }
+    // Manager and below cannot assign roles at all
+    return [];
+  })();
+
+  // If viewer cannot assign roles show role as read-only badge instead of a select
+  const canEditRole = assignableRoles.length > 0;
   const updateUser = useUpdateInternalUser();
   const toggleStatus = useToggleAdvisorStatus();
 
@@ -223,18 +242,35 @@ export default function StaffDetail() {
                 </div>
                 <div className="space-y-2">
                   <Label>Platform Role</Label>
-                  <Select value={formRole} onValueChange={setFormRole}>
-                    <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
-                    <SelectContent>
-                      {availableRoles.map((r) => (
-                        <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {canEditRole ? (
+                    <Select value={formRole} onValueChange={setFormRole}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {assignableRoles.map((role) => (
+                          <SelectItem key={role} value={role}>{ROLE_LABELS[role]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-2 py-2">
+                      <Badge variant="secondary">
+                        {ROLE_LABELS[member.platform_role || "user"]}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground">
+                        You don't have permission to change this role
+                      </p>
+                    </div>
+                  )}
                   {formRole === "developer" && (
                     <p className="text-xs text-destructive mt-1 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
-                      Developer role grants full data deletion access. Assign with caution.
+                      Developer role grants full data deletion access.
+                    </p>
+                  )}
+                  {formRole === "super_admin" && (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      Super Admin has unrestricted access to all platform features.
                     </p>
                   )}
                 </div>
