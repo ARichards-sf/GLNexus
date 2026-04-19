@@ -202,7 +202,7 @@ function LayoutInner() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
       <ImpersonationBar />
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
