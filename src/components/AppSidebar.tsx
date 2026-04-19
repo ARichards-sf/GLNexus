@@ -57,7 +57,7 @@ export default function AppSidebar() {
   const { data: taskNotifCount = 0 } = useTaskNotificationCount();
   const { currentFirm, allFirms, membershipRole } = useFirmContext();
   const { selectedFirmId, setSelectedFirmId, clearSelectedFirm } = useSelectedFirm();
-  const { impersonatedUser } = useImpersonation();
+  const { impersonatedUser, vpmAdvisor, startVpmSession, stopVpmSession, isVpmSession } = useImpersonation();
 
   // ── Expanded role model ──
   const platformRole = glProfile?.platform_role || "user";
@@ -73,13 +73,44 @@ export default function AppSidebar() {
   const hasRetentionAccess = isGlUser && isSuperAdmin;
   const hasDevAccess = isGlUser && isDeveloper;
 
+  // Fetch VPM-enrolled advisors for the switcher
+  const { data: vpmAdvisors = [] } = useQuery({
+    queryKey: ["vpm_advisors"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select(`
+          user_id,
+          full_name,
+          email,
+          vpm_billing_type,
+          is_prime_partner,
+          firm_id,
+          firms(name)
+        `)
+        .eq("vpm_enabled", true)
+        .eq("is_gl_internal", false)
+        .order("full_name");
+      return (data || []).map((p: any) => ({
+        id: p.user_id,
+        name: p.full_name || p.email?.split("@")[0] || "Advisor",
+        firmName: p.firms?.name || null,
+        vpmBillingType: p.vpm_billing_type,
+        isPrime: !!p.is_prime_partner,
+      }));
+    },
+    enabled: hasVpmAccess,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // User has an advisor role when they have a firm membership AND are not GL internal
   const hasAdvisorRole = !!currentFirm && !isGlInternal;
 
   // Show advisor nav when:
   // - user is an advisor (has firm, not GL internal)
   // - OR a GL internal user is currently impersonating an advisor
-  const showAdvisorNav = hasAdvisorRole || !!impersonatedUser;
+  // - OR a GL internal user is in a VPM session
+  const showAdvisorNav = hasAdvisorRole || !!impersonatedUser || isVpmSession;
 
   // Show internal section to any GL internal user
   const showInternal = isGlUser;
