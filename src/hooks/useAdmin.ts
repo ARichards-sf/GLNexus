@@ -136,11 +136,11 @@ async function callAdmin(action: string, payload: Record<string, any> = {}) {
 }
 
 export function useAdminStats() {
-  const { isAdmin } = useIsAdmin();
+  const { isGLInternal } = useIsAdmin();
   return useQuery({
     queryKey: ["admin_stats"],
     queryFn: () => callAdmin("system_stats"),
-    enabled: isAdmin,
+    enabled: isGLInternal,
     refetchInterval: 60_000,
   });
 }
@@ -164,14 +164,14 @@ export interface AdvisorRecord {
 }
 
 export function useAdminAdvisors() {
-  const { isAdmin } = useIsAdmin();
+  const { isGLInternal } = useIsAdmin();
   return useQuery({
     queryKey: ["admin_advisors"],
     queryFn: async () => {
       const data = await callAdmin("list_advisors");
       return data.advisors as AdvisorRecord[];
     },
-    enabled: isAdmin,
+    enabled: isGLInternal,
   });
 }
 
