@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
 import { useProspects } from "@/hooks/useProspects";
+import { useUpcomingEvents } from "@/hooks/useCalendarEvents";
 import { useAiActions, type ParsedToolCall } from "@/hooks/useAiActions";
 import { buildContextSnapshot, streamChat, type AiMsg } from "@/lib/aiChat";
 import ActionCard from "@/components/ActionCard";
@@ -52,6 +53,7 @@ export default function DashboardGoodiePanel() {
   const { data: households = [] } = useHouseholds();
   const { data: recentNotes = [] } = useAllComplianceNotes();
   const { data: prospects = [] } = useProspects();
+  const { data: allEvents = [] } = useUpcomingEvents(100);
   const { executeAction } = useAiActions();
 
   useEffect(() => {
@@ -115,7 +117,7 @@ export default function DashboardGoodiePanel() {
       setMessages((prev) => [...prev, userMsg]);
       setIsLoading(true);
 
-      const context = buildContextSnapshot(households, recentNotes, prospects);
+      const context = buildContextSnapshot(households, recentNotes, prospects, allEvents);
       let assistantSoFar = "";
       const apiMessages = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
 
