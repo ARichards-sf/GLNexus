@@ -318,7 +318,7 @@ export function useInternalUsers() {
 export function useInviteInternalUser() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { email: string; password: string; full_name: string; platform_role: string; department: string }) =>
+    mutationFn: (payload: { email: string; password: string; full_name: string; platform_role: string; department?: string }) =>
       callAdmin("invite_internal_user", payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["internal_users"] });

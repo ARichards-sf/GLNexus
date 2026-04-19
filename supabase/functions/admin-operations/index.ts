@@ -396,9 +396,10 @@ Deno.serve(async (req) => {
       const { email, password, full_name, platform_role, department } = payload;
       if (!email) throw new Error("Email is required");
       if (!password || password.length < 6) throw new Error("Password must be at least 6 characters");
-      if (!["admin", "super_admin"].includes(platform_role)) throw new Error("Invalid platform_role");
+      const VALID_ROLES = ["user", "manager", "admin", "super_admin", "developer"];
+      if (!VALID_ROLES.includes(platform_role)) throw new Error("Invalid platform_role");
       const VALID_DEPARTMENTS = ["vpm", "wam", "marketing", "transitions", "compliance", "accounting", "operations"];
-      if (!VALID_DEPARTMENTS.includes(department)) {
+      if (department && !VALID_DEPARTMENTS.includes(department)) {
         throw new Error(`Invalid department: ${department}`);
       }
 
@@ -419,7 +420,7 @@ Deno.serve(async (req) => {
         is_gl_internal: true,
         is_internal: true,
         platform_role,
-        department,
+        department: department || null,
         firm_id: glFirm.id,
       }).eq("user_id", newUser.id);
       if (profErr) throw profErr;
