@@ -36,14 +36,43 @@ serve(async (req) => {
       });
     }
 
-    const { category, description, advisor_email, advisor_name, household_name, household_aum, account_type, account_institution } = await req.json();
+    const {
+      category,
+      description,
+      advisor_email,
+      advisor_name,
+      household_name,
+      household_aum,
+      account_type,
+      account_institution,
+      is_vpm,
+      vpm_request_type,
+      vpm_timeline,
+      priority,
+      subject,
+    } = await req.json();
 
     // Log minimal, non-PII metadata for routing only
     console.log("Service request received:", {
       category,
       user_id: claimsData.claims.sub,
+      is_vpm: !!is_vpm,
+      vpm_request_type: vpm_request_type ?? null,
+      vpm_timeline: vpm_timeline ?? null,
+      priority: priority ?? null,
       timestamp: new Date().toISOString(),
     });
+
+    if (is_vpm) {
+      // VPM requests route to the GL VPM team queue.
+      // In production: notify VPM staff via email/Slack with subject + timeline + priority.
+      console.log("VPM request routed to GL VPM team:", {
+        subject: subject ?? null,
+        vpm_request_type,
+        vpm_timeline,
+        priority,
+      });
+    }
 
     // Placeholder: In production, send via email API or webhook
     // e.g. fetch("https://hooks.slack.com/...", { method: "POST", body: ... })
