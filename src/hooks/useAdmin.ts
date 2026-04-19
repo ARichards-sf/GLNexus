@@ -153,6 +153,8 @@ export interface AdvisorRecord {
   is_internal?: boolean;
   office_location?: string | null;
   households?: { id: string; name: string; total_aum: number }[];
+  is_prime_partner?: boolean;
+  vpm_enabled?: boolean;
 }
 
 export function useAdminAdvisors() {
