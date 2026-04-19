@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User, AlertTriangle, Trash2, Zap,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User, AlertTriangle,
+  Trash2, Zap, Star, Settings, Plus, Pencil,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -37,7 +47,19 @@ import { formatFullCurrency } from "@/data/sampleData";
 import { useToast } from "@/hooks/use-toast";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import FirmAssignmentCard from "@/components/FirmAssignmentCard";
+
+interface ServiceProfile {
+  is_prime_partner?: boolean;
+  prime_partner_since?: string | null;
+  prime_revenue_share?: number | null;
+  prime_notes?: string | null;
+  vpm_enabled?: boolean;
+  vpm_billing_type?: string | null;
+  vpm_hourly_rate?: number | null;
+  vpm_notes?: string | null;
+}
 
 export default function AdvisorDetail() {
   const { id } = useParams<{ id: string }>();
