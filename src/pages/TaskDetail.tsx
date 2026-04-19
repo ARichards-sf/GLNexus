@@ -243,7 +243,60 @@ export default function TaskDetail() {
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
   };
 
-  return (
+  const handleApprove = async (item: any) => {
+    const { error } = await (supabase as any)
+      .from("jump_review_items")
+      .update({
+        status: "approved",
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", item.id);
+    if (error) {
+      toast.error("Failed to approve item");
+      return;
+    }
+    refetchItems();
+    toast.success("Item approved");
+  };
+
+  const handleDismiss = async (itemId: string) => {
+    const { error } = await (supabase as any)
+      .from("jump_review_items")
+      .update({
+        status: "dismissed",
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", itemId);
+    if (error) {
+      toast.error("Failed to dismiss item");
+      return;
+    }
+    refetchItems();
+  };
+
+  const handleAddItem = async () => {
+    const summary = window.prompt("Describe the item to add:");
+    if (!summary?.trim() || !user) return;
+    const { error } = await (supabase as any)
+      .from("jump_review_items")
+      .insert({
+        task_id: task.id,
+        household_id: task.household_id || null,
+        prospect_id: (task.metadata as any)?.prospect_id || null,
+        advisor_id: user.id,
+        item_type: "note",
+        pillar: null,
+        content: { summary: summary.trim() },
+        source: "manual",
+        status: "pending",
+      });
+    if (error) {
+      toast.error("Failed to add item");
+      return;
+    }
+    refetchItems();
+    toast.success("Item added");
+  };
     <div className="p-6 lg:p-10 max-w-4xl space-y-6">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
         <Link to="/tasks">
