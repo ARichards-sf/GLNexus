@@ -684,9 +684,13 @@ export type Database = {
           id: string
           is_gl_internal: boolean
           is_internal: boolean
+          is_prime_partner: boolean
           last_sign_in: string | null
           office_location: string | null
           platform_role: string | null
+          prime_notes: string | null
+          prime_partner_since: string | null
+          prime_revenue_share: number | null
           status: string
           updated_at: string
           user_id: string
@@ -704,9 +708,13 @@ export type Database = {
           id?: string
           is_gl_internal?: boolean
           is_internal?: boolean
+          is_prime_partner?: boolean
           last_sign_in?: string | null
           office_location?: string | null
           platform_role?: string | null
+          prime_notes?: string | null
+          prime_partner_since?: string | null
+          prime_revenue_share?: number | null
           status?: string
           updated_at?: string
           user_id: string
@@ -724,9 +732,13 @@ export type Database = {
           id?: string
           is_gl_internal?: boolean
           is_internal?: boolean
+          is_prime_partner?: boolean
           last_sign_in?: string | null
           office_location?: string | null
           platform_role?: string | null
+          prime_notes?: string | null
+          prime_partner_since?: string | null
+          prime_revenue_share?: number | null
           status?: string
           updated_at?: string
           user_id?: string
