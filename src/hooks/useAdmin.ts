@@ -164,14 +164,14 @@ export interface AdvisorRecord {
 }
 
 export function useAdminAdvisors() {
-  const { isAdmin } = useIsAdmin();
+  const { isGLInternal } = useIsAdmin();
   return useQuery({
     queryKey: ["admin_advisors"],
     queryFn: async () => {
       const data = await callAdmin("list_advisors");
       return data.advisors as AdvisorRecord[];
     },
-    enabled: isAdmin,
+    enabled: isGLInternal,
   });
 }
 
