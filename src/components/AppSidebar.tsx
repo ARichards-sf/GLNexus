@@ -59,7 +59,7 @@ export default function AppSidebar() {
 
   // ── Expanded role model ──
   const platformRole = glProfile?.platform_role || "user";
-  const department = (glProfile as any)?.department || null;
+  const department = glProfile?.department || null;
   const isGlUser = !!glProfile?.is_gl_internal;
 
   // Feature access flags
