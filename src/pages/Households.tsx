@@ -37,6 +37,7 @@ export default function Households() {
   const [createOpen, setCreateOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [riskFilter, setRiskFilter] = useState("all");
+  const [tierFilter, setTierFilter] = useState("all");
   const [sortField, setSortField] = useState<SortField>("aum");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -70,6 +71,14 @@ export default function Households() {
       result = result.filter((h) => h.risk_tolerance === riskFilter);
     }
 
+    if (tierFilter === "unassigned") {
+      result = result.filter(h => !h.wealth_tier);
+    } else if (tierFilter !== "all") {
+      result = result.filter(h =>
+        h.wealth_tier?.toLowerCase() === tierFilter
+      );
+    }
+
     result.sort((a, b) => {
       let comparison = 0;
       if (sortField === "aum") {
@@ -85,7 +94,7 @@ export default function Households() {
     });
 
     return result;
-  }, [households, search, headMap, statusFilter, riskFilter, sortField, sortDir]);
+  }, [households, search, headMap, statusFilter, riskFilter, tierFilter, sortField, sortDir]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -105,7 +114,7 @@ export default function Households() {
       : <ChevronUp className="w-3.5 h-3.5 text-foreground" />;
   }
 
-  const hasActiveFilters = statusFilter !== "all" || riskFilter !== "all";
+  const hasActiveFilters = statusFilter !== "all" || riskFilter !== "all" || tierFilter !== "all";
   const hasAnyFilter = hasActiveFilters || search.trim();
 
   if (isLoading) {
