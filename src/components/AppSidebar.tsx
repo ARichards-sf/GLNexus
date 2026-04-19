@@ -216,6 +216,52 @@ export default function AppSidebar() {
         </div>
       )}
 
+      {hasVpmAccess && (
+        <div className="px-3 mb-3 space-y-1.5">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            {isVpmSession ? "Serving" : "VPM Advisor"}
+          </div>
+          <Select
+            value={vpmAdvisor?.id ?? "__none__"}
+            onValueChange={(val) => {
+              if (val === "__none__") {
+                stopVpmSession();
+              } else {
+                const advisor = vpmAdvisors.find((a) => a.id === val);
+                if (advisor) startVpmSession(advisor);
+              }
+            }}
+          >
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder="Select advisor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">No advisor selected</SelectItem>
+              {vpmAdvisors.map((advisor) => (
+                <SelectItem key={advisor.id} value={advisor.id}>
+                  <div className="flex items-center gap-1.5">
+                    <span>{advisor.name}</span>
+                    {advisor.isPrime && <span>⭐</span>}
+                    {advisor.firmName && (
+                      <span className="text-muted-foreground text-[11px]">· {advisor.firmName}</span>
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {isVpmSession && (
+            <button
+              onClick={stopVpmSession}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="w-3 h-3" />
+              End session
+            </button>
+          )}
+        </div>
+      )}
+
       <nav className="flex flex-col gap-1 flex-1">
         {/* Dashboard - standalone at top */}
         <RouterNavLink
