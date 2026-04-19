@@ -142,14 +142,16 @@ export default function AppSidebar() {
         <RouterNavLink
           to="/"
           className={cn(
-            "flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
+            "flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+            brandingFirm?.accent_color ? "border-l-[3px]" : "border-l-[3px] border-transparent",
             location.pathname === "/"
               ? "bg-secondary text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+              : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+            location.pathname !== "/" && "border-transparent"
           )}
           style={
-            location.pathname === "/"
-              ? { borderColor: "var(--firm-accent, hsl(var(--primary)))" }
+            location.pathname === "/" && brandingFirm?.accent_color
+              ? { borderColor: brandingFirm.accent_color }
               : undefined
           }
         >
@@ -175,11 +177,12 @@ export default function AppSidebar() {
                 "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
                 isActive
                   ? "bg-secondary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                isActive && !brandingFirm?.accent_color && "border-transparent"
               )}
               style={
-                isActive
-                  ? { borderColor: "var(--firm-accent, hsl(var(--primary)))" }
+                isActive && brandingFirm?.accent_color
+                  ? { borderColor: brandingFirm.accent_color }
                   : undefined
               }
             >
@@ -211,11 +214,12 @@ export default function AppSidebar() {
                 "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
                 isActive
                   ? "bg-secondary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                isActive && !brandingFirm?.accent_color && "border-transparent"
               )}
               style={
-                isActive
-                  ? { borderColor: "var(--firm-accent, hsl(var(--primary)))" }
+                isActive && brandingFirm?.accent_color
+                  ? { borderColor: brandingFirm.accent_color }
                   : undefined
               }
             >
@@ -247,11 +251,12 @@ export default function AppSidebar() {
                 "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
                 isActive
                   ? "bg-secondary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                isActive && !brandingFirm?.accent_color && "border-transparent"
               )}
               style={
-                isActive
-                  ? { borderColor: "var(--firm-accent, hsl(var(--primary)))" }
+                isActive && brandingFirm?.accent_color
+                  ? { borderColor: brandingFirm.accent_color }
                   : undefined
               }
             >
@@ -278,11 +283,12 @@ export default function AppSidebar() {
                 "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
                 isActive
                   ? "bg-secondary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                isActive && !brandingFirm?.accent_color && "border-transparent"
               )}
               style={
-                isActive
-                  ? { borderColor: "var(--firm-accent, hsl(var(--primary)))" }
+                isActive && brandingFirm?.accent_color
+                  ? { borderColor: brandingFirm.accent_color }
                   : undefined
               }
             >
@@ -311,11 +317,12 @@ export default function AppSidebar() {
                     "flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
                     isActive
                       ? "bg-secondary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                    isActive && !brandingFirm?.accent_color && "border-transparent"
                   )}
                   style={
-                    isActive
-                      ? { borderColor: "var(--firm-accent, hsl(var(--primary)))" }
+                    isActive && brandingFirm?.accent_color
+                      ? { borderColor: brandingFirm.accent_color }
                       : undefined
                   }
                 >
@@ -356,11 +363,12 @@ export default function AppSidebar() {
                     "flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
                     isActive
                       ? "bg-secondary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                    isActive && !brandingFirm?.accent_color && "border-transparent"
                   )}
                   style={
-                    isActive
-                      ? { borderColor: "var(--firm-accent, hsl(var(--primary)))" }
+                    isActive && brandingFirm?.accent_color
+                      ? { borderColor: brandingFirm.accent_color }
                       : undefined
                   }
                 >
@@ -380,11 +388,12 @@ export default function AppSidebar() {
               "flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
               location.pathname === "/settings"
                 ? "bg-secondary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+              location.pathname === "/settings" && !brandingFirm?.accent_color && "border-transparent"
             )}
             style={
-              location.pathname === "/settings"
-                ? { borderColor: "var(--firm-accent, hsl(var(--primary)))" }
+              location.pathname === "/settings" && brandingFirm?.accent_color
+                ? { borderColor: brandingFirm.accent_color }
                 : undefined
             }
           >
