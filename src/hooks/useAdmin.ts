@@ -186,11 +186,19 @@ export function useToggleAdvisorStatus() {
 export function useUpdateAdvisorProfile() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { user_id: string; full_name?: string; office_location?: string }) =>
-      callAdmin("update_advisor_profile", payload),
+    mutationFn: (payload: {
+      user_id: string;
+      full_name?: string;
+      office_location?: string;
+      vpm_enabled?: boolean;
+      vpm_billing_type?: string | null;
+      vpm_hourly_rate?: number | null;
+      vpm_notes?: string | null;
+    }) => callAdmin("update_advisor_profile", payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin_advisors"] });
       queryClient.invalidateQueries({ queryKey: ["admin_advisor_detail"] });
+      queryClient.invalidateQueries({ queryKey: ["admin_stats"] });
     },
   });
 }

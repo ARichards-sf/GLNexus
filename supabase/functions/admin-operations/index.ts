@@ -295,11 +295,23 @@ Deno.serve(async (req) => {
 
     // ── UPDATE ADVISOR PROFILE ──
     if (action === "update_advisor_profile") {
-      const { user_id, full_name, office_location } = payload;
+      const {
+        user_id,
+        full_name,
+        office_location,
+        vpm_enabled,
+        vpm_billing_type,
+        vpm_hourly_rate,
+        vpm_notes,
+      } = payload;
       if (!user_id) throw new Error("user_id required");
       const updates: Record<string, any> = {};
       if (full_name !== undefined) updates.full_name = full_name;
       if (office_location !== undefined) updates.office_location = office_location;
+      if (vpm_enabled !== undefined) updates.vpm_enabled = vpm_enabled;
+      if (vpm_billing_type !== undefined) updates.vpm_billing_type = vpm_billing_type;
+      if (vpm_hourly_rate !== undefined) updates.vpm_hourly_rate = vpm_hourly_rate;
+      if (vpm_notes !== undefined) updates.vpm_notes = vpm_notes;
       const { error } = await supabaseAdmin.from("profiles").update(updates).eq("user_id", user_id);
       if (error) throw error;
       if (full_name !== undefined) {

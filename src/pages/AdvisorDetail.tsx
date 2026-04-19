@@ -24,8 +24,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User, AlertTriangle, Trash2,
+  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User, AlertTriangle, Trash2, Zap,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import {
   useAdvisorDetail, useUpdateAdvisorProfile, useResetAdvisorPassword,
   useUpdateAdvisorRole, useToggleInternal, useToggleAdvisorStatus,
@@ -60,6 +61,44 @@ export default function AdvisorDetail() {
   const deleteHouseholdAdmin = useDeleteHouseholdAdmin();
   const { data: glProfile } = useGlProfile();
   const showDangerZone = isAdmin && glProfile?.is_gl_internal === true;
+  const isGlInternal = glProfile?.is_gl_internal === true;
+
+  // VPM state
+  const advisorVpm = advisor as any;
+  const [vpmEditing, setVpmEditing] = useState(false);
+  const [vpmEnabled, setVpmEnabled] = useState<boolean>(false);
+  const [vpmBillingType, setVpmBillingType] = useState<string>("none");
+  const [vpmHourlyRate, setVpmHourlyRate] = useState<string>("");
+  const [vpmNotes, setVpmNotes] = useState<string>("");
+
+  const openVpmEdit = () => {
+    setVpmEnabled(!!advisorVpm?.vpm_enabled);
+    setVpmBillingType(advisorVpm?.vpm_billing_type || "none");
+    setVpmHourlyRate(
+      advisorVpm?.vpm_hourly_rate != null ? String(advisorVpm.vpm_hourly_rate) : ""
+    );
+    setVpmNotes(advisorVpm?.vpm_notes || "");
+    setVpmEditing(true);
+  };
+
+  const handleSaveVpm = async () => {
+    try {
+      await updateProfile.mutateAsync({
+        user_id: advisor!.user_id,
+        vpm_enabled: vpmEnabled,
+        vpm_billing_type: vpmEnabled ? vpmBillingType : "none",
+        vpm_hourly_rate:
+          vpmEnabled && vpmBillingType === "hourly" && vpmHourlyRate
+            ? Number(vpmHourlyRate)
+            : null,
+        vpm_notes: vpmNotes || null,
+      });
+      toast({ title: "VPM settings updated" });
+      setVpmEditing(false);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
 
   // Danger zone state
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
@@ -395,6 +434,117 @@ export default function AdvisorDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* VPM Service — GL Internal only */}
+      {isGlInternal && advisor && (
+        <Card className="border-border shadow-none mt-8">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-amber-500" />
+              <CardTitle className="text-base">VPM Service</CardTitle>
+            </div>
+            {!vpmEditing && (
+              <Button variant="outline" size="sm" onClick={openVpmEdit}>
+                Edit VPM Settings
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!vpmEditing ? (
+              <>
+                {advisorVpm?.vpm_enabled ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">VPM Active</p>
+                      <p className="text-xs text-muted-foreground">
+                        {advisorVpm.vpm_billing_type === "prime_partner"
+                          ? "⭐ Prime Partner"
+                          : advisorVpm.vpm_billing_type === "hourly"
+                          ? `Hourly${
+                              advisorVpm.vpm_hourly_rate
+                                ? ` · $${advisorVpm.vpm_hourly_rate}/hr`
+                                : ""
+                            }`
+                          : "Custom"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
+                    <p className="text-sm font-medium text-muted-foreground">VPM Not Active</p>
+                  </div>
+                )}
+                {advisorVpm?.vpm_notes && (
+                  <p className="text-xs italic text-muted-foreground">
+                    {advisorVpm.vpm_notes}
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="space-y-4 max-w-md">
+                <div className="flex items-center justify-between">
+                  <Label>VPM Service Active</Label>
+                  <Switch checked={vpmEnabled} onCheckedChange={setVpmEnabled} />
+                </div>
+
+                {vpmEnabled && (
+                  <div className="space-y-2">
+                    <Label>Billing Type</Label>
+                    <Select value={vpmBillingType} onValueChange={setVpmBillingType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hourly">Hourly Billing</SelectItem>
+                        <SelectItem value="prime_partner">Prime Partner (Included)</SelectItem>
+                        <SelectItem value="none">Custom / TBD</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {vpmEnabled && vpmBillingType === "hourly" && (
+                  <div className="space-y-2">
+                    <Label>Hourly Rate</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">$</span>
+                      <Input
+                        type="number"
+                        value={vpmHourlyRate}
+                        onChange={(e) => setVpmHourlyRate(e.target.value)}
+                        placeholder="150"
+                        className="max-w-[140px]"
+                      />
+                      <span className="text-sm text-muted-foreground">/ hour</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Internal Notes</Label>
+                  <Textarea
+                    rows={3}
+                    value={vpmNotes}
+                    onChange={(e) => setVpmNotes(e.target.value)}
+                    placeholder="Billing arrangement details, special terms..."
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={handleSaveVpm} disabled={updateProfile.isPending}>
+                    {updateProfile.isPending ? "Saving..." : "Save VPM Settings"}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setVpmEditing(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* GL Internal Admin — Danger Zone */}
       {showDangerZone && (
