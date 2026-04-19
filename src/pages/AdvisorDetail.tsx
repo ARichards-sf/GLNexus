@@ -24,8 +24,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User, AlertTriangle, Trash2,
+  ArrowLeft, DollarSign, Home, Clock, ShieldCheck, Lock, User, AlertTriangle, Trash2, Zap,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import {
   useAdvisorDetail, useUpdateAdvisorProfile, useResetAdvisorPassword,
   useUpdateAdvisorRole, useToggleInternal, useToggleAdvisorStatus,
