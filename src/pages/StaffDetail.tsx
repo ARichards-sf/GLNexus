@@ -242,18 +242,35 @@ export default function StaffDetail() {
                 </div>
                 <div className="space-y-2">
                   <Label>Platform Role</Label>
-                  <Select value={formRole} onValueChange={setFormRole}>
-                    <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
-                    <SelectContent>
-                      {availableRoles.map((r) => (
-                        <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {canEditRole ? (
+                    <Select value={formRole} onValueChange={setFormRole}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {assignableRoles.map((role) => (
+                          <SelectItem key={role} value={role}>{ROLE_LABELS[role]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-2 py-2">
+                      <Badge variant="secondary">
+                        {ROLE_LABELS[member.platform_role || "user"]}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground">
+                        You don't have permission to change this role
+                      </p>
+                    </div>
+                  )}
                   {formRole === "developer" && (
                     <p className="text-xs text-destructive mt-1 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
-                      Developer role grants full data deletion access. Assign with caution.
+                      Developer role grants full data deletion access.
+                    </p>
+                  )}
+                  {formRole === "super_admin" && (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      Super Admin has unrestricted access to all platform features.
                     </p>
                   )}
                 </div>
