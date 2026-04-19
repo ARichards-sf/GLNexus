@@ -49,13 +49,6 @@ export default function VpmRequestDialog({ open, onOpenChange, defaultHouseholdI
   const queryClient = useQueryClient();
   const { data: households = [] } = useHouseholds();
 
-  useEffect(() => {
-    if (open && defaultHouseholdId) {
-      const match = households.find((h) => h.id === defaultHouseholdId);
-      if (match) setSelectedHousehold(match);
-    }
-  }, [open, defaultHouseholdId, households]);
-
   const [requestType, setRequestType] = useState("");
   const [subject, setSubject] = useState("");
   const [priority, setPriority] = useState<"normal" | "urgent">("normal");
@@ -65,6 +58,13 @@ export default function VpmRequestDialog({ open, onOpenChange, defaultHouseholdI
   const [selectedHousehold, setSelectedHousehold] = useState<HouseholdRow | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open && defaultHouseholdId) {
+      const match = households.find((h) => h.id === defaultHouseholdId);
+      if (match) setSelectedHousehold(match);
+    }
+  }, [open, defaultHouseholdId, households]);
 
   const filteredHouseholds = useMemo(() => {
     if (!householdSearch.trim()) return [];
