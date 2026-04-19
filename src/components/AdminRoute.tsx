@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useIsAdmin } from "@/hooks/useAdmin";
 
 export default function AdminRoute({ children }: { children: ReactNode }) {
-  const { isAdmin, isLoading } = useIsAdmin();
+  const { canAccessAdmin, isLoading } = useIsAdmin();
 
   if (isLoading) {
     return (
@@ -13,7 +13,7 @@ export default function AdminRoute({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!isAdmin) {
+  if (!canAccessAdmin) {
     return <Navigate to="/" replace />;
   }
 
