@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CalendarCheck, AlertTriangle, CalendarPlus, MoreHorizontal, Archive,
@@ -115,22 +115,26 @@ function AnnualReviewWidget({
   annualReviewDate,
   lastReviewDate,
   onSchedule,
+  hasBookedMeeting,
 }: {
   annualReviewDate: string | null;
   lastReviewDate: string | null;
   onSchedule: () => void;
+  hasBookedMeeting: boolean;
 }) {
   const fmt = (d: string) =>
     new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-  const isScheduled = annualReviewDate && new Date(annualReviewDate) > new Date();
+  const isDue = !!annualReviewDate && new Date(annualReviewDate) > new Date();
+  const isScheduled = isDue && hasBookedMeeting;
+  const isDueNotBooked = isDue && !hasBookedMeeting;
   const isOverdue =
     lastReviewDate && (Date.now() - new Date(lastReviewDate).getTime()) / (1000 * 60 * 60 * 24 * 365) > 1;
   const isNotSet = !annualReviewDate && !lastReviewDate;
-  const isClickable = !isScheduled && (isOverdue || isNotSet || !annualReviewDate);
+  const isClickable = !isScheduled && (isOverdue || isNotSet || isDueNotBooked || !annualReviewDate);
 
   const icon =
-    isNotSet || isOverdue ? (
+    isNotSet || isOverdue || isDueNotBooked ? (
       <CalendarPlus className="w-4 h-4 text-muted-foreground" />
     ) : (
       <Target className="w-4 h-4 text-muted-foreground" />
@@ -156,6 +160,16 @@ function AnnualReviewWidget({
             {lastReviewDate && (
               <p className="text-xs text-muted-foreground mt-1">Last review: {fmt(lastReviewDate)}</p>
             )}
+          </div>
+        ) : isDueNotBooked ? (
+          <div>
+            <p className="text-2xl font-semibold tracking-tight text-amber">
+              Due: {fmt(annualReviewDate!)}
+            </p>
+            {lastReviewDate && (
+              <p className="text-xs text-muted-foreground mt-1">Last review: {fmt(lastReviewDate)}</p>
+            )}
+            <p className="text-xs text-primary mt-1.5 font-medium">Click to schedule →</p>
           </div>
         ) : isOverdue || isNotSet ? (
           <div>
@@ -212,6 +226,22 @@ export default function HouseholdProfile() {
   const archiveHousehold = useArchiveHousehold();
   const archiveContact = useArchiveContact();
   const deleteAccount = useDeleteAccount();
+
+  const { data: householdEvents = [] } = useQuery({
+    queryKey: ["household_events", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("calendar_events")
+        .select("*")
+        .eq("household_id", id!)
+        .eq("event_type", "Annual Review")
+        .eq("status", "scheduled")
+        .gt("start_time", new Date().toISOString());
+      return data || [];
+    },
+    enabled: !!id,
+  });
+  const hasBookedAnnualReview = householdEvents.length > 0;
 
   // Firm branding accent
   const { currentFirm } = useFirmContext();
@@ -482,6 +512,7 @@ export default function HouseholdProfile() {
           annualReviewDate={household.annual_review_date}
           lastReviewDate={household.last_review_date}
           onSchedule={() => setScheduleOpen(true)}
+          hasBookedMeeting={hasBookedAnnualReview}
         />
       </div>
 
