@@ -92,7 +92,13 @@ export default function Dashboard() {
   }, [myRequests]);
 
   const pendingTasks = useMemo(() => {
-    return myTasks.filter(t => t.status === "todo").slice(0, 3);
+    return myTasks
+      .filter(t => t.status === "todo")
+      .slice(0, 3);
+  }, [myTasks]);
+
+  const allPendingTasks = useMemo(() => {
+    return myTasks.filter(t => t.status !== "done");
   }, [myTasks]);
 
   const imminentMeeting = useMemo(() => {
@@ -201,7 +207,7 @@ export default function Dashboard() {
         households={households}
         recentNotes={recentNotes as any}
         upcomingEvents={upcomingEvents as any}
-        pendingTasks={myTasks as any}
+        pendingTasks={allPendingTasks as any}
         firstName={firstName}
         userId={user?.id || "anonymous"}
         accentColor={firmAccentColor}
