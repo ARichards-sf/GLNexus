@@ -11,6 +11,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   DollarSign, Users, Activity, Search, UserPlus, Eye, ShieldCheck, Play, Clock, CheckCircle2, XCircle,
 } from "lucide-react";
 import { useAdminStats, useAdminAdvisors, useToggleAdvisorStatus, useAutomationLogs, useRunSnapshots, type AdvisorRecord } from "@/hooks/useAdmin";
@@ -32,6 +35,7 @@ export default function AdminAdvisors() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [serviceFilter, setServiceFilter] = useState<string>("all");
 
   // Fetch firm memberships when scoping to a firm
   const { data: firmAdvisorIds } = useQuery({
@@ -53,6 +57,14 @@ export default function AdminAdvisors() {
     if (selectedFirmId && firmAdvisorIds) {
       list = list.filter((a) => firmAdvisorIds.has(a.user_id));
     }
+    if (serviceFilter !== "all") {
+      list = list.filter((a: any) => {
+        if (serviceFilter === "prime") return !!a.is_prime_partner;
+        if (serviceFilter === "vpm") return !!a.vpm_enabled;
+        if (serviceFilter === "no_services") return !a.is_prime_partner && !a.vpm_enabled;
+        return true;
+      });
+    }
     if (!search.trim()) return list;
     const q = search.toLowerCase();
     return list.filter(
@@ -60,7 +72,7 @@ export default function AdminAdvisors() {
         (a.full_name || "").toLowerCase().includes(q) ||
         (a.email || "").toLowerCase().includes(q)
     );
-  }, [advisors, search, selectedFirmId, firmAdvisorIds]);
+  }, [advisors, search, selectedFirmId, firmAdvisorIds, serviceFilter]);
 
   const handleToggle = async (advisor: AdvisorRecord) => {
     const newStatus = advisor.status === "active" ? "inactive" : "active";
@@ -136,15 +148,28 @@ export default function AdminAdvisors() {
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-5">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search advisors by name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 max-w-sm"
-        />
+      {/* Search + Filters */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search advisors by name or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={serviceFilter} onValueChange={setServiceFilter}>
+          <SelectTrigger className="w-44 h-10">
+            <SelectValue placeholder="All advisors" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Advisors</SelectItem>
+            <SelectItem value="prime">⭐ Prime Partners</SelectItem>
+            <SelectItem value="vpm">VPM Enrolled</SelectItem>
+            <SelectItem value="no_services">No GL Services</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Advisor Table */}
@@ -175,11 +200,21 @@ export default function AdminAdvisors() {
                         .slice(0, 2)
                         .toUpperCase()}
                     </div>
-                    <div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-medium text-foreground">{advisor.full_name || "Unnamed"}</span>
                       {advisor.roles.includes("admin") && (
-                        <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0 bg-amber-muted text-amber font-medium">
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-amber-muted text-amber font-medium">
                           <ShieldCheck className="w-3 h-3 mr-0.5" /> Admin
+                        </Badge>
+                      )}
+                      {(advisor as any).is_prime_partner && (
+                        <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 text-[10px] px-1.5 py-0">
+                          ⭐ Prime
+                        </Badge>
+                      )}
+                      {(advisor as any).vpm_enabled && !(advisor as any).is_prime_partner && (
+                        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 text-[10px] px-1.5 py-0">
+                          VPM
                         </Badge>
                       )}
                     </div>
