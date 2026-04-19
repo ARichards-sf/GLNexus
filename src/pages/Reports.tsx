@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   BarChart3,
   AlertCircle,
@@ -11,6 +12,8 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowUpDown,
+  Gift,
+  Trophy,
 } from "lucide-react";
 import {
   BarChart,
@@ -39,8 +42,20 @@ import {
 } from "@/components/ui/table";
 import { useHouseholds, useAllComplianceNotes, type HouseholdRow } from "@/hooks/useHouseholds";
 import { useTasks } from "@/hooks/useTasks";
+import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { supabase } from "@/integrations/supabase/client";
+import { PIPELINE_STAGES } from "@/hooks/useProspects";
 import ScheduleEventDialog from "@/components/ScheduleEventDialog";
 import { cn } from "@/lib/utils";
+
+const formatCurrency = (n: number): string => {
+  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`;
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
+};
+
 
 // ---------- helpers ----------
 const formatAUM = (n: number): string => {
@@ -673,6 +688,349 @@ function ActivityTasksTab() {
   );
 }
 
+// ---------- Tab 4: Referrals ----------
+interface LeaderboardEntry {
+  householdId: string;
+  householdName: string;
+  totalReferrals: number;
+  converted: number;
+  pending: number;
+  lost: number;
+  estimatedAum: number;
+  prospects: any[];
+}
+
+function ReferralsTab() {
+  const { user } = useAuth();
+  const { targetAdvisorId } = useImpersonation();
+  const advisorId = user ? targetAdvisorId(user.id) : undefined;
+
+  const { data: households = [] } = useHouseholds();
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const { data: allProspects = [] } = useQuery({
+    queryKey: ["all_prospects_referrals", advisorId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("prospects")
+        .select("*")
+        .eq("advisor_id", advisorId!)
+        .not("referred_by_household_id", "is", null);
+      return data || [];
+    },
+    enabled: !!advisorId,
+  });
+
+  const householdMap = useMemo(() => {
+    const m = new Map<string, HouseholdRow>();
+    for (const h of households) m.set(h.id, h);
+    return m;
+  }, [households]);
+
+  const leaderboard = useMemo<LeaderboardEntry[]>(() => {
+    const map = new Map<string, LeaderboardEntry>();
+
+    for (const p of allProspects) {
+      const hId = p.referred_by_household_id!;
+      const household = householdMap.get(hId);
+      const fallbackName = p.referred_by || household?.name || "Unknown";
+
+      if (!map.has(hId)) {
+        map.set(hId, {
+          householdId: hId,
+          householdName: household?.name || fallbackName,
+          totalReferrals: 0,
+          converted: 0,
+          pending: 0,
+          lost: 0,
+          estimatedAum: 0,
+          prospects: [],
+        });
+      }
+
+      const entry = map.get(hId)!;
+      entry.totalReferrals++;
+      entry.estimatedAum += Number(p.estimated_aum || 0);
+      entry.prospects.push(p);
+
+      if (p.pipeline_stage === "converted") entry.converted++;
+      else if (p.pipeline_stage === "lost") entry.lost++;
+      else entry.pending++;
+    }
+
+    return Array.from(map.values()).sort(
+      (a, b) => b.totalReferrals - a.totalReferrals
+    );
+  }, [allProspects, householdMap]);
+
+  const totalReferrals = allProspects.length;
+  const totalConverted = allProspects.filter(
+    (p) => p.pipeline_stage === "converted"
+  ).length;
+  const conversionRate =
+    totalReferrals > 0
+      ? Math.round((totalConverted / totalReferrals) * 100)
+      : 0;
+  const inPipelineCount = allProspects.filter(
+    (p) => p.pipeline_stage !== "converted" && p.pipeline_stage !== "lost"
+  ).length;
+  const totalPipelineValue = allProspects
+    .filter(
+      (p) => p.pipeline_stage !== "converted" && p.pipeline_stage !== "lost"
+    )
+    .reduce((sum, p) => sum + Number(p.estimated_aum || 0), 0);
+
+  const toggleRow = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const stageMeta = (key: string) =>
+    PIPELINE_STAGES.find((s) => s.key === key) || {
+      label: key,
+      color: "bg-muted text-muted-foreground",
+    };
+
+  const rankBadge = (idx: number) => {
+    if (idx === 0) return "🥇";
+    if (idx === 1) return "🥈";
+    if (idx === 2) return "🥉";
+    return `#${idx + 1}`;
+  };
+
+  const conversionColor = (rate: number) => {
+    if (rate >= 50) return "text-emerald-600 font-medium";
+    if (rate >= 25) return "text-amber-600 font-medium";
+    return "text-muted-foreground";
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Total Referrals"
+          value={totalReferrals}
+          sub="From existing clients"
+          icon={Gift}
+        />
+        <StatCard
+          label="Converted"
+          value={totalConverted}
+          sub={`${conversionRate}% conversion rate`}
+          icon={CheckCircle2}
+          valueClass="text-emerald-600"
+        />
+        <StatCard
+          label="In Pipeline"
+          value={inPipelineCount}
+          sub={`${formatCurrency(totalPipelineValue)} estimated`}
+          icon={TrendingUp}
+          valueClass="text-blue-600"
+        />
+        <StatCard
+          label="Top Referrer"
+          value={
+            <span className="text-lg truncate block">
+              {leaderboard[0]?.householdName || "—"}
+            </span>
+          }
+          sub={`${leaderboard[0]?.totalReferrals || 0} referrals sent`}
+          icon={Trophy}
+          valueClass="text-amber-600"
+        />
+      </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Referral Leaderboard</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Clients ranked by referrals sent
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          {leaderboard.length === 0 ? (
+            <div className="p-12 text-center">
+              <Gift className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground">
+                No referrals tracked yet
+              </p>
+              <p className="text-xs text-muted-foreground mt-1.5 max-w-md mx-auto">
+                When you add a prospect with source "Referral" and link them to
+                an existing client, they'll appear here
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Rank</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead className="text-center">Referrals</TableHead>
+                  <TableHead className="text-center">Converted</TableHead>
+                  <TableHead className="text-center">In Pipeline</TableHead>
+                  <TableHead>Est. Value</TableHead>
+                  <TableHead>Conversion</TableHead>
+                  <TableHead className="w-10"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {leaderboard.map((entry, idx) => {
+                  const household = householdMap.get(entry.householdId);
+                  const isOpen = expanded.has(entry.householdId);
+                  const pipelineValue = entry.prospects
+                    .filter(
+                      (p) =>
+                        p.pipeline_stage !== "converted" &&
+                        p.pipeline_stage !== "lost"
+                    )
+                    .reduce((s, p) => s + Number(p.estimated_aum || 0), 0);
+                  const rate =
+                    entry.totalReferrals > 0
+                      ? Math.round(
+                          (entry.converted / entry.totalReferrals) * 100
+                        )
+                      : 0;
+
+                  return (
+                    <>
+                      <TableRow
+                        key={entry.householdId}
+                        className="cursor-pointer hover:bg-secondary/40"
+                        onClick={() => toggleRow(entry.householdId)}
+                      >
+                        <TableCell className="font-medium text-base">
+                          {rankBadge(idx)}
+                        </TableCell>
+                        <TableCell>
+                          <Link
+                            to={`/household/${entry.householdId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-medium text-foreground hover:underline inline-flex items-center gap-1.5"
+                          >
+                            {entry.householdName}
+                            {(household as any)?.is_prime_partner && (
+                              <span className="text-amber-500">⭐</span>
+                            )}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="font-medium">
+                            {entry.totalReferrals}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span
+                            className={cn(
+                              "font-medium",
+                              entry.converted > 0
+                                ? "text-emerald-600"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {entry.converted}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span
+                            className={cn(
+                              "font-medium",
+                              entry.pending > 0
+                                ? "text-blue-600"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {entry.pending}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatCurrency(pipelineValue)}
+                        </TableCell>
+                        <TableCell>
+                          <span className={conversionColor(rate)}>{rate}%</span>
+                        </TableCell>
+                        <TableCell>
+                          {isOpen ? (
+                            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                      {isOpen && (
+                        <TableRow
+                          key={`${entry.householdId}-detail`}
+                          className="bg-secondary/20 hover:bg-secondary/20"
+                        >
+                          <TableCell colSpan={8} className="p-0">
+                            <div className="divide-y divide-border">
+                              {entry.prospects.map((p) => {
+                                const meta = stageMeta(p.pipeline_stage);
+                                return (
+                                  <div
+                                    key={p.id}
+                                    className="flex items-center gap-4 px-6 py-3"
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-sm text-foreground">
+                                        {p.first_name} {p.last_name}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground mt-0.5">
+                                        Added{" "}
+                                        {fmtFullDate(
+                                          (p.created_at || "").slice(0, 10)
+                                        )}
+                                      </p>
+                                    </div>
+                                    <Badge
+                                      variant="secondary"
+                                      className={cn(
+                                        "font-normal",
+                                        (meta as any).color
+                                      )}
+                                    >
+                                      {meta.label}
+                                    </Badge>
+                                    <div className="text-sm font-medium text-foreground w-24 text-right">
+                                      {p.estimated_aum
+                                        ? formatCurrency(
+                                            Number(p.estimated_aum)
+                                          )
+                                        : "—"}
+                                    </div>
+                                    {p.pipeline_stage === "converted" &&
+                                    p.converted_household_id ? (
+                                      <Link
+                                        to={`/household/${p.converted_household_id}`}
+                                        className="text-xs font-medium text-primary hover:underline whitespace-nowrap"
+                                      >
+                                        → View Client
+                                      </Link>
+                                    ) : (
+                                      <span className="w-[80px]" />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ---------- Page ----------
 export default function Reports() {
   return (
@@ -692,6 +1050,7 @@ export default function Reports() {
           <TabsTrigger value="book">Book of Business</TabsTrigger>
           <TabsTrigger value="reviews">Review Status</TabsTrigger>
           <TabsTrigger value="activity">Activity & Tasks</TabsTrigger>
+          <TabsTrigger value="referrals">Referrals</TabsTrigger>
         </TabsList>
 
         <TabsContent value="book" className="mt-6">
@@ -702,6 +1061,9 @@ export default function Reports() {
         </TabsContent>
         <TabsContent value="activity" className="mt-6">
           <ActivityTasksTab />
+        </TabsContent>
+        <TabsContent value="referrals" className="mt-6">
+          <ReferralsTab />
         </TabsContent>
       </Tabs>
     </div>
