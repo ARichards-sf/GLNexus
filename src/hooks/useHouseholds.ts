@@ -17,6 +17,12 @@ export interface HouseholdRow {
   annual_review_date: string | null;
   last_review_date: string | null;
   advisor_id: string;
+  annual_income: number | null;
+  tier_score: number | null;
+  tier_last_assessed: string | null;
+  tier_pending_review: string | null;
+  tier_pending_score: number | null;
+  tier_pending_reason: string | null;
 }
 
 export interface MemberRow {
