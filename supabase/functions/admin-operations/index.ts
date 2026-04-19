@@ -303,6 +303,10 @@ Deno.serve(async (req) => {
         vpm_billing_type,
         vpm_hourly_rate,
         vpm_notes,
+        is_prime_partner,
+        prime_partner_since,
+        prime_revenue_share,
+        prime_notes,
       } = payload;
       if (!user_id) throw new Error("user_id required");
       const updates: Record<string, any> = {};
@@ -312,12 +316,31 @@ Deno.serve(async (req) => {
       if (vpm_billing_type !== undefined) updates.vpm_billing_type = vpm_billing_type;
       if (vpm_hourly_rate !== undefined) updates.vpm_hourly_rate = vpm_hourly_rate;
       if (vpm_notes !== undefined) updates.vpm_notes = vpm_notes;
+      if (is_prime_partner !== undefined) updates.is_prime_partner = is_prime_partner;
+      if (prime_partner_since !== undefined) updates.prime_partner_since = prime_partner_since;
+      if (prime_revenue_share !== undefined) updates.prime_revenue_share = prime_revenue_share;
+      if (prime_notes !== undefined) updates.prime_notes = prime_notes;
       const { error } = await supabaseAdmin.from("profiles").update(updates).eq("user_id", user_id);
       if (error) throw error;
       if (full_name !== undefined) {
         await supabaseAdmin.auth.admin.updateUserById(user_id, { user_metadata: { full_name } });
       }
       return json({ success: true });
+    }
+
+    // ── GET ADVISOR SERVICE PROFILE (Prime + VPM fields) ──
+    if (action === "get_advisor_service_profile") {
+      const { user_id } = payload;
+      if (!user_id) throw new Error("user_id required");
+      const { data, error } = await supabaseAdmin
+        .from("profiles")
+        .select(
+          "is_prime_partner, prime_partner_since, prime_revenue_share, prime_notes, vpm_enabled, vpm_billing_type, vpm_hourly_rate, vpm_notes"
+        )
+        .eq("user_id", user_id)
+        .maybeSingle();
+      if (error) throw error;
+      return json(data);
     }
 
     // ── RESET PASSWORD ──
