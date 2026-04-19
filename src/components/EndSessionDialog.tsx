@@ -290,7 +290,7 @@ Write a professional 3-4 sentence first-person compliance note. Reference the pi
             </div>
 
             {/* Note type pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {NOTE_TYPES.map((t) => (
                 <button
                   key={t}
