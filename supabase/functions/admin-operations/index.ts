@@ -469,7 +469,7 @@ Deno.serve(async (req) => {
       if (tErr) throw tErr;
       if (!target?.is_gl_internal) throw new Error("Target user is not GL internal");
 
-      if (platform_role !== undefined && platform_role !== null && !["admin", "super_admin"].includes(platform_role)) {
+      if (platform_role !== undefined && platform_role !== null && !["user", "manager", "admin", "super_admin", "developer"].includes(platform_role)) {
         throw new Error("Invalid platform_role");
       }
       if (department !== undefined && department !== null &&
