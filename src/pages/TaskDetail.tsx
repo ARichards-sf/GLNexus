@@ -356,6 +356,79 @@ export default function TaskDetail() {
         </div>
       </div>
 
+      {/* Jump Review */}
+      {isJumpReview && (
+        <Card className="border-border shadow-none">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-amber-500" /> Jump Review
+                  {pendingCount > 0 && (
+                    <Badge variant="secondary" className="ml-1 text-xs">
+                      {pendingCount} pending
+                    </Badge>
+                  )}
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  Review and approve items extracted from your meeting. Approved
+                  items will be saved to the CRM.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddItem}
+                className="shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Item
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {reviewItems.length === 0 && (
+              <div className="text-center py-8 border border-dashed border-border rounded-md">
+                <Zap className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm font-medium text-foreground">
+                  No items to review yet
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Items will appear here when Jump is connected, or you can add them manually
+                </p>
+              </div>
+            )}
+
+            {Object.entries(grouped).map(([pillar, items]) => {
+              if (items.length === 0) return null;
+              return (
+                <div key={pillar} className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide capitalize">
+                    {pillar === "other" ? "General" : pillar}
+                  </div>
+                  <div className="space-y-2">
+                    {items.map((item: any) => (
+                      <ReviewItemRow
+                        key={item.id}
+                        item={item}
+                        onApprove={() => handleApprove(item)}
+                        onDismiss={() => handleDismiss(item.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {pendingCount === 0 && reviewItems.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 pt-2">
+                <CheckCircle2 className="w-4 h-4" />
+                All items reviewed
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Section 1 — Task Details */}
       <Card className="border-border shadow-none">
         <CardHeader className="pb-3">
