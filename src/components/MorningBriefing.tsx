@@ -108,6 +108,18 @@ function buildPrompt(period: BriefingPeriod, d: PromptData): string {
       ? "None"
       : arr.map((t) => `"${t.title}"${t.households?.name ? ` (${t.households.name})` : ""}`).join(", ");
 
+  const pipelineText = (active: any[], hot: any[], value: number) => {
+    if (active.length === 0) return "No active prospects";
+    const valueStr = value > 0 ? ` · $${(value / 1000000).toFixed(1)}M estimated` : "";
+    const hotStr =
+      hot.length > 0
+        ? `. Action needed: ${hot
+            .map((p: any) => `${p.first_name} ${p.last_name} (${p.pipeline_stage.replace(/_/g, " ")})`)
+            .join(", ")}`
+        : "";
+    return `${active.length} active prospects${valueStr}${hotStr}`;
+  };
+
   if (period === "morning") {
     return `Today is ${d.todayFormatted}.
 
