@@ -17,6 +17,7 @@ import { useHouseholds } from "@/hooks/useHouseholds";
 import { useAllContacts } from "@/hooks/useContacts";
 import { formatCurrency } from "@/data/sampleData";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
+import TierBadge from "@/components/TierBadge";
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -36,6 +37,7 @@ export default function Households() {
   const [createOpen, setCreateOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [riskFilter, setRiskFilter] = useState("all");
+  const [tierFilter, setTierFilter] = useState("all");
   const [sortField, setSortField] = useState<SortField>("aum");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -69,6 +71,14 @@ export default function Households() {
       result = result.filter((h) => h.risk_tolerance === riskFilter);
     }
 
+    if (tierFilter === "unassigned") {
+      result = result.filter(h => !h.wealth_tier);
+    } else if (tierFilter !== "all") {
+      result = result.filter(h =>
+        h.wealth_tier?.toLowerCase() === tierFilter
+      );
+    }
+
     result.sort((a, b) => {
       let comparison = 0;
       if (sortField === "aum") {
@@ -84,7 +94,7 @@ export default function Households() {
     });
 
     return result;
-  }, [households, search, headMap, statusFilter, riskFilter, sortField, sortDir]);
+  }, [households, search, headMap, statusFilter, riskFilter, tierFilter, sortField, sortDir]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -104,7 +114,7 @@ export default function Households() {
       : <ChevronUp className="w-3.5 h-3.5 text-foreground" />;
   }
 
-  const hasActiveFilters = statusFilter !== "all" || riskFilter !== "all";
+  const hasActiveFilters = statusFilter !== "all" || riskFilter !== "all" || tierFilter !== "all";
   const hasAnyFilter = hasActiveFilters || search.trim();
 
   if (isLoading) {
@@ -168,6 +178,19 @@ export default function Households() {
             </SelectContent>
           </Select>
 
+          <Select value={tierFilter} onValueChange={setTierFilter}>
+            <SelectTrigger className="h-9 w-[150px]">
+              <SelectValue placeholder="Tier" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tiers</SelectItem>
+              <SelectItem value="platinum">🏆 Platinum</SelectItem>
+              <SelectItem value="gold">⭐ Gold</SelectItem>
+              <SelectItem value="silver">◆ Silver</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+            </SelectContent>
+          </Select>
+
           {hasActiveFilters && (
             <Button
               variant="ghost"
@@ -176,6 +199,7 @@ export default function Households() {
               onClick={() => {
                 setStatusFilter("all");
                 setRiskFilter("all");
+                setTierFilter("all");
               }}
             >
               <X className="w-3.5 h-3.5 mr-1" />
@@ -236,7 +260,10 @@ export default function Households() {
                       <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
                         {h.name.split(" ")[1]?.[0] || h.name[0]}
                       </div>
-                      <span className="text-sm font-medium text-foreground">{h.name}</span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-medium text-foreground">{h.name}</span>
+                        <TierBadge tier={h.wealth_tier} size="sm" showUnassigned pending={!!(h as any).tier_pending_review} />
+                      </div>
                     </Link>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
