@@ -1086,6 +1086,88 @@ export default function HouseholdProfile() {
           }}
         />
       )}
+
+      {/* Tier Review Dialog */}
+      <Dialog open={tierDialogOpen} onOpenChange={setTierDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Star className="w-4 h-4 text-amber-500" />
+              Client Tier Review
+            </DialogTitle>
+            <DialogDescription>{household.name}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            {/* Score display */}
+            {hh.tier_pending_score && (
+              <div className="text-center py-3 rounded-lg bg-secondary/50">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">New Score</p>
+                <p className="text-3xl font-semibold tracking-tight text-foreground mt-1">
+                  {hh.tier_pending_score}
+                  <span className="text-base text-muted-foreground font-normal">/100</span>
+                </p>
+              </div>
+            )}
+
+            {/* Current → Suggested */}
+            {hh.tier_pending_review && (
+              <div className="flex items-center justify-center gap-4">
+                <div className="text-center">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1.5">Current</p>
+                  <TierBadge tier={household.wealth_tier} size="lg" showUnassigned />
+                </div>
+                <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1.5">Suggested</p>
+                  <TierBadge tier={hh.tier_pending_review} size="lg" />
+                </div>
+              </div>
+            )}
+
+            {/* Reason */}
+            {hh.tier_pending_reason && (
+              <div className="p-3 rounded-md border border-border bg-muted/40 text-sm text-muted-foreground italic">
+                "{hh.tier_pending_reason}"
+              </div>
+            )}
+
+            {/* Manual override */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                Set Tier
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {(["platinum", "gold", "silver"] as const).map((tier) => (
+                  <button
+                    key={tier}
+                    onClick={() => handleManualTierSet(tier)}
+                    className={cn(
+                      "p-2 rounded-lg border text-center transition-all",
+                      household.wealth_tier === tier
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/40"
+                    )}
+                  >
+                    <TierBadge tier={tier} size="sm" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={handleDismissTierReview}>
+              Dismiss
+            </Button>
+            {hh.tier_pending_review && (
+              <Button onClick={handleApproveTierChange}>
+                Approve Upgrade
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
