@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bot, X, Calendar, TrendingUp, FileText, Users, ChevronRight, ArrowRight } from "lucide-react";
+import { Bot, X, Calendar, TrendingUp, FileText, Users, ChevronRight, ArrowRight, CheckSquare, Check, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,13 @@ const NOTE_TYPE_COLORS: Record<string, string> = {
   Prospecting: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
   Compliance: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
 };
+
+const PILLARS = [
+  { key: "estate", label: "Estate", hint: "Will, trust, beneficiaries" },
+  { key: "risk", label: "Risk", hint: "Insurance, liability, coverage" },
+  { key: "retirement", label: "Retirement", hint: "401k, pension, Social Security" },
+  { key: "assets", label: "Assets", hint: "Holdings, held-away, real estate" },
+] as const;
 
 function formatEventTime(iso: string): string {
   const date = new Date(iso);
@@ -611,6 +619,38 @@ function ProspectSessionPanel({ event, onClose }: { event: CalendarEvent; onClos
   const fullName = prospect ? `${prospect.first_name} ${prospect.last_name}` : "Prospect";
   const meetingGoal = event.meeting_context || event.description || null;
 
+  // Pillars checklist (Discovery Call only — this panel renders only for prospect sessions)
+  const pillarsKey = `session_pillars_${event.id}`;
+  const [coveredPillars, setCoveredPillars] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(pillarsKey);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const togglePillar = (key: string) => {
+    setCoveredPillars((prev) => {
+      const next = prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key];
+      try {
+        localStorage.setItem(pillarsKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Expose pillars on window for End Session dialog (AppLayout) to read
+  useEffect(() => {
+    (window as any).__session_pillars = coveredPillars;
+  }, [coveredPillars]);
+
+  useEffect(() => {
+    return () => {
+      delete (window as any).__session_pillars;
+    };
+  }, []);
+
   const goodie = useProspectGoodieBrief({
     ready: !isLoading && !!prospect,
     eventId: event.id,
@@ -724,6 +764,64 @@ function ProspectSessionPanel({ event, onClose }: { event: CalendarEvent; onClos
                   </Button>
                 </Link>
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* SECTION 1.5 — Interview Pillars (Discovery Call) */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground font-medium uppercase tracking-wide">
+            <CheckSquare className="h-4 w-4" />
+            Interview Pillars
+            {coveredPillars.length > 0 && (
+              <Badge variant="secondary" className="ml-auto text-[10px] font-medium normal-case tracking-normal">
+                {coveredPillars.length} of 4 covered
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {PILLARS.map((pillar) => {
+              const covered = coveredPillars.includes(pillar.key);
+              return (
+                <button
+                  key={pillar.key}
+                  type="button"
+                  onClick={() => togglePillar(pillar.key)}
+                  className={cn(
+                    "flex items-start gap-2.5 p-3 rounded-lg border text-left transition-all",
+                    covered
+                      ? "border-primary/60 bg-primary/5 text-foreground"
+                      : "border-border text-muted-foreground hover:border-primary/30 hover:bg-secondary/40"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                      covered ? "bg-primary border-primary text-primary-foreground" : "border-border"
+                    )}
+                  >
+                    {covered && <Check className="w-3 h-3" strokeWidth={3} />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className={cn("text-sm font-medium", covered ? "text-foreground" : "text-foreground/80")}>
+                      {pillar.label}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                      {pillar.hint}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {coveredPillars.length === 4 && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              All pillars covered
             </div>
           )}
         </CardContent>
