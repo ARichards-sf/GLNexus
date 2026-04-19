@@ -262,7 +262,7 @@ export default function Households() {
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-sm font-medium text-foreground">{h.name}</span>
-                        <TierBadge tier={h.wealth_tier} size="sm" showUnassigned pending={!!h.tier_pending_review} />
+                        <TierBadge tier={h.wealth_tier} size="sm" showUnassigned pending={!!(h as any).tier_pending_review} />
                       </div>
                     </Link>
                   </TableCell>
