@@ -39,6 +39,7 @@ import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import GoodieSuggests from "@/components/GoodieSuggests";
 import MorningBriefing from "@/components/MorningBriefing";
 import { useTasks } from "@/hooks/useTasks";
+import { useProspects } from "@/hooks/useProspects";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useFirms } from "@/hooks/useFirms";
