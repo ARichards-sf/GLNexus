@@ -34,9 +34,9 @@ async function verifyAdmin(req: Request) {
   const { data: roleCheck } = await supabaseAdmin
     .from("user_roles").select("id").eq("user_id", callerId).eq("role", "admin").maybeSingle();
   const { data: profileCheck } = await supabaseAdmin
-    .from("profiles").select("is_internal").eq("user_id", callerId).maybeSingle();
+    .from("profiles").select("is_internal, is_gl_internal").eq("user_id", callerId).maybeSingle();
 
-  if (!roleCheck && !profileCheck?.is_internal) throw { status: 403, message: "Forbidden: admin role required" };
+  if (!roleCheck && !profileCheck?.is_internal && !profileCheck?.is_gl_internal) throw { status: 403, message: "Forbidden: admin role required" };
 
   return { supabaseAdmin, callerId };
 }
