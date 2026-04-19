@@ -203,17 +203,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      <MorningBriefing
-        households={households}
-        recentNotes={recentNotes as any}
-        upcomingEvents={upcomingEvents as any}
-        pendingTasks={allPendingTasks as any}
-        firstName={firstName}
-        userId={user?.id || "anonymous"}
-        accentColor={firmAccentColor}
-        prospects={prospects}
-      />
-
       {/* Your Next Meeting — only when within 60 minutes */}
       {imminentMeeting && (
         <Card className="mb-6 border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/10 shadow-none">
@@ -257,6 +246,17 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      <MorningBriefing
+        households={households}
+        recentNotes={recentNotes as any}
+        upcomingEvents={upcomingEvents as any}
+        pendingTasks={allPendingTasks as any}
+        firstName={firstName}
+        userId={user?.id || "anonymous"}
+        accentColor={firmAccentColor}
+        prospects={prospects}
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
