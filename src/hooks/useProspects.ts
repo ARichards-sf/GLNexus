@@ -24,6 +24,7 @@ export interface Prospect {
   source: string | null;
   referred_by: string | null;
   notes: string | null;
+  referred_by_household_id: string | null;
   converted_household_id: string | null;
   converted_at: string | null;
   lost_reason: string | null;
