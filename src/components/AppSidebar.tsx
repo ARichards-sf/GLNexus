@@ -156,7 +156,7 @@ export default function AppSidebar() {
 
   return (
     <aside
-      className="hidden lg:flex flex-col w-64 border-r border-border bg-card min-h-screen px-4 py-6"
+      className="hidden lg:flex flex-col w-64 border-r border-border bg-card h-screen sticky top-0 px-4 py-6"
       style={brandingFirm?.accent_color ? { "--firm-accent": brandingFirm.accent_color } as React.CSSProperties : undefined}
     >
       <div className="flex flex-col gap-1 px-3 mb-4">
@@ -263,7 +263,7 @@ export default function AppSidebar() {
         </div>
       )}
 
-      <nav className="flex flex-col gap-1 flex-1">
+      <nav className="flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-border">
         {/* Dashboard - standalone at top */}
         <RouterNavLink
           to="/"
@@ -488,7 +488,7 @@ export default function AppSidebar() {
         )}
 
         {/* Settings - standalone at bottom */}
-        <div className="mt-auto pt-4 border-t border-border">
+        <div className="pt-4 mt-4 border-t border-border">
           <RouterNavLink
             to="/settings"
             className={cn(
@@ -510,7 +510,7 @@ export default function AppSidebar() {
         </div>
       </nav>
 
-      <div className="mt-auto px-3 pt-6 border-t border-border">
+      <div className="px-3 pt-6 border-t border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground">{initials}</div>
