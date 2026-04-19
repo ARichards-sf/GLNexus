@@ -365,6 +365,38 @@ export default function HouseholdProfile() {
 
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
+      {/* Tier Pending Review Banner */}
+      {hh.tier_pending_review && (
+        <div className="mb-6 p-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/60 flex items-center gap-4">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                Tier Update Suggested
+              </p>
+              <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                {hh.tier_pending_reason || "Goodie recommends a tier change for this household"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <TierBadge tier={household.wealth_tier} size="sm" showUnassigned />
+              <span className="text-amber-600 dark:text-amber-400">→</span>
+              <TierBadge tier={hh.tier_pending_review} size="sm" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button size="sm" onClick={() => setTierDialogOpen(true)}>
+              Review
+            </Button>
+            <Button size="sm" variant="ghost" onClick={handleDismissTierReview}>
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <Link to="/households" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
@@ -394,7 +426,7 @@ export default function HouseholdProfile() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card className="border-border shadow-none">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-2">
@@ -411,6 +443,39 @@ export default function HouseholdProfile() {
               <span className="text-sm text-muted-foreground font-medium">Risk Tolerance</span>
             </div>
             <p className={`text-2xl font-semibold tracking-tight ${riskColors[household.risk_tolerance] || "text-foreground"}`}>{household.risk_tolerance}</p>
+          </CardContent>
+        </Card>
+        <Card
+          className={cn(
+            "border-border shadow-none cursor-pointer transition-all hover:border-primary/40 hover:shadow-md",
+            hh.tier_pending_review && "ring-2 ring-amber-400/60"
+          )}
+          onClick={() => setTierDialogOpen(true)}
+        >
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Star className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground font-medium">Client Tier</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <TierBadge tier={household.wealth_tier} size="lg" showUnassigned pending={!!hh.tier_pending_review} />
+              {hh.tier_score && (
+                <span className="text-xs text-muted-foreground">
+                  Score: {hh.tier_score}/100
+                </span>
+              )}
+            </div>
+            {hh.tier_last_assessed && (
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Assessed {new Date(hh.tier_last_assessed).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+              </p>
+            )}
+            {hh.tier_pending_review && (
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                <TrendingUp className="w-3 h-3" />
+                Upgrade to {hh.tier_pending_review.charAt(0).toUpperCase() + hh.tier_pending_review.slice(1)} suggested
+              </div>
+            )}
           </CardContent>
         </Card>
         <AnnualReviewWidget
