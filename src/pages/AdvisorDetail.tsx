@@ -103,20 +103,100 @@ export default function AdvisorDetail() {
     setVpmEditing(true);
   };
 
-  const handleSaveVpm = async () => {
+  // Service profile (Prime + VPM) — fetched separately so it stays in sync
+  const { data: serviceProfile, refetch: refetchService } = useQuery({
+    queryKey: ["advisor_service", id],
+    queryFn: async (): Promise<ServiceProfile | null> => {
+      const { data, error } = await supabase.functions.invoke("admin-operations", {
+        body: { action: "get_advisor_service_profile", user_id: id },
+      });
+      if (error) throw error;
+      return (data || null) as ServiceProfile | null;
+    },
+    enabled: !!id && isGlInternal,
+  });
+
+  // ── Prime Partner edit dialog state ──
+  const [primeEditOpen, setPrimeEditOpen] = useState(false);
+  const [primeEnabled, setPrimeEnabled] = useState(false);
+  const [primeSince, setPrimeSince] = useState("");
+  const [primeRevShare, setPrimeRevShare] = useState("");
+  const [primeNotes, setPrimeNotes] = useState("");
+
+  const openPrimeEdit = () => {
+    setPrimeEnabled(!!serviceProfile?.is_prime_partner);
+    setPrimeSince(serviceProfile?.prime_partner_since ?? "");
+    setPrimeRevShare(
+      serviceProfile?.prime_revenue_share != null
+        ? String(serviceProfile.prime_revenue_share)
+        : ""
+    );
+    setPrimeNotes(serviceProfile?.prime_notes ?? "");
+    setPrimeEditOpen(true);
+  };
+
+  const handleSavePrime = async () => {
     try {
       await updateProfile.mutateAsync({
         user_id: advisor!.user_id,
+        is_prime_partner: primeEnabled,
+        prime_partner_since: primeEnabled && primeSince ? primeSince : null,
+        prime_revenue_share:
+          primeEnabled && primeRevShare ? Number(primeRevShare) : null,
+        prime_notes: primeNotes || null,
+        // If newly Prime, auto-route VPM billing to prime_partner
+        ...(primeEnabled && serviceProfile?.vpm_enabled
+          ? { vpm_billing_type: "prime_partner" }
+          : {}),
+      } as any);
+      toast({ title: "Prime Partner settings updated" });
+      setPrimeEditOpen(false);
+      refetchService();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  // ── VPM edit dialog state ──
+  const [vpmEditOpen, setVpmEditOpen] = useState(false);
+  const [vpmEnabled, setVpmEnabled] = useState<boolean>(false);
+  const [vpmBillingType, setVpmBillingType] = useState<string>("none");
+  const [vpmHourlyRate, setVpmHourlyRate] = useState<string>("");
+  const [vpmNotes, setVpmNotes] = useState<string>("");
+
+  const openVpmEdit = () => {
+    setVpmEnabled(!!serviceProfile?.vpm_enabled);
+    setVpmBillingType(serviceProfile?.vpm_billing_type || "none");
+    setVpmHourlyRate(
+      serviceProfile?.vpm_hourly_rate != null
+        ? String(serviceProfile.vpm_hourly_rate)
+        : ""
+    );
+    setVpmNotes(serviceProfile?.vpm_notes || "");
+    setVpmEditOpen(true);
+  };
+
+  const handleSaveVpm = async () => {
+    try {
+      const isPrime = !!serviceProfile?.is_prime_partner;
+      const effectiveBilling = vpmEnabled
+        ? isPrime
+          ? "prime_partner"
+          : vpmBillingType
+        : "none";
+      await updateProfile.mutateAsync({
+        user_id: advisor!.user_id,
         vpm_enabled: vpmEnabled,
-        vpm_billing_type: vpmEnabled ? vpmBillingType : "none",
+        vpm_billing_type: effectiveBilling,
         vpm_hourly_rate:
-          vpmEnabled && vpmBillingType === "hourly" && vpmHourlyRate
+          vpmEnabled && effectiveBilling === "hourly" && vpmHourlyRate
             ? Number(vpmHourlyRate)
             : null,
         vpm_notes: vpmNotes || null,
-      });
+      } as any);
       toast({ title: "VPM settings updated" });
-      setVpmEditing(false);
+      setVpmEditOpen(false);
+      refetchService();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
