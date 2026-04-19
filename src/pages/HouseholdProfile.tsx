@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CalendarCheck, AlertTriangle, CalendarPlus, MoreHorizontal, Archive,
