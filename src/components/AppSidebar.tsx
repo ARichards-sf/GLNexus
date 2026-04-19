@@ -73,6 +73,30 @@ export default function AppSidebar() {
 
   const showInternal = isAdmin || isGlInternal;
 
+  // Determine role label for the user footer
+  const roleLabel = (() => {
+    if (isGlInternal) {
+      const dept = (glProfile as any)?.department;
+      const deptLabels: Record<string, string> = {
+        vpm: "VPM",
+        wam: "WAM",
+        marketing: "Marketing",
+        transitions: "Transitions",
+        compliance: "Compliance",
+        accounting: "Accounting",
+        operations: "Operations",
+      };
+      if (dept && deptLabels[dept]) return deptLabels[dept];
+      if (isSuperAdmin) return "Super Admin";
+      if (isDeveloper) return "Developer";
+      return "GL Internal";
+    }
+    if (currentFirm) {
+      return "Advisor";
+    }
+    return "Advisor";
+  })();
+
   const displayName = user?.user_metadata?.full_name || user?.email || "Advisor";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
 
