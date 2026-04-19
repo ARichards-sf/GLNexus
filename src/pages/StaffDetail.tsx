@@ -14,22 +14,13 @@ import { useToast } from "@/hooks/use-toast";
 import ManageStaffFirmsDialog from "@/components/ManageStaffFirmsDialog";
 
 const DEPARTMENTS = ["vpm", "wam", "marketing", "transitions", "compliance", "accounting", "operations"] as const;
-const ROLES = ["admin", "super_admin", "developer"] as const;
-
-const DEPT_META: Record<string, { label: string; className: string }> = {
-  vpm:         { label: "VPM",         className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  wam:         { label: "WAM",         className: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
-  marketing:   { label: "Marketing",   className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
-  transitions: { label: "Transitions", className: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
-  compliance:  { label: "Compliance",  className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
-  accounting:  { label: "Accounting",  className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-  operations:  { label: "Operations",  className: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" },
-};
 
 const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
+  user:        "Standard User",
+  manager:     "Manager",
+  admin:       "Admin",
   super_admin: "Super Admin",
-  developer: "Developer",
+  developer:   "Developer",
 };
 
 const FIRM_OPTIONAL_DEPTS = new Set(["marketing", "transitions", "compliance", "accounting", "operations"]);
