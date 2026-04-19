@@ -7,6 +7,8 @@ import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useTaskNotificationCount } from "@/hooks/useTasks";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap,
@@ -55,7 +57,7 @@ export default function AppSidebar() {
   const { data: taskNotifCount = 0 } = useTaskNotificationCount();
   const { currentFirm, allFirms, membershipRole } = useFirmContext();
   const { selectedFirmId, setSelectedFirmId, clearSelectedFirm } = useSelectedFirm();
-  const { impersonatedUser } = useImpersonation();
+  const { impersonatedUser, vpmAdvisor, startVpmSession, stopVpmSession, isVpmSession } = useImpersonation();
 
   // ── Expanded role model ──
   const platformRole = glProfile?.platform_role || "user";
@@ -71,13 +73,44 @@ export default function AppSidebar() {
   const hasRetentionAccess = isGlUser && isSuperAdmin;
   const hasDevAccess = isGlUser && isDeveloper;
 
+  // Fetch VPM-enrolled advisors for the switcher
+  const { data: vpmAdvisors = [] } = useQuery({
+    queryKey: ["vpm_advisors"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select(`
+          user_id,
+          full_name,
+          email,
+          vpm_billing_type,
+          is_prime_partner,
+          firm_id,
+          firms(name)
+        `)
+        .eq("vpm_enabled", true)
+        .eq("is_gl_internal", false)
+        .order("full_name");
+      return (data || []).map((p: any) => ({
+        id: p.user_id,
+        name: p.full_name || p.email?.split("@")[0] || "Advisor",
+        firmName: p.firms?.name || null,
+        vpmBillingType: p.vpm_billing_type,
+        isPrime: !!p.is_prime_partner,
+      }));
+    },
+    enabled: hasVpmAccess,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // User has an advisor role when they have a firm membership AND are not GL internal
   const hasAdvisorRole = !!currentFirm && !isGlInternal;
 
   // Show advisor nav when:
   // - user is an advisor (has firm, not GL internal)
   // - OR a GL internal user is currently impersonating an advisor
-  const showAdvisorNav = hasAdvisorRole || !!impersonatedUser;
+  // - OR a GL internal user is in a VPM session
+  const showAdvisorNav = hasAdvisorRole || !!impersonatedUser || isVpmSession;
 
   // Show internal section to any GL internal user
   const showInternal = isGlUser;
@@ -180,6 +213,52 @@ export default function AppSidebar() {
           >
             <X className="w-3.5 h-3.5" />
           </button>
+        </div>
+      )}
+
+      {hasVpmAccess && (
+        <div className="px-3 mb-3 space-y-1.5">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            {isVpmSession ? "Serving" : "VPM Advisor"}
+          </div>
+          <Select
+            value={vpmAdvisor?.id ?? "__none__"}
+            onValueChange={(val) => {
+              if (val === "__none__") {
+                stopVpmSession();
+              } else {
+                const advisor = vpmAdvisors.find((a) => a.id === val);
+                if (advisor) startVpmSession(advisor);
+              }
+            }}
+          >
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder="Select advisor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">No advisor selected</SelectItem>
+              {vpmAdvisors.map((advisor) => (
+                <SelectItem key={advisor.id} value={advisor.id}>
+                  <div className="flex items-center gap-1.5">
+                    <span>{advisor.name}</span>
+                    {advisor.isPrime && <span>⭐</span>}
+                    {advisor.firmName && (
+                      <span className="text-muted-foreground text-[11px]">· {advisor.firmName}</span>
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {isVpmSession && (
+            <button
+              onClick={stopVpmSession}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="w-3 h-3" />
+              End session
+            </button>
+          )}
         </div>
       )}
 
