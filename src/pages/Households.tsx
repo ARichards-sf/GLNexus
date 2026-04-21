@@ -256,15 +256,15 @@ export default function Households() {
               {filtered.map((h) => (
                 <TableRow key={h.id} className="group">
                   <TableCell>
-                    <Link to={`/household/${h.id}`} className="flex items-center gap-3 hover:underline">
-                      <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
-                        {h.name.split(" ")[1]?.[0] || h.name[0]}
-                      </div>
-                      <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-3">
+                      <Link to={`/household/${h.id}`} className="flex items-center gap-3 hover:underline">
+                        <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
+                          {h.name.split(" ")[1]?.[0] || h.name[0]}
+                        </div>
                         <span className="text-sm font-medium text-foreground">{h.name}</span>
-                        <TierBadge tier={h.wealth_tier} size="sm" showUnassigned pending={!!(h as any).tier_pending_review} />
-                      </div>
-                    </Link>
+                      </Link>
+                      <TierBadge tier={h.wealth_tier} size="sm" showUnassigned pending={!!(h as any).tier_pending_review} />
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {headMap[h.id] || <span className="italic">Not assigned</span>}
