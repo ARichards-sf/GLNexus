@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow, isPast, parseISO } from "date-fns";
 import {
@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   XCircle,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,8 +23,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   useCompleteTask,
   useUncompleteTask,
+  useDeleteTask,
   type Task,
 } from "@/hooks/useTasks";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useComplianceNotes } from "@/hooks/useHouseholds";
 import { useCalendarEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
 import { Button } from "@/components/ui/button";
