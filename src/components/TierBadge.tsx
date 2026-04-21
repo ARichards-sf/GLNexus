@@ -73,7 +73,7 @@ export default function TierBadge({
         variant="outline"
         className={cn(
           sizeClass,
-          "text-muted-foreground"
+          "text-muted-foreground pointer-events-none"
         )}
       >
         {pending ? "⟳ Review Pending" 
