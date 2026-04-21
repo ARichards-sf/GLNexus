@@ -87,7 +87,8 @@ export default function TierBadge({
       className={cn(
         config.className,
         sizeClass,
-        pending && "ring-2 ring-offset-1 ring-amber-400"
+        pending && "ring-2 ring-offset-1 ring-amber-400",
+        "pointer-events-none"
       )}
     >
       {config.icon} {config.label}
