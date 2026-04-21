@@ -55,7 +55,7 @@ serve(async (req) => {
     // Log minimal, non-PII metadata for routing only
     console.log("Service request received:", {
       category,
-      user_id: claimsData.claims.sub,
+      user_id: userData.user.id,
       is_vpm: !!is_vpm,
       vpm_request_type: vpm_request_type ?? null,
       vpm_timeline: vpm_timeline ?? null,
