@@ -687,6 +687,26 @@ export default function TaskDetail() {
           onSubmitEdit={handleEditSubmit}
         />
       )}
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{task?.title}"? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteTask.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteTask.isPending}
+            >
+              {deleteTask.isPending ? "Deleting..." : "Delete Task"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
