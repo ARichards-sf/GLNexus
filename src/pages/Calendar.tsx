@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  ChevronLeft, ChevronRight, Plus, CheckCircle2, Trash2, CalendarDays, FileText, Bot,
+  ChevronLeft, ChevronRight, Plus, CheckCircle2, Trash2, CalendarDays, FileText, Pencil,
 } from "lucide-react";
 import {
   useCalendarEvents, useCompleteEvent, useDeleteCalendarEvent,
@@ -57,6 +57,7 @@ export default function Calendar() {
   const [completeTarget, setCompleteTarget] = useState<CalendarEvent | null>(null);
   const [complianceOpen, setComplianceOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CalendarEvent | null>(null);
+  const [editTarget, setEditTarget] = useState<CalendarEvent | null>(null);
   const { startSession } = useInSession();
 
   const year = currentMonth.getFullYear();
@@ -258,7 +259,7 @@ export default function Calendar() {
                   </Badge>
                 </div>
 
-                <div className="pt-2 border-t">
+                <div className="pt-2 border-t space-y-2">
                   <Button
                     size="sm"
                     variant="outline"
@@ -267,36 +268,38 @@ export default function Calendar() {
                   >
                     <FileText className="w-3.5 h-3.5 mr-1.5" /> Start Session
                   </Button>
+                  {selectedEvent.status === "scheduled" && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full text-xs"
+                        onClick={() => setEditTarget(selectedEvent)}
+                      >
+                        <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                        Edit Meeting
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1 text-xs"
+                          onClick={() => handleComplete(selectedEvent)}
+                          disabled={completeEvent.isPending}
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark Completed
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTarget(selectedEvent)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
-
-                {selectedEvent.status === "scheduled" && (
-                  <div className="flex gap-2 pt-2 border-t">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-xs"
-                      onClick={() => startSession(selectedEvent)}
-                    >
-                      <Bot className="w-3.5 h-3.5 mr-1.5" /> Start Session
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1 text-xs"
-                      onClick={() => handleComplete(selectedEvent)}
-                      disabled={completeEvent.isPending}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark Completed
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-xs text-destructive hover:text-destructive"
-                      onClick={() => setDeleteTarget(selectedEvent)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                )}
               </CardContent>
             </Card>
           ) : (
@@ -393,6 +396,20 @@ export default function Calendar() {
         />
       )}
     
+
+      {/* Edit meeting */}
+      {editTarget && (
+        <ScheduleEventDialog
+          open={!!editTarget}
+          onOpenChange={(open) => {
+            if (!open) setEditTarget(null);
+          }}
+          defaultHouseholdId={editTarget.household_id ?? undefined}
+          defaultEventType={editTarget.event_type}
+          defaultTitle={editTarget.title}
+          defaultDate={new Date(editTarget.start_time).toISOString().split("T")[0]}
+        />
+      )}
     </div>
   );
 }
