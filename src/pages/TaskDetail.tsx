@@ -106,7 +106,10 @@ export default function TaskDetail() {
   const queryClient = useQueryClient();
   const completeTask = useCompleteTask();
   const uncompleteTask = useUncompleteTask();
+  const deleteTask = useDeleteTask();
+  const navigate = useNavigate();
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const {
     data: task,
