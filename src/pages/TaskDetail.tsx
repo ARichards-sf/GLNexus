@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow, isPast, parseISO } from "date-fns";
 import {
@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   XCircle,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,8 +23,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   useCompleteTask,
   useUncompleteTask,
+  useDeleteTask,
   type Task,
 } from "@/hooks/useTasks";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useComplianceNotes } from "@/hooks/useHouseholds";
 import { useCalendarEvents, EVENT_TYPE_COLORS } from "@/hooks/useCalendarEvents";
 import { Button } from "@/components/ui/button";
@@ -94,7 +106,10 @@ export default function TaskDetail() {
   const queryClient = useQueryClient();
   const completeTask = useCompleteTask();
   const uncompleteTask = useUncompleteTask();
+  const deleteTask = useDeleteTask();
+  const navigate = useNavigate();
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const {
     data: task,
@@ -243,6 +258,11 @@ export default function TaskDetail() {
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
   };
 
+  const handleDelete = async () => {
+    await deleteTask.mutateAsync(task.id);
+    navigate("/tasks");
+  };
+
   const handleApprove = async (item: any) => {
     const { error } = await (supabase as any)
       .from("jump_review_items")
@@ -324,14 +344,23 @@ export default function TaskDetail() {
             >
               {task.title}
             </h1>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditOpen(true)}
-              className="shrink-0"
-            >
-              <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditOpen(true)}
+              >
+                <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
+              </Button>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <Badge className={cn("capitalize border-0", PRIORITY_STYLES[task.priority])}>
@@ -658,6 +687,26 @@ export default function TaskDetail() {
           onSubmitEdit={handleEditSubmit}
         />
       )}
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{task?.title}"? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteTask.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteTask.isPending}
+            >
+              {deleteTask.isPending ? "Deleting..." : "Delete Task"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
