@@ -258,6 +258,11 @@ export default function TaskDetail() {
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
   };
 
+  const handleDelete = async () => {
+    await deleteTask.mutateAsync(task.id);
+    navigate("/tasks");
+  };
+
   const handleApprove = async (item: any) => {
     const { error } = await (supabase as any)
       .from("jump_review_items")
