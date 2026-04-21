@@ -161,7 +161,7 @@ export default function AppSidebar() {
     >
       <div className="flex flex-col gap-1 px-3 mb-4">
         <div className="flex items-center gap-2.5">
-          <img src={logoUrl} alt={firmName || "Good Life Companies"} className="h-8 w-auto" />
+          <img src={logoUrl} alt={firmName || "Good Life Companies"} className="h-12 w-auto max-w-[180px] object-contain" />
         </div>
         {showFirmName && (
           <p
