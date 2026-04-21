@@ -28,8 +28,8 @@ serve(async (req) => {
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: authError } = await supabase.auth.getClaims(token);
-    if (authError || !claimsData?.claims) {
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !userData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
@@ -55,7 +55,7 @@ serve(async (req) => {
     // Log minimal, non-PII metadata for routing only
     console.log("Service request received:", {
       category,
-      user_id: claimsData.claims.sub,
+      user_id: userData.user.id,
       is_vpm: !!is_vpm,
       vpm_request_type: vpm_request_type ?? null,
       vpm_timeline: vpm_timeline ?? null,
