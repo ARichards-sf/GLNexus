@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Sunrise, Sun, Sunset, ChevronDown, ChevronUp, X, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -209,12 +209,12 @@ export default function MorningBriefing({
   accentColor,
   prospects,
 }: MorningBriefingProps) {
-  const currentPeriod = getCurrentPeriod();
+  const [currentPeriod, setCurrentPeriod] = useState<BriefingPeriod>(getCurrentPeriod);
   const periodConfig = PERIODS[currentPeriod];
   const cacheKey = getCacheKey(currentPeriod, userId);
   const today = new Date().toISOString().split("T")[0];
 
-  const initialCache: BriefingCache | null = (() => {
+  const initialCache = useMemo(() => {
     try {
       const raw = localStorage.getItem(cacheKey);
       if (!raw) return null;
@@ -223,7 +223,7 @@ export default function MorningBriefing({
     } catch {
       return null;
     }
-  })();
+  }, [cacheKey, currentPeriod, today]);
 
   const [text, setText] = useState(initialCache?.text ?? "");
   const [isGenerating, setIsGenerating] = useState(!initialCache);
@@ -245,6 +245,47 @@ export default function MorningBriefing({
       /* ignore */
     }
   }, [userId]);
+
+  // Check every 60 seconds if the period has changed
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newPeriod = getCurrentPeriod();
+      setCurrentPeriod((prev) => {
+        if (prev !== newPeriod) {
+          hasGeneratedRef.current = false;
+          setText("");
+          setIsGenerating(true);
+          return newPeriod;
+        }
+        return prev;
+      });
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Reset generation state when period changes (load cache or trigger regen)
+  useEffect(() => {
+    const cached = (() => {
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        if (!raw) return null;
+        const parsed: BriefingCache = JSON.parse(raw);
+        return parsed?.date === today && parsed?.period === currentPeriod ? parsed : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    if (cached) {
+      setText(cached.text);
+      setIsGenerating(false);
+      hasGeneratedRef.current = true;
+    } else {
+      setText("");
+      setIsGenerating(true);
+      hasGeneratedRef.current = false;
+    }
+  }, [currentPeriod, cacheKey, today]);
 
   // Persist minimized state
   useEffect(() => {
