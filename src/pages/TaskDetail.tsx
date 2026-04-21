@@ -344,14 +344,23 @@ export default function TaskDetail() {
             >
               {task.title}
             </h1>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditOpen(true)}
-              className="shrink-0"
-            >
-              <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditOpen(true)}
+              >
+                <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
+              </Button>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <Badge className={cn("capitalize border-0", PRIORITY_STYLES[task.priority])}>
