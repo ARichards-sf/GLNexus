@@ -203,7 +203,7 @@ export default function VpmTicketDetail() {
       firmName: request.firm_name || null,
       isPrime: !!request.is_prime_partner,
     });
-    navigate("/households");
+    navigate(request.household_id ? `/household/${request.household_id}` : "/households");
   };
 
   const handleExitSession = () => {
