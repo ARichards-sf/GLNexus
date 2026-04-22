@@ -174,6 +174,8 @@ export default function VpmTicketDetail() {
   const handleEnterSession = () => {
     if (!request) return;
 
+    (window as Window & { __vpm_ticket_id?: string }).__vpm_ticket_id = id;
+    window.localStorage.setItem("vpm_ticket_id", id!);
     startVpmSession({
       id: request.advisor_id,
       name: request.advisor_name || "Advisor",
@@ -185,6 +187,8 @@ export default function VpmTicketDetail() {
 
   const handleExitSession = () => {
     stopVpmSession();
+    delete (window as Window & { __vpm_ticket_id?: string }).__vpm_ticket_id;
+    window.localStorage.removeItem("vpm_ticket_id");
   };
 
   if (isLoading) {
@@ -352,7 +356,7 @@ export default function VpmTicketDetail() {
         </Card>
       </div>
 
-      <div className="w-80 shrink-0 space-y-4 sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">
+      <div className="w-80 shrink-0 self-start space-y-4 sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">
         <Card className="border-border shadow-none">
           <CardContent className="pt-4 space-y-3">
             <div>
