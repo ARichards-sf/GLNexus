@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface ImpersonatedUser {
   id: string;
@@ -40,6 +41,7 @@ const ImpersonationContext = createContext<ImpersonationContextType>({
 export const useImpersonation = () => useContext(ImpersonationContext);
 
 export function ImpersonationProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [impersonatedUser, setImpersonatedUser] = useState<ImpersonatedUser | null>(null);
 
   const [vpmAdvisor, setVpmAdvisor] = useState<VpmAdvisor | null>(() => {
@@ -67,11 +69,24 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const stopVpmSession = useCallback(() => {
+    const ticketId =
+      (window as Window & { __vpm_ticket_id?: string }).__vpm_ticket_id ||
+      localStorage.getItem("vpm_ticket_id");
+
     setVpmAdvisor(null);
+
     try {
       localStorage.removeItem("vpm_session");
+      localStorage.removeItem("vpm_ticket_id");
+      delete (window as Window & { __vpm_ticket_id?: string }).__vpm_ticket_id;
     } catch {}
-  }, []);
+
+    if (ticketId) {
+      navigate(`/admin/vpm-requests/${ticketId}`);
+    } else {
+      navigate("/admin/vpm-requests");
+    }
+  }, [navigate]);
 
   const isVpmSession = !!vpmAdvisor && !impersonatedUser;
 
