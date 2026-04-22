@@ -11,6 +11,7 @@ import {
   Gift,
   Cake,
   Newspaper,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -108,10 +109,26 @@ export default function TouchpointGenerationDialog({
     enabled: open && !!household.wealth_tier,
   });
 
+  const { data: members = [] } = useQuery({
+    queryKey: ["touchpoint_members", household.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("household_members")
+        .select("id, first_name, last_name, date_of_birth, relationship")
+        .eq("household_id", household.id)
+        .in("relationship", ["Primary", "Spouse"])
+        .is("archived_at", null);
+
+      return data || [];
+    },
+    enabled: open && !!household.id,
+  });
+
   const groupedTemplates = useMemo(() => {
     const baseDate = new Date();
 
     const templatesWithDates = templates
+      .filter((template) => template.touchpoint_type !== "birthday")
       .map((template) => {
         let scheduledDate: Date;
 
@@ -154,6 +171,26 @@ export default function TouchpointGenerationDialog({
     return Object.entries(grouped);
   }, [templates]);
 
+  const birthdayMembers = useMemo(
+    () =>
+      members.filter(
+        (member) =>
+          member.date_of_birth &&
+          (member.relationship === "Primary" || member.relationship === "Spouse"),
+      ),
+    [members],
+  );
+
+  const hasMembersMissingDob = useMemo(
+    () =>
+      members.some(
+        (member) =>
+          !member.date_of_birth &&
+          (member.relationship === "Primary" || member.relationship === "Spouse"),
+      ),
+    [members],
+  );
+
   const handleConfirm = async () => {
     if (!user) return;
 
@@ -162,6 +199,10 @@ export default function TouchpointGenerationDialog({
       const baseDate = new Date();
 
       for (const template of templates) {
+        if (template.touchpoint_type === "birthday") {
+          continue;
+        }
+
         let scheduledDate: Date;
 
         if (template.scheduling_type === "fixed_month" && template.fixed_month) {
@@ -229,6 +270,70 @@ export default function TouchpointGenerationDialog({
           if (taskData?.id) {
             await supabase.from("touchpoints").update({ linked_task_id: taskData.id }).eq("id", touchpointData!.id);
           }
+        }
+      }
+
+      for (const member of birthdayMembers) {
+        const dob = new Date(member.date_of_birth!);
+        const today = new Date();
+
+        let birthdayThisYear = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+
+        if (birthdayThisYear < today) {
+          birthdayThisYear = new Date(today.getFullYear() + 1, dob.getMonth(), dob.getDate());
+        }
+
+        const dateStr = birthdayThisYear.toISOString().split("T")[0];
+
+        const { data: birthdayTouchpoint, error: birthdayError } = await supabase
+          .from("touchpoints")
+          .insert({
+            household_id: household.id,
+            advisor_id: user.id,
+            template_id: null,
+            name: `Birthday — ${member.first_name} ${member.last_name}`,
+            touchpoint_type: "birthday",
+            scheduled_date: dateStr,
+            status: "upcoming",
+            metadata: {
+              member_id: member.id,
+              member_name: `${member.first_name} ${member.last_name}`,
+            },
+          })
+          .select()
+          .single();
+
+        if (birthdayError) throw birthdayError;
+
+        const { data: birthdayTask, error: birthdayTaskError } = await supabase
+          .from("tasks")
+          .insert({
+            advisor_id: user.id,
+            assigned_to: user.id,
+            created_by: user.id,
+            title: `Birthday outreach — ${member.first_name} ${member.last_name}`,
+            description: `Send birthday message to ${member.first_name} ${member.last_name} (${household.name})`,
+            task_type: "birthday",
+            due_date: dateStr,
+            priority: "medium",
+            status: "todo",
+            household_id: household.id,
+            metadata: {
+              touchpoint_type: "birthday",
+              is_touchpoint: true,
+              member_id: member.id,
+            },
+          })
+          .select()
+          .single();
+
+        if (birthdayTaskError) throw birthdayTaskError;
+
+        if (birthdayTask?.id && birthdayTouchpoint?.id) {
+          await supabase
+            .from("touchpoints")
+            .update({ linked_task_id: birthdayTask.id })
+            .eq("id", birthdayTouchpoint.id);
         }
       }
 
@@ -310,7 +415,47 @@ export default function TouchpointGenerationDialog({
                           </div>
                         );
                       })}
+
+                      {birthdayMembers.map((member) => {
+                        const dob = new Date(member.date_of_birth!);
+                        const today = new Date();
+                        let nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+
+                        if (nextBirthday < today) {
+                          nextBirthday = new Date(today.getFullYear() + 1, dob.getMonth(), dob.getDate());
+                        }
+
+                        const monthKey = nextBirthday.toLocaleDateString("en-US", {
+                          month: "long",
+                          year: "numeric",
+                        });
+
+                        return key === monthKey ? (
+                          <div
+                            key={member.id}
+                            className="flex items-center gap-3 rounded-lg border border-border p-3"
+                          >
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive/10">
+                              <Cake className="h-4 w-4 text-destructive" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">
+                                Birthday — {member.first_name} {member.last_name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">Birthday · {monthKey}</p>
+                            </div>
+                          </div>
+                        ) : null;
+                      })}
                     </div>
+
+                    {hasMembersMissingDob && (
+                      <p className="mt-2 flex items-center gap-1.5 text-xs text-amber">
+                        <AlertCircle className="h-3 w-3" />
+                        Some members are missing a date of birth — birthday touchpoints will be skipped for those
+                        members. Add DOB in the household profile.
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
