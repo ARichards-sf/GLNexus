@@ -35,6 +35,11 @@ const noteTypeIcons: Record<string, React.ElementType> = {
   Onboarding: FileText,
 };
 
+type StageStats = {
+  count: number;
+  value: number;
+};
+
 interface WidgetRendererProps {
   instance: WidgetInstance;
   households: any[];
@@ -150,11 +155,11 @@ export function WidgetRenderer({
               visibleTasks.map((t) => {
                 const priorityDot =
                   t.priority === "urgent"
-                    ? "bg-red-500"
+                    ? "bg-destructive"
                     : t.priority === "high"
-                      ? "bg-amber-500"
+                      ? "bg-amber"
                       : t.priority === "medium"
-                        ? "bg-blue-500"
+                        ? "bg-primary"
                         : "bg-muted-foreground/40";
                 const isOverdue =
                   !!t.due_date &&
@@ -166,7 +171,7 @@ export function WidgetRenderer({
                     to={`/tasks/${t.id}`}
                     className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors"
                   >
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${priorityDot}`} />
+                    <div className={cn("w-2 h-2 rounded-full shrink-0", priorityDot)} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{t.title}</p>
                       {t.households?.name && (
@@ -177,7 +182,7 @@ export function WidgetRenderer({
                       <span
                         className={cn(
                           "text-[11px] shrink-0",
-                          isOverdue ? "text-red-600 dark:text-red-400 font-medium" : "text-muted-foreground",
+                          isOverdue ? "text-destructive font-medium" : "text-muted-foreground",
                         )}
                       >
                         {new Date(t.due_date + "T00:00:00").toLocaleDateString("en-US", {
@@ -222,9 +227,7 @@ export function WidgetRenderer({
                 <div className="w-2 h-8 rounded-full shrink-0 bg-primary/50" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    {ev.households?.name || "No household linked"}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{ev.households?.name || "No household linked"}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-xs font-medium text-foreground">
@@ -257,14 +260,15 @@ export function WidgetRenderer({
       const activeProspects = prospects.filter(
         (p: any) => p.pipeline_stage !== "converted" && p.pipeline_stage !== "lost",
       );
-      const grouped = activeProspects.reduce((acc: Record<string, { count: number; value: number }>, prospect: any) => {
+      const grouped = activeProspects.reduce<Record<string, StageStats>>((acc, prospect: any) => {
         const stage = prospect.pipeline_stage || "lead";
         if (!acc[stage]) acc[stage] = { count: 0, value: 0 };
         acc[stage].count += 1;
         acc[stage].value += Number(prospect.estimated_aum || 0);
         return acc;
       }, {});
-      const entries = Object.entries(grouped).sort((a, b) => b[1].value - a[1].value);
+      const entries = Object.entries(grouped) as [string, StageStats][];
+      entries.sort((a, b) => b[1].value - a[1].value);
       const totalValue = activeProspects.reduce((sum: number, p: any) => sum + Number(p.estimated_aum || 0), 0);
 
       return (
@@ -334,9 +338,7 @@ export function WidgetRenderer({
                     <p className="text-sm font-medium text-foreground truncate">
                       {index + 1}. {household.name}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {household.wealth_tier || "Tier pending"}
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{household.wealth_tier || "Tier pending"}</p>
                   </div>
                   <span className="text-xs font-medium text-foreground shrink-0">
                     {formatCurrency(Number(household.total_aum || 0))}
@@ -383,7 +385,7 @@ export function WidgetRenderer({
                       })}
                     </p>
                   </div>
-                  <span className="text-[11px] text-red-600 dark:text-red-400 shrink-0 font-medium">Overdue</span>
+                  <span className="text-[11px] text-destructive shrink-0 font-medium">Overdue</span>
                 </Link>
               ))
             )}
@@ -433,7 +435,7 @@ export function WidgetRenderer({
     }
 
     case "referral_leaderboard": {
-      const counts = prospects.reduce((acc: Record<string, { count: number; value: number }>, prospect: any) => {
+      const counts = prospects.reduce<Record<string, StageStats>>((acc, prospect: any) => {
         const householdId = prospect.referred_by_household_id;
         if (!householdId) return acc;
         if (!acc[householdId]) acc[householdId] = { count: 0, value: 0 };
@@ -442,13 +444,14 @@ export function WidgetRenderer({
         return acc;
       }, {});
 
-      const leaderboard = Object.entries(counts)
+      const leaderboard = (Object.entries(counts) as [string, StageStats][])
         .map(([householdId, stats]) => ({
           householdId,
           household: households.find((h) => h.id === householdId),
-          ...stats,
+          count: stats.count,
+          value: stats.value,
         }))
-        .filter((entry) => entry.household)
+        .filter((entry) => !!entry.household)
         .sort((a, b) => b.count - a.count || b.value - a.value)
         .slice(0, size === "large" ? 6 : 4);
 
