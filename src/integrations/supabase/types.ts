@@ -1023,6 +1023,7 @@ export type Database = {
           id: string
           is_vpm: boolean
           status: string
+          ticket_number: number | null
           updated_at: string
           vpm_hours_logged: number | null
           vpm_hours_notes: string | null
@@ -1044,6 +1045,7 @@ export type Database = {
           id?: string
           is_vpm?: boolean
           status?: string
+          ticket_number?: number | null
           updated_at?: string
           vpm_hours_logged?: number | null
           vpm_hours_notes?: string | null
@@ -1065,6 +1067,7 @@ export type Database = {
           id?: string
           is_vpm?: boolean
           status?: string
+          ticket_number?: number | null
           updated_at?: string
           vpm_hours_logged?: number | null
           vpm_hours_notes?: string | null
