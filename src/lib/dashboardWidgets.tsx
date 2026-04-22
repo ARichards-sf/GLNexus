@@ -106,6 +106,15 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     defaultOn: false,
   },
   {
+    id: "client_scorecard",
+    label: "Client Scorecard",
+    description: "Households with active touchpoints, overdue engagements, and timeline progress",
+    icon: BarChart3,
+    defaultSize: "large",
+    allowedSizes: ["small", "large"],
+    defaultOn: false,
+  },
+  {
     id: "referral_leaderboard",
     label: "Referral Leaderboard",
     description: "Top referring households in your book",

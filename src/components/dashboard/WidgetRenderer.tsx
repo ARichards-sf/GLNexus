@@ -1,8 +1,12 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
+  BarChart3,
   CalendarCheck,
   CalendarDays,
+  CheckCircle2,
   CheckSquare,
   FileText,
   GitBranch,
@@ -15,7 +19,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import MorningBriefing from "@/components/MorningBriefing";
 import GoodieSuggests from "@/components/GoodieSuggests";
+import TierBadge from "@/components/TierBadge";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import type { WidgetInstance } from "@/lib/dashboardWidgets";
 
@@ -54,6 +61,127 @@ interface WidgetRendererProps {
   totalHouseholds: number;
   activeHouseholds: number;
   upcomingReviews: any[];
+}
+
+function ClientScorecardWidget() {
+  const { user } = useAuth();
+
+  const { data: upcomingTouchpoints = [] } = useQuery({
+    queryKey: ["all_touchpoints_scorecard", user?.id],
+    queryFn: async () => {
+      const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0];
+
+      const { data, error } = await supabase
+        .from("touchpoints")
+        .select(
+          `
+            *,
+            households(
+              id,
+              name,
+              wealth_tier,
+              total_aum
+            )
+          `,
+        )
+        .eq("advisor_id", user!.id)
+        .in("status", ["upcoming", "active"])
+        .lte("scheduled_date", thirtyDaysFromNow)
+        .order("scheduled_date");
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const byHousehold = useMemo(() => {
+    const map = new Map();
+
+    upcomingTouchpoints.forEach((tp: any) => {
+      const hhId = tp.household_id;
+      if (!map.has(hhId)) {
+        map.set(hhId, {
+          household: tp.households,
+          touchpoints: [],
+          overdue: 0,
+        });
+      }
+      const entry = map.get(hhId)!;
+      entry.touchpoints.push(tp);
+      if (new Date(tp.scheduled_date) < new Date()) {
+        entry.overdue++;
+      }
+    });
+
+    return Array.from(map.values()).sort((a: any, b: any) => b.overdue - a.overdue);
+  }, [upcomingTouchpoints]);
+
+  const totalOverdue = upcomingTouchpoints.filter(
+    (tp: any) => new Date(tp.scheduled_date) < new Date(),
+  ).length;
+
+  return (
+    <Card className="border-border shadow-none h-full">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Client Scorecard
+          </CardTitle>
+          {totalOverdue > 0 && (
+            <span className="inline-flex rounded-full bg-amber-muted px-2.5 py-1 text-xs font-medium text-amber">
+              {totalOverdue} overdue
+            </span>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {byHousehold.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <CheckCircle2 className="mb-2 h-6 w-6 text-emerald" />
+            <p className="text-sm text-muted-foreground">All touchpoints up to date</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {byHousehold.slice(0, 6).map(({ household, touchpoints: tps, overdue }: any) => (
+              <div key={household?.id ?? tps[0]?.household_id} className="rounded-lg border border-border p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium text-foreground">{household?.name}</p>
+                      {household?.wealth_tier && <TierBadge tier={household.wealth_tier} size="sm" />}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Next: {tps[0]?.name}
+                      {" · "}
+                      {new Date(tps[0]?.scheduled_date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs">
+                    {overdue > 0 && (
+                      <span className="inline-flex rounded-full bg-destructive/10 px-2 py-1 font-medium text-destructive">
+                        {overdue} overdue
+                      </span>
+                    )}
+                    <span className="inline-flex rounded-full bg-secondary px-2 py-1 font-medium text-muted-foreground">
+                      {tps.length} upcoming
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export function WidgetRenderer({
@@ -433,6 +561,9 @@ export function WidgetRenderer({
         </Card>
       );
     }
+
+    case "client_scorecard":
+      return <ClientScorecardWidget />;
 
     case "referral_leaderboard": {
       const counts = prospects.reduce<Record<string, StageStats>>((acc, prospect: any) => {
