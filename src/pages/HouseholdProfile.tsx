@@ -1241,28 +1241,6 @@ export default function HouseholdProfile() {
           queryClient.invalidateQueries({ queryKey: ["touchpoints", id] });
         }}
       />
-
-      <AnnualReviewOutreach
-        open={false}
-        onOpenChange={() => {}}
-        touchpoint={{
-          id: "",
-          household_id: household.id,
-          name: "",
-        }}
-        household={{
-          id: household.id,
-          name: household.name,
-          wealth_tier: household.wealth_tier,
-        }}
-        primaryMember={members[0]
-          ? {
-              first_name: members[0].first_name,
-              last_name: members[0].last_name,
-              email: members[0].email,
-            }
-          : null}
-      />
     </div>
   );
 }
