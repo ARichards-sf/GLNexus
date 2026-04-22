@@ -110,6 +110,7 @@ function SortableWidget({
 
   const def = WIDGET_REGISTRY.find((d) => d.id === instance.widgetId);
   const canResize = (def?.allowedSizes.length ?? 0) > 1;
+  const isLarge = instance.size === "large";
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -119,7 +120,14 @@ function SortableWidget({
   } as const;
 
   return (
-    <div ref={setNodeRef} style={style} className="relative min-w-0">
+    <div
+      ref={setNodeRef}
+      style={isLarge ? {
+        gridColumn: "span 2",
+        opacity: 1,
+      } : style}
+      className="relative min-w-0"
+    >
       {isDragging && <div className="absolute inset-0 rounded-xl border-2 border-dashed border-border bg-secondary/30" />}
 
       {editMode && (
@@ -146,7 +154,7 @@ function SortableWidget({
         </div>
       )}
 
-      {editMode && (
+      {editMode && !(def as { pinned?: boolean } | undefined)?.pinned && instance.size !== "large" && (
         <div
           className="absolute left-3 top-3 z-20 cursor-grab rounded-md border border-border bg-background p-1 text-muted-foreground shadow-sm active:cursor-grabbing"
           {...attributes}
