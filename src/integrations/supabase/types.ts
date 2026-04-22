@@ -1194,30 +1194,39 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string | null
+          fixed_day: number | null
+          fixed_month: number | null
           id: string
           is_billable: boolean | null
-          month_offset: number
+          month_offset: number | null
           name: string
+          scheduling_type: string
           tier: string
           touchpoint_type: string
         }
         Insert: {
           created_at?: string | null
           description?: string | null
+          fixed_day?: number | null
+          fixed_month?: number | null
           id?: string
           is_billable?: boolean | null
-          month_offset: number
+          month_offset?: number | null
           name: string
+          scheduling_type?: string
           tier: string
           touchpoint_type: string
         }
         Update: {
           created_at?: string | null
           description?: string | null
+          fixed_day?: number | null
+          fixed_month?: number | null
           id?: string
           is_billable?: boolean | null
-          month_offset?: number
+          month_offset?: number | null
           name?: string
+          scheduling_type?: string
           tier?: string
           touchpoint_type?: string
         }

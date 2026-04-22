@@ -133,8 +133,22 @@ export default function TouchpointGenerationDialog({
       const baseDate = new Date();
 
       for (const template of templates) {
-        const scheduledDate = new Date(baseDate);
-        scheduledDate.setMonth(scheduledDate.getMonth() + template.month_offset);
+        let scheduledDate: Date;
+
+        if (template.scheduling_type === "fixed_month" && template.fixed_month) {
+          const year = new Date().getFullYear();
+          const month = template.fixed_month - 1;
+          const day = template.fixed_day || 1;
+
+          scheduledDate = new Date(year, month, day);
+
+          if (scheduledDate < new Date()) {
+            scheduledDate = new Date(year + 1, month, day);
+          }
+        } else {
+          scheduledDate = new Date(baseDate);
+          scheduledDate.setMonth(scheduledDate.getMonth() + (template.month_offset || 0));
+        }
 
         const { error: touchpointError } = await supabase.from("touchpoints").insert({
           household_id: household.id,
