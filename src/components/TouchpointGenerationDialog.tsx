@@ -83,11 +83,6 @@ const TOUCHPOINT_ICONS: Record<string, React.ComponentType<{ className?: string 
 
 const ACTIONABLE_TYPES = ["meeting", "call", "annual_review", "letter", "appreciation_event"];
 
-function getMonthLabel(offset: number) {
-  if (offset === 0) return "Now";
-  return `Mo ${offset}`;
-}
-
 export default function TouchpointGenerationDialog({
   open,
   onOpenChange,
@@ -114,15 +109,49 @@ export default function TouchpointGenerationDialog({
   });
 
   const groupedTemplates = useMemo(() => {
-    const grouped = new Map<number, TouchpointTemplate[]>();
+    const baseDate = new Date();
 
-    templates.forEach((template) => {
-      const monthTemplates = grouped.get(template.month_offset) ?? [];
-      monthTemplates.push(template);
-      grouped.set(template.month_offset, monthTemplates);
-    });
+    const templatesWithDates = templates
+      .map((template) => {
+        let scheduledDate: Date;
 
-    return Array.from(grouped.entries()).sort(([a], [b]) => a - b);
+        if (template.scheduling_type === "fixed_month" && template.fixed_month) {
+          const year = baseDate.getFullYear();
+          const month = template.fixed_month - 1;
+          const day = template.fixed_day || 1;
+
+          scheduledDate = new Date(year, month, day);
+
+          if (scheduledDate < baseDate) {
+            scheduledDate = new Date(year + 1, month, day);
+          }
+        } else {
+          scheduledDate = new Date(baseDate);
+          scheduledDate.setMonth(scheduledDate.getMonth() + (template.month_offset || 0));
+        }
+
+        return {
+          ...template,
+          scheduledDate,
+        };
+      })
+      .sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime());
+
+    const grouped = templatesWithDates.reduce(
+      (acc, template) => {
+        const key = template.scheduledDate.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        });
+
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(template);
+        return acc;
+      },
+      {} as Record<string, typeof templatesWithDates>,
+    );
+
+    return Object.entries(grouped);
   }, [templates]);
 
   const handleConfirm = async () => {
@@ -204,6 +233,10 @@ export default function TouchpointGenerationDialog({
   };
 
   const tierLabel = household.wealth_tier || "Selected";
+  const currentMonthKey = new Date().toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -218,8 +251,8 @@ export default function TouchpointGenerationDialog({
         <div className="max-h-[65vh] overflow-y-auto pr-1">
           {groupedTemplates.length > 0 ? (
             <div className="space-y-5 py-1">
-              {groupedTemplates.map(([offset, touchpointsForMonth], groupIndex) => (
-                <div key={offset} className="flex gap-4">
+              {groupedTemplates.map(([key, touchpointsForMonth], groupIndex) => (
+                <div key={key} className="flex gap-4">
                   <div className="flex w-16 shrink-0 flex-col items-center">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-secondary text-xs font-semibold text-secondary-foreground">
                       {groupIndex + 1}
@@ -229,7 +262,9 @@ export default function TouchpointGenerationDialog({
 
                   <div className="flex-1 space-y-3 pb-5">
                     <div className="pt-1">
-                      <p className="text-sm font-semibold text-foreground">{getMonthLabel(offset)}</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        {key === currentMonthKey ? "This Month" : key}
+                      </p>
                     </div>
 
                     <div className="space-y-2">
