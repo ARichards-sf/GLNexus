@@ -50,6 +50,9 @@ import VpmRequestDialog from "@/components/VpmRequestDialog";
 import { useVpmStatus } from "@/hooks/useAdmin";
 import { Zap } from "lucide-react";
 import ReparentContactDialog from "@/components/ReparentContactDialog";
+import TouchpointTimeline from "@/components/TouchpointTimeline";
+import TouchpointGenerationDialog from "@/components/TouchpointGenerationDialog";
+import AnnualReviewOutreach from "@/components/AnnualReviewOutreach";
 import TierBadge from "@/components/TierBadge";
 import { calculateTierScore, type TierScoreBreakdown } from "@/lib/tierScoring";
 import { cn } from "@/lib/utils";
@@ -210,6 +213,7 @@ export default function HouseholdProfile() {
   const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [tierDialogOpen, setTierDialogOpen] = useState(false);
+  const [touchpointGenOpen, setTouchpointGenOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Reparent + archive contact state
@@ -237,6 +241,14 @@ export default function HouseholdProfile() {
         .eq("event_type", "Annual Review")
         .eq("status", "scheduled")
         .gt("start_time", new Date().toISOString());
+      return data || [];
+    },
+    enabled: !!id,
+  });
+  const { data: touchpoints = [] } = useQuery({
+    queryKey: ["touchpoints", id],
+    queryFn: async () => {
+      const { data } = await supabase.from("touchpoints").select("id").eq("household_id", id!);
       return data || [];
     },
     enabled: !!id,
@@ -351,6 +363,7 @@ export default function HouseholdProfile() {
     queryClient.invalidateQueries({ queryKey: ["households"] });
     const tierName = hh.tier_pending_review.charAt(0).toUpperCase() + hh.tier_pending_review.slice(1);
     toast.success(`Tier updated to ${tierName}`);
+    setTouchpointGenOpen(true);
     setTierDialogOpen(false);
   };
 
@@ -515,6 +528,22 @@ export default function HouseholdProfile() {
           hasBookedMeeting={hasBookedAnnualReview}
         />
       </div>
+
+      <Card className="mb-8 border-border shadow-none">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold">Service Timeline</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {touchpoints.length === 0 && household.wealth_tier && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-secondary/30 p-4">
+              <p className="text-sm text-muted-foreground">No service timeline yet.</p>
+              <Button onClick={() => setTouchpointGenOpen(true)}>Generate Service Timeline</Button>
+            </div>
+          )}
+
+          {touchpoints.length > 0 && id && <TouchpointTimeline householdId={id} advisorId={household.advisor_id} />}
+        </CardContent>
+      </Card>
 
       {/* Charts Row: AUM Trend + Asset Allocation */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-8">
@@ -1199,6 +1228,41 @@ export default function HouseholdProfile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TouchpointGenerationDialog
+        open={touchpointGenOpen}
+        onOpenChange={setTouchpointGenOpen}
+        household={{
+          id: household.id,
+          name: household.name,
+          wealth_tier: household.wealth_tier,
+        }}
+        onConfirm={() => {
+          queryClient.invalidateQueries({ queryKey: ["touchpoints", id] });
+        }}
+      />
+
+      <AnnualReviewOutreach
+        open={false}
+        onOpenChange={() => {}}
+        touchpoint={{
+          id: "",
+          household_id: household.id,
+          name: "",
+        }}
+        household={{
+          id: household.id,
+          name: household.name,
+          wealth_tier: household.wealth_tier,
+        }}
+        primaryMember={members[0]
+          ? {
+              first_name: members[0].first_name,
+              last_name: members[0].last_name,
+              email: members[0].email,
+            }
+          : null}
+      />
     </div>
   );
 }
