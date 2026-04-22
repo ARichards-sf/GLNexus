@@ -8,10 +8,12 @@ import AiAssistant from "./AiAssistant";
 import InSessionPanel from "./InSessionPanel";
 import DashboardGoodiePanel from "./DashboardGoodiePanel";
 import EndSessionDialog from "./EndSessionDialog";
+import VpmTicketPanel from "./VpmTicketPanel";
 import { Button } from "@/components/ui/button";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { InSessionProvider, useInSession } from "@/contexts/InSessionContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useCreateTask } from "@/hooks/useTasks";
 import type { CalendarEvent } from "@/hooks/useCalendarEvents";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +26,7 @@ import { useFirms } from "@/hooks/useFirms";
 function LayoutInner() {
   const { sessionEvent, isInSession, endSession, isProspectSession } = useInSession();
   const { user } = useAuth();
+  const { isVpmSession } = useImpersonation();
   const { pathname } = useLocation();
   const createTask = useCreateTask();
   const queryClient = useQueryClient();
@@ -250,13 +253,15 @@ function LayoutInner() {
                   <div className="flex items-center gap-2 min-w-0">
                     <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                     <h2 className="text-sm font-semibold truncate">
-                      {isInSession && sessionName
-                        ? `In Session · ${sessionName}`
-                        : "Goodie"}
+                      {isVpmSession
+                        ? "VPM Ticket"
+                        : isInSession && sessionName
+                          ? `In Session · ${sessionName}`
+                          : "Goodie"}
                     </h2>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {isInSession && (
+                    {isInSession && !isVpmSession && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -283,7 +288,9 @@ function LayoutInner() {
                 </div>
 
                 <div className="flex-1 overflow-hidden flex flex-col">
-                  {isInSession && sessionEvent && (sessionEvent.household_id || sessionEvent.prospect_id) ? (
+                  {isVpmSession ? (
+                    <VpmTicketPanel />
+                  ) : isInSession && sessionEvent && (sessionEvent.household_id || sessionEvent.prospect_id) ? (
                     <div className="flex-1 overflow-y-auto p-4">
                       <InSessionPanel
                         event={sessionEvent}
