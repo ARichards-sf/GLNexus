@@ -165,13 +165,13 @@ export default function TouchpointGenerationDialog({
         let scheduledDate: Date;
 
         if (template.scheduling_type === "fixed_month" && template.fixed_month) {
-          const year = new Date().getFullYear();
+          const year = baseDate.getFullYear();
           const month = template.fixed_month - 1;
           const day = template.fixed_day || 1;
 
           scheduledDate = new Date(year, month, day);
 
-          if (scheduledDate < new Date()) {
+          if (scheduledDate < baseDate) {
             scheduledDate = new Date(year + 1, month, day);
           }
         } else {
@@ -179,41 +179,56 @@ export default function TouchpointGenerationDialog({
           scheduledDate.setMonth(scheduledDate.getMonth() + (template.month_offset || 0));
         }
 
-        const { error: touchpointError } = await supabase.from("touchpoints").insert({
-          household_id: household.id,
-          advisor_id: user.id,
-          template_id: template.id,
-          name: template.name,
-          touchpoint_type: template.touchpoint_type,
-          scheduled_date: scheduledDate.toISOString().split("T")[0],
-          status: "upcoming",
-          metadata: {},
-        });
+        const dateStr = scheduledDate.toISOString().split("T")[0];
+
+        const { data: touchpointData, error: touchpointError } = await supabase
+          .from("touchpoints")
+          .insert({
+            household_id: household.id,
+            advisor_id: user.id,
+            template_id: template.id,
+            name: template.name,
+            touchpoint_type: template.touchpoint_type,
+            scheduled_date: dateStr,
+            status: "upcoming",
+            metadata: {},
+          })
+          .select()
+          .single();
 
         if (touchpointError) throw touchpointError;
 
         if (ACTIONABLE_TYPES.includes(template.touchpoint_type)) {
-          const { error: taskError } = await supabase.from("tasks").insert({
-            advisor_id: user.id,
-            assigned_to: user.id,
-            created_by: user.id,
-            title: `${template.name} — ${household.name}`,
-            description: template.description,
-            task_type: template.touchpoint_type,
-            due_date: scheduledDate.toISOString().split("T")[0],
-            priority:
-              template.touchpoint_type === "annual_review" || template.touchpoint_type === "meeting"
-                ? "high"
-                : "medium",
-            status: "todo",
-            household_id: household.id,
-            metadata: {
-              touchpoint_type: template.touchpoint_type,
-              is_touchpoint: true,
-            },
-          });
+          const { data: taskData, error: taskError } = await supabase
+            .from("tasks")
+            .insert({
+              advisor_id: user.id,
+              assigned_to: user.id,
+              created_by: user.id,
+              title: `${template.name} — ${household.name}`,
+              description: template.description,
+              task_type: template.touchpoint_type,
+              due_date: dateStr,
+              priority:
+                template.touchpoint_type === "annual_review" || template.touchpoint_type === "meeting"
+                  ? "high"
+                  : "medium",
+              status: "todo",
+              household_id: household.id,
+              metadata: {
+                touchpoint_type: template.touchpoint_type,
+                is_touchpoint: true,
+                touchpoint_id: touchpointData?.id,
+              },
+            })
+            .select()
+            .single();
 
           if (taskError) throw taskError;
+
+          if (taskData?.id) {
+            await supabase.from("touchpoints").update({ linked_task_id: taskData.id }).eq("id", touchpointData!.id);
+          }
         }
       }
 
