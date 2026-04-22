@@ -39,6 +39,7 @@ interface VpmTicketDetailRecord extends VpmRequestRow {
   advisor_hourly_rate?: number | null;
   is_prime_partner?: boolean;
   firm_name?: string | null;
+  ticket_number?: number | null;
 }
 
 export default function VpmTicketDetail() {
@@ -267,7 +268,7 @@ export default function VpmTicketDetail() {
                 )}
               </div>
               <span className="text-xs text-muted-foreground shrink-0">
-                #{id?.slice(0, 8).toUpperCase()} · {request.created_at && new Date(request.created_at).toLocaleDateString("en-US", {
+                {request.ticket_number ? `VPM-${request.ticket_number}` : `#${id?.slice(0, 8).toUpperCase()}`} · {request.created_at && new Date(request.created_at).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
                   year: "numeric",

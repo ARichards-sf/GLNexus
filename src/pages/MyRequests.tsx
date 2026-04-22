@@ -79,7 +79,15 @@ export default function MyRequests() {
                         <span className="text-xs text-muted-foreground">• {req.household_name}</span>
                       )}
                     </div>
-                    <p className="text-sm text-foreground line-clamp-2">{req.description}</p>
+                    <p className="text-sm text-foreground line-clamp-2">
+                      {req.description}
+                      {(req as { is_vpm?: boolean; ticket_number?: number | null }).is_vpm &&
+                        (req as { is_vpm?: boolean; ticket_number?: number | null }).ticket_number && (
+                        <span className="text-xs font-mono text-muted-foreground ml-2">
+                          VPM-{(req as { is_vpm?: boolean; ticket_number?: number | null }).ticket_number}
+                        </span>
+                      )}
+                    </p>
                     <div className="flex items-center gap-1.5 mt-2">
                       <Clock className="w-3 h-3 text-muted-foreground" />
                       <span className="text-[11px] text-muted-foreground">
