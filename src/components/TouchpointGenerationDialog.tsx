@@ -116,7 +116,7 @@ export default function TouchpointGenerationDialog({
         .from("household_members")
         .select("id, first_name, last_name, date_of_birth, relationship")
         .eq("household_id", household.id)
-        .in("relationship", ["Primary", "Spouse"])
+        .in("relationship", ["Primary", "Head of Household", "Spouse"])
         .is("archived_at", null);
 
       return data || [];
@@ -176,7 +176,9 @@ export default function TouchpointGenerationDialog({
       members.filter(
         (member) =>
           member.date_of_birth &&
-          (member.relationship === "Primary" || member.relationship === "Spouse"),
+          (member.relationship === "Primary" ||
+            member.relationship === "Head of Household" ||
+            member.relationship === "Spouse"),
       ),
     [members],
   );
@@ -186,7 +188,9 @@ export default function TouchpointGenerationDialog({
       members.some(
         (member) =>
           !member.date_of_birth &&
-          (member.relationship === "Primary" || member.relationship === "Spouse"),
+          (member.relationship === "Primary" ||
+            member.relationship === "Head of Household" ||
+            member.relationship === "Spouse"),
       ),
     [members],
   );
