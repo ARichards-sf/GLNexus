@@ -421,6 +421,21 @@ export default function VpmTicketDetail() {
               </Select>
             </div>
 
+            <div className="flex justify-between gap-3 text-xs text-muted-foreground">
+              <span>Days open</span>
+              <span className="font-medium text-foreground text-right">
+                {request?.created_at
+                  ? Math.max(
+                      0,
+                      Math.floor(
+                        (Date.now() - new Date(request.created_at).getTime()) /
+                          (1000 * 60 * 60 * 24)
+                      )
+                    )
+                  : 0}
+              </span>
+            </div>
+
             <Button
               className="w-full"
               size="sm"
@@ -639,13 +654,6 @@ export default function VpmTicketDetail() {
               <Zap className="w-3.5 h-3.5" />
               {isActiveSession ? "Exit VPM Session" : "Enter VPM Session"}
             </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border shadow-none">
-          <CardContent className="pt-4 flex items-start gap-2 text-xs text-muted-foreground">
-            <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            <p>Session changes and ticket updates sync back into the shared VPM request queue.</p>
           </CardContent>
         </Card>
       </div>
