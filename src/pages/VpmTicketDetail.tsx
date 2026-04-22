@@ -180,7 +180,7 @@ export default function VpmTicketDetail() {
       firmName: request.firm_name || null,
       isPrime: !!request.is_prime_partner,
     });
-    navigate("/households");
+    window.open("/households", "_blank");
   };
 
   const handleExitSession = () => {
@@ -248,18 +248,6 @@ export default function VpmTicketDetail() {
                   </p>
                 </div>
               </div>
-
-              {isActiveSession ? (
-                <Button variant="outline" size="sm" onClick={handleExitSession}>
-                  <Zap className="w-3.5 h-3.5 mr-1.5" />
-                  Exit VPM Session
-                </Button>
-              ) : (
-                <Button size="sm" onClick={handleEnterSession}>
-                  <Zap className="w-3.5 h-3.5 mr-1.5" />
-                  Enter VPM Session
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -269,8 +257,8 @@ export default function VpmTicketDetail() {
             <CardContent className="pt-4 flex items-start gap-3 text-sm text-muted-foreground">
               <Zap className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
               <p>
-                VPM Session active — you can now navigate to {request?.advisor_name}'s households,
-                contacts, and accounts. This ticket stays open in the sidebar.
+                VPM Session active — {request?.advisor_name}'s data is open in a new tab. Navigate
+                their book freely and return here to close the ticket when done.
               </p>
             </CardContent>
           </Card>
@@ -364,7 +352,7 @@ export default function VpmTicketDetail() {
         </Card>
       </div>
 
-      <div className="w-80 shrink-0 space-y-4">
+      <div className="w-80 shrink-0 space-y-4 sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">
         <Card className="border-border shadow-none">
           <CardContent className="pt-4 space-y-3">
             <div>
@@ -431,7 +419,7 @@ export default function VpmTicketDetail() {
               {request?.vpm_timeline && (
                 <div className="flex justify-between gap-3">
                   <span>Requested by</span>
-                  <span className="font-medium text-foreground">
+                  <span className={cn("font-medium text-right", TIMELINE_STYLES[request.vpm_timeline] || "text-foreground")}>
                     {TIMELINE_LABELS[request.vpm_timeline]}
                   </span>
                 </div>
