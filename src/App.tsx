@@ -30,6 +30,7 @@ import AdminRequests from "./pages/AdminRequests";
 import AdminRetention from "./pages/AdminRetention";
 import AdminDeveloper from "./pages/AdminDeveloper";
 import AdminVpmRequests from "./pages/AdminVpmRequests";
+import VpmTicketDetail from "./pages/VpmTicketDetail";
 import VpmWorkspace from "./pages/VpmWorkspace";
 import RequestDetail from "./pages/RequestDetail";
 import ComingSoon from "./pages/ComingSoon";
@@ -81,6 +82,7 @@ const App = () => (
               <Route path="/admin/retention" element={<AdminRoute><AdminRetention /></AdminRoute>} />
               <Route path="/admin/developer" element={<AdminRoute><AdminDeveloper /></AdminRoute>} />
               <Route path="/admin/vpm-requests" element={<AdminRoute><AdminVpmRequests /></AdminRoute>} />
+              <Route path="/admin/vpm-requests/:id" element={<AdminRoute><VpmTicketDetail /></AdminRoute>} />
               <Route path="/vpm/workspace" element={<AdminRoute><VpmWorkspace /></AdminRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
