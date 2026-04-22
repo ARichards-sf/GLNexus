@@ -154,7 +154,7 @@ function SortableWidget({
         </div>
       )}
 
-      {editMode && !def?.pinned && instance.size !== "large" && (
+      {editMode && !(def as { pinned?: boolean } | undefined)?.pinned && instance.size !== "large" && (
         <div
           className="absolute left-3 top-3 z-20 cursor-grab rounded-md border border-border bg-background p-1 text-muted-foreground shadow-sm active:cursor-grabbing"
           {...attributes}
