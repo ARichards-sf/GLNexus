@@ -53,7 +53,9 @@ export default function ImpersonationBar() {
           </div>
           <button
             onClick={() => {
-              const ticketId = (window as Window & { __vpm_ticket_id?: string }).__vpm_ticket_id;
+              const ticketId =
+                (window as Window & { __vpm_ticket_id?: string }).__vpm_ticket_id ||
+                window.localStorage.getItem("vpm_ticket_id");
               stopVpmSession();
               delete (window as Window & { __vpm_ticket_id?: string }).__vpm_ticket_id;
               window.localStorage.removeItem("vpm_ticket_id");
