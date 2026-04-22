@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import TierBadge from "@/components/TierBadge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   REQUEST_TYPE_LABELS,
@@ -84,6 +85,26 @@ export default function VpmTicketDetail() {
       };
     },
     enabled: !!id,
+  });
+
+  const { data: household } = useQuery({
+    queryKey: ["vpm_ticket_household", request?.household_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("households")
+        .select(`
+          id, name, total_aum,
+          risk_tolerance, wealth_tier,
+          investment_objective, status,
+          annual_review_date,
+          last_review_date,
+          tier_score, tier_pending_review
+        `)
+        .eq("id", request!.household_id!)
+        .single();
+      return data;
+    },
+    enabled: !!request?.household_id,
   });
 
   const { messages, sendMessage, isLoading: messagesLoading } = useRequestMessages(id!);
@@ -442,6 +463,83 @@ export default function VpmTicketDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {request?.household_id && household && (
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Household
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-foreground truncate">{household.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{household.status}</p>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-2">
+                  <TierBadge tier={household.wealth_tier} score={household.tier_score ?? undefined} />
+                  <Button asChild variant="outline" size="sm" className="h-7 px-2 text-xs">
+                    <Link to={`/households/${household.id}`}>Open</Link>
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex justify-between gap-3">
+                  <span>AUM</span>
+                  <span className="font-medium text-foreground text-right">
+                    {formatCurrency(household.total_aum)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-3">
+                  <span>Risk</span>
+                  <span className="font-medium text-foreground text-right">
+                    {household.risk_tolerance}
+                  </span>
+                </div>
+
+                {household.investment_objective && (
+                  <div className="flex justify-between gap-3">
+                    <span>Objective</span>
+                    <span className="font-medium text-foreground text-right">
+                      {household.investment_objective}
+                    </span>
+                  </div>
+                )}
+
+                {household.annual_review_date && (
+                  <div className="flex justify-between gap-3">
+                    <span>Next Review</span>
+                    <span className="font-medium text-foreground text-right">
+                      {new Date(household.annual_review_date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                )}
+
+                {household.last_review_date && (
+                  <div className="flex justify-between gap-3">
+                    <span>Last Review</span>
+                    <span className="font-medium text-foreground text-right">
+                      {new Date(household.last_review_date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {request?.advisor_billing_type === "hourly" && (
           <Card className="border-border shadow-none">
