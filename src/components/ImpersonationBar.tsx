@@ -52,19 +52,7 @@ export default function ImpersonationBar() {
             )}
           </div>
           <button
-            onClick={() => {
-              const ticketId =
-                (window as Window & { __vpm_ticket_id?: string }).__vpm_ticket_id ||
-                window.localStorage.getItem("vpm_ticket_id");
-              stopVpmSession();
-              delete (window as Window & { __vpm_ticket_id?: string }).__vpm_ticket_id;
-              window.localStorage.removeItem("vpm_ticket_id");
-              if (ticketId) {
-                navigate(`/admin/vpm-requests/${ticketId}`);
-              } else {
-                navigate("/admin/vpm-requests");
-              }
-            }}
+            onClick={stopVpmSession}
             className="flex items-center gap-1 text-blue-200 hover:text-white transition-colors"
           >
             <X className="w-3.5 h-3.5" />
