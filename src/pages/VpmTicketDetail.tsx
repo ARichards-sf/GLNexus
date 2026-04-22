@@ -216,7 +216,7 @@ export default function VpmTicketDetail() {
   const isActiveSession = isVpmSession && vpmAdvisor?.id === request.advisor_id;
 
   return (
-    <div className="flex gap-6 items-start p-6">
+    <div className="flex gap-6 items-start p-6 pt-0">
       <div className="flex-1 min-w-0 space-y-4">
         <button
           onClick={() => navigate("/admin/vpm-requests")}
@@ -356,7 +356,7 @@ export default function VpmTicketDetail() {
         </Card>
       </div>
 
-      <div className="w-80 shrink-0 space-y-4">
+      <div className="w-80 shrink-0 space-y-4 pt-6">
         <Card className="border-border shadow-none">
           <CardContent className="pt-4 space-y-3">
             <div>
