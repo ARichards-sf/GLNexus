@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,11 @@ import {
   CheckSquare,
   Plus,
   Zap,
+  Settings2,
+  X,
+  GripVertical,
+  RotateCcw,
+  Check,
 } from "lucide-react";
 import VpmRequestDialog from "@/components/VpmRequestDialog";
 import { useVpmStatus } from "@/hooks/useAdmin";
@@ -43,6 +48,32 @@ import { useProspects } from "@/hooks/useProspects";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useFirms } from "@/hooks/useFirms";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  WIDGET_REGISTRY,
+  DEFAULT_LAYOUT,
+  type WidgetInstance,
+  type WidgetSize,
+} from "@/lib/dashboardWidgets";
+import { WidgetRenderer } from "@/components/dashboard/WidgetRenderer";
+import { useDashboardLayout } from "@/hooks/useDashboardLayout";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -59,6 +90,72 @@ const noteTypeIcons: Record<string, React.ElementType> = {
   Compliance: FileText,
   Onboarding: FileText,
 };
+
+function SortableWidget({
+  instance,
+  editMode,
+  onRemove,
+  onToggleSize,
+  children,
+}: {
+  instance: WidgetInstance;
+  editMode: boolean;
+  onRemove: (id: string) => void;
+  onToggleSize: (id: string) => void;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: instance.id });
+
+  const def = WIDGET_REGISTRY.find((d) => d.id === instance.widgetId);
+  const canResize = (def?.allowedSizes.length ?? 0) > 1;
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    gridColumn: instance.size === "large" ? "span 2" : "span 1",
+  } as const;
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative min-w-0">
+      {editMode && (
+        <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5">
+          {canResize && (
+            <button
+              type="button"
+              onClick={() => onToggleSize(instance.id)}
+              className="bg-background border border-border rounded-md p-1 text-xs text-muted-foreground hover:text-foreground shadow-sm"
+              title={instance.size === "small" ? "Make full width" : "Make half width"}
+            >
+              {instance.size === "small" ? "↔" : "↕"}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onRemove(instance.id)}
+            className="bg-background border border-border rounded-md p-1 text-muted-foreground hover:text-destructive shadow-sm"
+            title="Remove widget"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {editMode && (
+        <div
+          className="absolute left-3 top-3 z-20 cursor-grab rounded-md border border-border bg-background p-1 text-muted-foreground shadow-sm active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </div>
+      )}
+
+      {children}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -77,37 +174,34 @@ export default function Dashboard() {
   const { data: vpmStatus } = useVpmStatus();
   const { startSession } = useInSession();
 
-  // Firm branding
   const { currentFirm } = useFirmContext();
   const { selectedFirmId } = useSelectedFirm();
   const { data: firms = [] } = useFirms();
-  const brandingFirm = selectedFirmId
-    ? firms.find((f) => f.id === selectedFirmId) ?? currentFirm
-    : currentFirm;
+  const brandingFirm = selectedFirmId ? firms.find((f) => f.id === selectedFirmId) ?? currentFirm : currentFirm;
   const firmAccentColor = (brandingFirm as any)?.accent_color || undefined;
   const firmAccent = (brandingFirm as any)?.accent_color || null;
 
   const openRequests = useMemo(() => {
-    return myRequests.filter(r => r.status !== "resolved" && r.status !== "closed");
+    return myRequests.filter((r) => r.status !== "resolved" && r.status !== "closed");
   }, [myRequests]);
 
   const pendingTasks = useMemo(() => {
-    return myTasks
-      .filter(t => t.status === "todo")
-      .slice(0, 3);
+    return myTasks.filter((t) => t.status === "todo").slice(0, 3);
   }, [myTasks]);
 
   const allPendingTasks = useMemo(() => {
-    return myTasks.filter(t => t.status !== "done");
+    return myTasks.filter((t) => t.status !== "done");
   }, [myTasks]);
 
   const imminentMeeting = useMemo(() => {
     const now = Date.now();
     const cutoff = now + 60 * 60 * 1000;
-    return upcomingEvents.find((ev) => {
-      const t = new Date(ev.start_time).getTime();
-      return t >= now && t <= cutoff;
-    }) ?? null;
+    return (
+      upcomingEvents.find((ev) => {
+        const t = new Date(ev.start_time).getTime();
+        return t >= now && t <= cutoff;
+      }) ?? null
+    );
   }, [upcomingEvents]);
 
   const minutesUntilMeeting = imminentMeeting
@@ -132,13 +226,84 @@ export default function Dashboard() {
 
   const firstName = impersonatedUser?.name?.split(" ")[0] || user?.user_metadata?.full_name?.split(" ")[0] || "Advisor";
 
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+
+  const [editMode, setEditMode] = useState(false);
+  const [localLayout, setLocalLayout] = useState<WidgetInstance[]>([]);
+  const { layout, saveLayout, resetLayout, isSaving } = useDashboardLayout();
+  const [libraryOpen, setLibraryOpen] = useState(false);
+
+  const handleEnterEdit = useCallback(() => {
+    setLocalLayout([...layout]);
+    setEditMode(true);
+  }, [layout]);
+
+  const handleSaveAndExit = useCallback(async () => {
+    await saveLayout(localLayout);
+    setEditMode(false);
+  }, [localLayout, saveLayout]);
+
+  const handleResetLayout = useCallback(() => {
+    setLocalLayout([...DEFAULT_LAYOUT]);
+  }, []);
+
+  const handleRemoveWidget = useCallback((instanceId: string) => {
+    setLocalLayout((prev) => prev.filter((w) => w.id !== instanceId));
+  }, []);
+
+  const handleToggleSize = useCallback((instanceId: string) => {
+    setLocalLayout((prev) =>
+      prev.map((w) => {
+        if (w.id !== instanceId) return w;
+        const def = WIDGET_REGISTRY.find((d) => d.id === w.widgetId);
+        if (!def || def.allowedSizes.length < 2) return w;
+        const newSize: WidgetSize = w.size === "small" ? "large" : "small";
+        return { ...w, size: newSize };
+      }),
+    );
+  }, []);
+
+  const handleAddWidget = useCallback((widgetId: string) => {
+    const def = WIDGET_REGISTRY.find((d) => d.id === widgetId);
+    if (!def) return;
+    const newInstance: WidgetInstance = {
+      id: `${widgetId}-${Date.now()}`,
+      widgetId,
+      size: def.defaultSize,
+    };
+    setLocalLayout((prev) => [...prev, newInstance]);
+  }, []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setLocalLayout((prev) => {
+        const oldIndex = prev.findIndex((w) => w.id === active.id);
+        const newIndex = prev.findIndex((w) => w.id === over.id);
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
+  }, []);
+
+  const activeLayout = editMode ? localLayout : layout;
+
   if (isLoading) {
     return (
       <div className="p-6 lg:p-10">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-secondary rounded w-64" />
           <div className="grid grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => <div key={i} className="h-28 bg-secondary rounded-lg" />)}
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-28 bg-secondary rounded-lg" />
+            ))}
           </div>
         </div>
       </div>
@@ -147,19 +312,37 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 lg:p-8">
-      <div
-        className={cn("mb-6", firmAccent && "pl-4 border-l-2")}
-        style={firmAccent ? { borderColor: firmAccent } : undefined}
-      >
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good morning, {firstName}</h1>
-        <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className={cn("min-w-0", firmAccent && "pl-4 border-l-2")} style={firmAccent ? { borderColor: firmAccent } : undefined}>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Good {timeOfDay}, {firstName}</h1>
+          <p className="text-muted-foreground mt-1">Here's your practice overview for today.</p>
+        </div>
+
+        <div className="flex items-center gap-2 self-start">
+          {editMode ? (
+            <>
+              <Button variant="outline" size="sm" onClick={handleResetLayout} className="gap-2">
+                <RotateCcw className="w-4 h-4" />
+                Reset
+              </Button>
+              <Button size="sm" onClick={handleSaveAndExit} className="gap-2">
+                <Check className="w-4 h-4" />
+                {isSaving ? "Saving..." : "Done"}
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" onClick={handleEnterEdit} className="gap-2">
+              <Settings2 className="w-4 h-4" />
+              Customize
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Quick Actions bar */}
       <div
         className={cn(
           "flex items-center justify-between gap-4 p-3 rounded-lg bg-secondary/40 mb-6",
-          firmAccent && "border-l-[3px]"
+          firmAccent && "border-l-[3px]",
         )}
         style={firmAccent ? { borderColor: firmAccent } : undefined}
       >
@@ -181,12 +364,7 @@ export default function Dashboard() {
             Request GL Assistance
           </Button>
           {vpmStatus?.isVpm && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setVpmOpen(true)}
-              className="gap-2"
-            >
+            <Button variant="outline" size="sm" onClick={() => setVpmOpen(true)} className="gap-2">
               <Zap className="w-3.5 h-3.5 text-amber-500" />
               {vpmStatus.isPrimePartner ? "VPM Support ⭐" : "VPM Support"}
             </Button>
@@ -203,7 +381,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Your Next Meeting — only when within 60 minutes */}
       {imminentMeeting && (
         <Card className="mb-6 border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/10 shadow-none">
           <CardContent className="pt-5 pb-5">
@@ -219,9 +396,7 @@ export default function Dashboard() {
                   </Badge>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">
-                    {imminentMeeting.title}
-                  </p>
+                  <p className="text-sm font-semibold text-foreground truncate">{imminentMeeting.title}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {(imminentMeeting.households?.name ||
                       (imminentMeeting.prospects
@@ -247,192 +422,91 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <MorningBriefing
-        households={households}
-        recentNotes={recentNotes as any}
-        upcomingEvents={upcomingEvents as any}
-        pendingTasks={allPendingTasks as any}
-        firstName={firstName}
-        userId={user?.id || "anonymous"}
-        accentColor={firmAccentColor}
-        prospects={prospects}
-      />
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={activeLayout.map((w) => w.id)} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-min">
+            {activeLayout.map((instance) => (
+              <SortableWidget
+                key={instance.id}
+                instance={instance}
+                editMode={editMode}
+                onRemove={handleRemoveWidget}
+                onToggleSize={handleToggleSize}
+              >
+                <WidgetRenderer
+                  instance={instance}
+                  households={households as any}
+                  recentNotes={recentNotes as any}
+                  upcomingEvents={upcomingEvents as any}
+                  pendingTasks={allPendingTasks as any}
+                  prospects={prospects as any}
+                  firstName={firstName}
+                  userId={user?.id || "anonymous"}
+                  firmAccentColor={firmAccentColor}
+                  totalAUM={totalAUM}
+                  totalHouseholds={totalHouseholds}
+                  activeHouseholds={activeHouseholds}
+                  upcomingReviews={upcomingReviews as any}
+                />
+              </SortableWidget>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <Card
-          className="border-border shadow-none"
-          style={firmAccent ? { borderTopColor: firmAccent, borderTopWidth: "3px" } : undefined}
+      {editMode && (
+        <button
+          type="button"
+          onClick={() => setLibraryOpen(true)}
+          className="mt-4 w-full border-2 border-dashed border-border rounded-lg py-4 text-sm text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors flex items-center justify-center gap-2"
         >
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground font-medium">Total Book of Business</span>
-              <DollarSign className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <p className="text-3xl font-semibold tracking-tight text-foreground">{formatCurrency(totalAUM)}</p>
-            <div className="flex items-center gap-1 mt-2">
-              <ArrowUpRight className="w-3.5 h-3.5 text-emerald" />
-              <span className="text-xs font-medium text-emerald">+3.2% QTD</span>
-            </div>
-          </CardContent>
-        </Card>
+          <Plus className="w-4 h-4" />
+          Add Widget
+        </button>
+      )}
 
-        <Card
-          className="border-border shadow-none"
-          style={firmAccent ? { borderTopColor: firmAccent, borderTopWidth: "3px" } : undefined}
-        >
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground font-medium">Households</span>
-              <Users className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <p className="text-3xl font-semibold tracking-tight text-foreground">{totalHouseholds}</p>
-            <p className="text-xs text-muted-foreground mt-2">{activeHouseholds} active</p>
-          </CardContent>
-        </Card>
+      <Sheet open={libraryOpen} onOpenChange={setLibraryOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>Add Widgets</SheetTitle>
+          </SheetHeader>
 
-        <Card
-          className="border-border shadow-none"
-          style={firmAccent ? { borderTopColor: firmAccent, borderTopWidth: "3px" } : undefined}
-        >
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground font-medium">Upcoming Reviews</span>
-              <CalendarCheck className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <p className="text-3xl font-semibold tracking-tight text-foreground">{upcomingReviews.length}</p>
-            <p className="text-xs text-muted-foreground mt-2">Next 60 days</p>
-          </CardContent>
-        </Card>
-      </div>
+          <div className="mt-6 grid gap-3">
+            {WIDGET_REGISTRY.map((def) => {
+              const Icon = def.icon;
+              const isOnDashboard = localLayout.some((w) => w.widgetId === def.id);
+              return (
+                <button
+                  key={def.id}
+                  type="button"
+                  className="w-full rounded-lg border border-border p-4 text-left transition-colors hover:bg-secondary/50 disabled:opacity-60"
+                  disabled={isOnDashboard}
+                  onClick={() => {
+                    if (!isOnDashboard) {
+                      handleAddWidget(def.id);
+                      setLibraryOpen(false);
+                    }
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
+                      <Icon className="w-4 h-4" />
+                    </div>
 
-      {/* Main content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Pending Tasks */}
-          <Card className="border-border shadow-none">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <CheckSquare className="w-4 h-4" />
-                  Pending Tasks
-                </CardTitle>
-                <Link to="/tasks">
-                  <Button variant="ghost" size="sm" className="text-xs h-7">
-                    View all <ArrowRight className="w-3 h-3 ml-1" />
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {pendingTasks.length === 0 ? (
-                <div className="text-center py-6">
-                  <CheckSquare className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">You're all caught up</p>
-                </div>
-              ) : (
-                pendingTasks.map((t) => {
-                  const priorityDot =
-                    t.priority === "urgent"
-                      ? "bg-red-500"
-                      : t.priority === "high"
-                      ? "bg-amber-500"
-                      : t.priority === "medium"
-                      ? "bg-blue-500"
-                      : "bg-muted-foreground/40";
-                  const isOverdue =
-                    !!t.due_date &&
-                    new Date(t.due_date + "T00:00:00") < new Date(new Date().setHours(0, 0, 0, 0));
-                  return (
-                    <Link
-                      key={t.id}
-                      to={`/tasks/${t.id}`}
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors"
-                    >
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${priorityDot}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{t.title}</p>
-                        {t.households?.name && (
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                            {t.households.name}
-                          </p>
-                        )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-foreground">{def.label}</p>
+                        {isOnDashboard && <Check className="w-4 h-4 text-primary shrink-0" />}
                       </div>
-                      {t.due_date && (
-                        <span
-                          className={`text-[11px] shrink-0 ${
-                            isOverdue ? "text-red-600 dark:text-red-400 font-medium" : "text-muted-foreground"
-                          }`}
-                        >
-                          {new Date(t.due_date + "T00:00:00").toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Upcoming Meetings */}
-          <Card className="border-border shadow-none">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">Upcoming Meetings</CardTitle>
-                <Link to="/calendar">
-                  <Button variant="ghost" size="sm" className="text-xs h-7">
-                    View Calendar <ArrowRight className="w-3 h-3 ml-1" />
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {upcomingEvents.map((ev) => {
-                const colors = EVENT_TYPE_COLORS[ev.event_type] || EVENT_TYPE_COLORS["Discovery Call"];
-                return (
-                  <Link
-                    key={ev.id}
-                    to="/calendar"
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors group"
-                  >
-                    <div className={`w-2 h-8 rounded-full shrink-0 ${colors.dot}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {ev.households?.name || "No household linked"}
-                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">{def.description}</p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-xs font-medium text-foreground">
-                        {new Date(ev.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {new Date(ev.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                      </p>
-                    </div>
-                  </Link>
-                );
-              })}
-              {upcomingEvents.length === 0 && (
-                <div className="text-center py-6">
-                  <CalendarDays className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">No upcoming meetings</p>
-                  <Link to="/calendar">
-                    <Button variant="outline" size="sm" className="mt-2 text-xs">Schedule a meeting</Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-1">
-          <GoodieSuggests households={households} recentNotes={recentNotes as any} />
-        </div>
-      </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <RequestAssistanceDialog open={assistOpen} onOpenChange={setAssistOpen} />
       <VpmRequestDialog open={vpmOpen} onOpenChange={setVpmOpen} />
