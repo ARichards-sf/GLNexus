@@ -81,9 +81,10 @@ export default function MyRequests() {
                     </div>
                     <p className="text-sm text-foreground line-clamp-2">
                       {req.description}
-                      {req.is_vpm && req.ticket_number && (
+                      {(req as { is_vpm?: boolean; ticket_number?: number | null }).is_vpm &&
+                        (req as { is_vpm?: boolean; ticket_number?: number | null }).ticket_number && (
                         <span className="text-xs font-mono text-muted-foreground ml-2">
-                          VPM-{req.ticket_number}
+                          VPM-{(req as { is_vpm?: boolean; ticket_number?: number | null }).ticket_number}
                         </span>
                       )}
                     </p>
