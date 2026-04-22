@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertCircle,
   ArrowLeft,
   CheckCircle2,
   Clock,
@@ -248,69 +247,95 @@ export default function VpmTicketDetail() {
         </button>
 
         <Card className="border-border shadow-none">
-          <CardContent className="pt-6 space-y-5">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className={cn("capitalize", STATUS_STYLES[status] || "")}>{status}</Badge>
-                  {request?.vpm_request_type && (
-                    <Badge variant="outline">
-                      {REQUEST_TYPE_LABELS[request.vpm_request_type] || request.vpm_request_type}
-                    </Badge>
-                  )}
-                  {request?.is_prime_partner && (
-                    <Badge className="bg-amber-100 text-amber-700">⭐ Prime Partner</Badge>
-                  )}
-                </div>
-
-                <div>
-                  <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                    {REQUEST_TYPE_LABELS[request?.vpm_request_type || ""] || "VPM Support Request"}
-                  </h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {request?.advisor_name}
-                    {request?.firm_name && ` · ${request.firm_name}`}
-                  </p>
-                </div>
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge className={cn("capitalize", STATUS_STYLES[status] || "")}>{status}</Badge>
+                {request.vpm_request_type && (
+                  <Badge variant="outline" className="text-xs">
+                    {REQUEST_TYPE_LABELS[request.vpm_request_type] || request.vpm_request_type}
+                  </Badge>
+                )}
+                {request.is_prime_partner && (
+                  <Badge className="bg-amber-100 text-amber-700 text-xs">⭐ Prime Partner</Badge>
+                )}
+                {request.vpm_timeline && (
+                  <Badge className={cn("text-xs", TIMELINE_STYLES[request.vpm_timeline] || "")}>
+                    <Clock className="w-3 h-3 mr-1" />
+                    {TIMELINE_LABELS[request.vpm_timeline]}
+                  </Badge>
+                )}
               </div>
+              <span className="text-xs text-muted-foreground shrink-0">
+                #{id?.slice(0, 8).toUpperCase()} · {request.created_at && new Date(request.created_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
             </div>
+
+            <h1 className="text-xl font-semibold tracking-tight text-foreground mb-1">
+              {REQUEST_TYPE_LABELS[request.vpm_request_type || ""] || "VPM Support Request"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {request.advisor_name}
+              {request.firm_name && ` · ${request.firm_name}`}
+            </p>
           </CardContent>
         </Card>
 
         {isActiveSession && (
-          <Card className="border-border shadow-none bg-secondary/30">
-            <CardContent className="pt-4 flex items-start gap-3 text-sm text-muted-foreground">
-              <Zap className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
-              <p>
-                VPM Session active — {request?.advisor_name}'s data is open in a new tab. Navigate
-                their book freely and return here to close the ticket when done.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+              <Zap className="w-4 h-4 text-blue-500 shrink-0" />
+              <span>
+                <strong>VPM Session active</strong>
+                {" — "}You are viewing {request.advisor_name}'s book. Return here to close the ticket.
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 text-xs border-blue-300 text-blue-700 hover:bg-blue-100"
+              onClick={handleExitSession}
+            >
+              Exit Session
+            </Button>
+          </div>
         )}
 
         <Card className="border-border shadow-none">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <CardTitle className="text-base">Request Details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-foreground whitespace-pre-wrap">{request?.description}</p>
+          <CardContent className="space-y-4">
+            {(() => {
+              const lines = (request.description || "").split("\n\n");
+              const hasSubject = lines.length > 1;
+              const subject = hasSubject ? lines[0] : null;
+              const body = hasSubject ? lines.slice(1).join("\n\n") : lines[0];
 
-            {request?.household_name && (
-              <div className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">Related to: </span>
-                <span>{request.household_name}</span>
-                {request.household_aum && (
-                  <span> · {formatCurrency(request.household_aum)} AUM</span>
-                )}
-              </div>
-            )}
+              return (
+                <>
+                  {subject && <p className="text-sm font-semibold text-foreground">{subject}</p>}
+                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{body}</p>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
         <Card className="border-border shadow-none min-h-0">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Messages</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Messages</CardTitle>
+              {messages.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {messages.length} message{messages.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div ref={scrollRef} className="max-h-[420px] overflow-y-auto space-y-3 pr-1">
@@ -350,13 +375,13 @@ export default function VpmTicketDetail() {
               )}
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex gap-2 items-end">
               <Textarea
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
                 placeholder="Send a message to the advisor..."
                 rows={2}
-                className="resize-none text-sm"
+                className="resize-none text-sm flex-1"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -365,10 +390,10 @@ export default function VpmTicketDetail() {
                 }}
               />
               <Button
-                size="sm"
                 onClick={handleSendMessage}
                 disabled={!messageText.trim() || isSending}
-                className="self-end"
+                size="sm"
+                className="self-end h-9 px-3"
               >
                 <Send className="w-3.5 h-3.5" />
               </Button>
@@ -394,6 +419,21 @@ export default function VpmTicketDetail() {
                   <SelectItem value="resolved">Resolved</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex justify-between gap-3 text-xs text-muted-foreground">
+              <span>Days open</span>
+              <span className="font-medium text-foreground text-right">
+                {request?.created_at
+                  ? Math.max(
+                      0,
+                      Math.floor(
+                        (Date.now() - new Date(request.created_at).getTime()) /
+                          (1000 * 60 * 60 * 24)
+                      )
+                    )
+                  : 0}
+              </span>
             </div>
 
             <Button
@@ -614,13 +654,6 @@ export default function VpmTicketDetail() {
               <Zap className="w-3.5 h-3.5" />
               {isActiveSession ? "Exit VPM Session" : "Enter VPM Session"}
             </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border shadow-none">
-          <CardContent className="pt-4 flex items-start gap-2 text-xs text-muted-foreground">
-            <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            <p>Session changes and ticket updates sync back into the shared VPM request queue.</p>
           </CardContent>
         </Card>
       </div>
