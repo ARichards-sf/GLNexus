@@ -480,7 +480,11 @@ export default function VpmTicketDetail() {
                 </div>
 
                 <div className="shrink-0 flex items-center gap-2">
-                  <TierBadge tier={household.wealth_tier} score={household.tier_score ?? undefined} />
+                  <TierBadge
+                    tier={household.wealth_tier}
+                    showUnassigned
+                    pending={!!household.tier_pending_review}
+                  />
                   <Button asChild variant="outline" size="sm" className="h-7 px-2 text-xs">
                     <Link to={`/households/${household.id}`}>Open</Link>
                   </Button>
