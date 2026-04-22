@@ -56,6 +56,8 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -112,12 +114,14 @@ function SortableWidget({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0 : 1,
     gridColumn: instance.size === "large" ? "span 2" : "span 1",
   } as const;
 
   return (
     <div ref={setNodeRef} style={style} className="relative min-w-0">
+      {isDragging && <div className="absolute inset-0 rounded-xl border-2 border-dashed border-border bg-secondary/30" />}
+
       {editMode && (
         <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5">
           {canResize && (
@@ -233,6 +237,7 @@ export default function Dashboard() {
   const [localLayout, setLocalLayout] = useState<WidgetInstance[]>([]);
   const { layout, saveLayout, resetLayout, isSaving } = useDashboardLayout();
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const handleEnterEdit = useCallback(() => {
     setLocalLayout([...layout]);
@@ -282,7 +287,12 @@ export default function Dashboard() {
     }),
   );
 
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveId(null);
     const { active, over } = event;
     if (over && active.id !== over.id) {
       setLocalLayout((prev) => {
@@ -422,7 +432,7 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <SortableContext items={activeLayout.map((w) => w.id)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-min">
             {activeLayout.map((instance) => (
@@ -452,6 +462,34 @@ export default function Dashboard() {
             ))}
           </div>
         </SortableContext>
+
+        {activeId
+          ? (() => {
+              const instance = localLayout.find((w) => w.id === activeId);
+              if (!instance) return null;
+              return (
+                <DragOverlay>
+                  <div className="w-full max-w-[min(100vw-3rem,900px)] opacity-95 shadow-xl">
+                    <WidgetRenderer
+                      instance={instance}
+                      households={households as any}
+                      recentNotes={recentNotes as any}
+                      upcomingEvents={upcomingEvents as any}
+                      pendingTasks={allPendingTasks as any}
+                      prospects={prospects as any}
+                      firstName={firstName}
+                      userId={user?.id || "anonymous"}
+                      firmAccentColor={firmAccentColor}
+                      totalAUM={totalAUM}
+                      totalHouseholds={totalHouseholds}
+                      activeHouseholds={activeHouseholds}
+                      upcomingReviews={upcomingReviews as any}
+                    />
+                  </div>
+                </DragOverlay>
+              );
+            })()
+          : null}
       </DndContext>
 
       {editMode && (
