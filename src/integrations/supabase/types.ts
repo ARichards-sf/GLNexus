@@ -1190,6 +1190,129 @@ export type Database = {
           },
         ]
       }
+      touchpoint_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_billable: boolean | null
+          month_offset: number
+          name: string
+          tier: string
+          touchpoint_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_billable?: boolean | null
+          month_offset: number
+          name: string
+          tier: string
+          touchpoint_type: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_billable?: boolean | null
+          month_offset?: number
+          name?: string
+          tier?: string
+          touchpoint_type?: string
+        }
+        Relationships: []
+      }
+      touchpoints: {
+        Row: {
+          advisor_id: string
+          completed_date: string | null
+          created_at: string | null
+          household_id: string
+          id: string
+          linked_event_id: string | null
+          linked_task_id: string | null
+          metadata: Json | null
+          name: string
+          notes: string | null
+          scheduled_date: string
+          status: string
+          template_id: string | null
+          touchpoint_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          advisor_id: string
+          completed_date?: string | null
+          created_at?: string | null
+          household_id: string
+          id?: string
+          linked_event_id?: string | null
+          linked_task_id?: string | null
+          metadata?: Json | null
+          name: string
+          notes?: string | null
+          scheduled_date: string
+          status?: string
+          template_id?: string | null
+          touchpoint_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          advisor_id?: string
+          completed_date?: string | null
+          created_at?: string | null
+          household_id?: string
+          id?: string
+          linked_event_id?: string | null
+          linked_task_id?: string | null
+          metadata?: Json | null
+          name?: string
+          notes?: string | null
+          scheduled_date?: string
+          status?: string
+          template_id?: string | null
+          touchpoint_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "touchpoints_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "active_households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "touchpoints_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "touchpoints_linked_event_id_fkey"
+            columns: ["linked_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "touchpoints_linked_task_id_fkey"
+            columns: ["linked_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "touchpoints_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "touchpoint_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
