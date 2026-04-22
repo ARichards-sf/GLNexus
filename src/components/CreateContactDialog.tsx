@@ -89,7 +89,7 @@ export default function CreateContactDialog({ open, onOpenChange }: Props) {
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger></FormControl>
                   <SelectContent>
-                    <SelectItem value="Head of Household">Head of Household</SelectItem>
+                    <SelectItem value="Primary">Primary</SelectItem>
                     <SelectItem value="Spouse">Spouse</SelectItem>
                     <SelectItem value="Dependent">Dependent</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
