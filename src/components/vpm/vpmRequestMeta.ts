@@ -34,6 +34,7 @@ export const STATUS_STYLES: Record<string, string> = {
 
 export interface VpmRequestRow {
   id: string;
+  ticket_number?: number | null;
   advisor_id: string;
   category: string;
   description: string;

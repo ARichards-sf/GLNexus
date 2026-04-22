@@ -19,6 +19,12 @@ export default function VpmRequestCard({ request: r, onClick }: VpmRequestCardPr
       className="bg-card border border-border rounded-lg p-4 hover:border-primary/40 hover:shadow-sm transition-all cursor-pointer"
       onClick={onClick}
     >
+      {r.ticket_number && (
+        <p className="text-xs font-mono font-semibold text-muted-foreground mb-2">
+          VPM-{r.ticket_number}
+        </p>
+      )}
+
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           {r.priority === "urgent" && (
