@@ -308,68 +308,12 @@ export default function VpmTicketDetail() {
           </CardContent>
         </Card>
 
-        <Card className="border-border shadow-none">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Advisor
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold shrink-0">
-                {request?.advisor_name
-                  ?.split(" ")
-                  .map((n: string) => n[0])
-                  .join("") || "?"}
-              </div>
-              <div>
-                <p className="font-medium text-foreground">{request?.advisor_name}</p>
-                {request?.firm_name && (
-                  <p className="text-xs text-muted-foreground">{request.firm_name}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="pt-2 space-y-1.5 text-xs text-muted-foreground">
-              <div className="flex justify-between gap-3">
-                <span>Billing</span>
-                <span className="font-medium text-foreground capitalize text-right">
-                  {request?.advisor_billing_type === "prime_partner"
-                    ? "⭐ Prime (Included)"
-                    : request?.advisor_billing_type === "hourly"
-                      ? `$${request.advisor_hourly_rate}/hr`
-                      : "—"}
-                </span>
-              </div>
-              {request?.vpm_timeline && (
-                <div className="flex justify-between gap-3">
-                  <span>Requested by</span>
-                  <span className={cn("font-medium text-right", TIMELINE_STYLES[request.vpm_timeline] || "text-foreground")}>
-                    {TIMELINE_LABELS[request.vpm_timeline]}
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between gap-3">
-                <span>Submitted</span>
-                <span className="font-medium text-foreground text-right">
-                  {request?.created_at &&
-                    new Date(request.created_at).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         <Card className="border-border shadow-none min-h-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Messages</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div ref={scrollRef} className="max-h-[600px] overflow-y-auto space-y-3 pr-1">
+            <div ref={scrollRef} className="max-h-[420px] overflow-y-auto space-y-3 pr-1">
               {messagesLoading ? (
                 <div className="text-sm text-muted-foreground py-10 text-center">Loading messages...</div>
               ) : messages.length === 0 ? (
@@ -461,6 +405,62 @@ export default function VpmTicketDetail() {
               <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
               {status === "resolved" ? "Reopen Ticket" : "Close Ticket"}
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Advisor
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold shrink-0">
+                {request?.advisor_name
+                  ?.split(" ")
+                  .map((n: string) => n[0])
+                  .join("") || "?"}
+              </div>
+              <div>
+                <p className="font-medium text-foreground">{request?.advisor_name}</p>
+                {request?.firm_name && (
+                  <p className="text-xs text-muted-foreground">{request.firm_name}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-2 space-y-1.5 text-xs text-muted-foreground">
+              <div className="flex justify-between gap-3">
+                <span>Billing</span>
+                <span className="font-medium text-foreground capitalize text-right">
+                  {request?.advisor_billing_type === "prime_partner"
+                    ? "⭐ Prime (Included)"
+                    : request?.advisor_billing_type === "hourly"
+                      ? `$${request.advisor_hourly_rate}/hr`
+                      : "—"}
+                </span>
+              </div>
+              {request?.vpm_timeline && (
+                <div className="flex justify-between gap-3">
+                  <span>Requested by</span>
+                  <span className={cn("font-medium text-right", TIMELINE_STYLES[request.vpm_timeline] || "text-foreground")}>
+                    {TIMELINE_LABELS[request.vpm_timeline]}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between gap-3">
+                <span>Submitted</span>
+                <span className="font-medium text-foreground text-right">
+                  {request?.created_at &&
+                    new Date(request.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                </span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
