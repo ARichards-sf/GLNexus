@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Sunrise, Sun, Sunset, ChevronDown, ChevronUp, X, Sparkles } from "lucide-react";
+import { Sunrise, Sun, Sunset, ChevronDown, ChevronUp, X, Sparkles, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -230,6 +230,27 @@ export default function MorningBriefing({
   const [minimized, setMinimized] = useState(initialCache?.minimized ?? false);
   const [dismissed, setDismissed] = useState(false);
   const hasGeneratedRef = useRef(!!initialCache);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+
+  const cachedSnapshot = (() => {
+    try {
+      const raw = localStorage.getItem(cacheKey + "_task_snapshot");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const currentOverdue = pendingTasks.filter(
+    (t) =>
+      t.due_date &&
+      t.status !== "done" &&
+      new Date(t.due_date + "T00:00:00") < new Date(new Date().setHours(0, 0, 0, 0))
+  ).length;
+
+  const taskDataChanged =
+    cachedSnapshot !== null &&
+    (cachedSnapshot.total !== pendingTasks.length || cachedSnapshot.overdue !== currentOverdue);
 
   // Clean up legacy cache keys
   useEffect(() => {
@@ -295,10 +316,22 @@ export default function MorningBriefing({
         cacheKey,
         JSON.stringify({ date: today, period: currentPeriod, text, minimized })
       );
+      localStorage.setItem(
+        cacheKey + "_task_snapshot",
+        JSON.stringify({
+          total: pendingTasks.length,
+          overdue: pendingTasks.filter(
+            (t) =>
+              t.due_date &&
+              t.status !== "done" &&
+              new Date(t.due_date + "T00:00:00") < new Date(new Date().setHours(0, 0, 0, 0))
+          ).length,
+        })
+      );
     } catch {
       // ignore
     }
-  }, [minimized, text, today, cacheKey, currentPeriod]);
+  }, [minimized, text, today, cacheKey, currentPeriod, pendingTasks]);
 
   // Generate briefing once if no cache
   useEffect(() => {
@@ -414,6 +447,18 @@ export default function MorningBriefing({
               cacheKey,
               JSON.stringify({ date: today, period: currentPeriod, text: next, minimized: false })
             );
+            localStorage.setItem(
+              cacheKey + "_task_snapshot",
+              JSON.stringify({
+                total: pendingTasks.length,
+                overdue: pendingTasks.filter(
+                  (t) =>
+                    t.due_date &&
+                    t.status !== "done" &&
+                    new Date(t.due_date + "T00:00:00") < new Date(new Date().setHours(0, 0, 0, 0))
+                ).length,
+              })
+            );
           } catch {
             // ignore
           }
@@ -425,7 +470,7 @@ export default function MorningBriefing({
       onError: () => setIsGenerating(false),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [households, pendingTasks, upcomingEvents, recentNotes, firstName, currentPeriod]);
+  }, [households, pendingTasks, upcomingEvents, recentNotes, firstName, currentPeriod, refreshNonce]);
 
   if (dismissed) return null;
 
@@ -528,6 +573,25 @@ export default function MorningBriefing({
                       <Sparkles className={`w-3 h-3 ${periodConfig.color}`} />
                       {periodConfig.footer}
                     </p>
+
+                    {taskDataChanged && !isGenerating && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5 mt-2">
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        Task data has changed since this briefing was generated.
+                        <button
+                          onClick={() => {
+                            localStorage.removeItem(cacheKey);
+                            localStorage.removeItem(cacheKey + "_task_snapshot");
+                            setText("");
+                            hasGeneratedRef.current = false;
+                            setRefreshNonce((prev) => prev + 1);
+                          }}
+                          className="underline hover:no-underline font-medium"
+                        >
+                          Refresh
+                        </button>
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
