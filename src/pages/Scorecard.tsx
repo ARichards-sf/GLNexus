@@ -55,6 +55,40 @@ type TouchpointHouseholdRow = {
   household_id: string | null;
 };
 
+const SUMMARY_CACHE_KEY = "scorecard_goodie_summary";
+
+const SUMMARY_DATE_KEY = "scorecard_goodie_summary_date";
+
+function getCachedSummary(): string | null {
+  try {
+    const cachedDate = localStorage.getItem(SUMMARY_DATE_KEY);
+    const today = new Date().toISOString().split("T")[0];
+
+    if (cachedDate !== today) return null;
+
+    return localStorage.getItem(SUMMARY_CACHE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function cacheSummary(summary: string): void {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    localStorage.setItem(SUMMARY_CACHE_KEY, summary);
+    localStorage.setItem(SUMMARY_DATE_KEY, today);
+  } catch {
+    // localStorage unavailable
+  }
+}
+
+function clearSummaryCache(): void {
+  try {
+    localStorage.removeItem(SUMMARY_CACHE_KEY);
+    localStorage.removeItem(SUMMARY_DATE_KEY);
+  } catch {}
+}
+
 function getAlertLevel(
   currentAum: number,
   previousAum: number
@@ -87,10 +121,12 @@ export default function Scorecard() {
   const { data: allTasks = [] } = useTasks("mine");
   const { data: prospects = [] } = useProspects();
 
-  const [summary, setSummary] = useState("");
+  const cachedOnMount = getCachedSummary();
+  const [summary, setSummary] = useState(cachedOnMount || "");
   const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryGenerated, setSummaryGenerated] = useState(false);
-  const summaryRef = useRef(false);
+  const [summaryGenerated, setSummaryGenerated] = useState(!!cachedOnMount);
+  const summaryRef = useRef<boolean>(!!cachedOnMount);
+  const summaryTextRef = useRef<string>("");
 
   const [blotterSearch, setBlotterSearch] = useState("");
   const [blotterFilter, setBlotterFilter] = useState<"all" | "pending" | "completed">("all");
@@ -299,6 +335,7 @@ export default function Scorecard() {
 
     setSummaryLoading(true);
     setSummary("");
+    summaryTextRef.current = "";
 
     const alertLines = aumAlerts
       .slice(0, 5)
@@ -355,14 +392,19 @@ Do not mention that you are an AI.`;
           messages: [{ role: "user", content: prompt }],
           context: "",
           onDelta: (chunk) => {
+            summaryTextRef.current += chunk;
             setSummary((prev) => prev + chunk);
           },
           onToolCalls: () => {},
-          onDone: () => resolve(),
+          onDone: () => {
+            resolve();
+          },
           onError: (msg) => reject(new Error(msg)),
         }).catch(reject);
       });
       setSummaryGenerated(true);
+      cacheSummary(summaryTextRef.current);
+      summaryTextRef.current = "";
     } catch {
       setSummary("Unable to generate summary. Check your alerts below.");
     } finally {
