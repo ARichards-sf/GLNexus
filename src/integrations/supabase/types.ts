@@ -802,6 +802,7 @@ export type Database = {
           prime_notes: string | null
           prime_partner_since: string | null
           prime_revenue_share: number | null
+          scorecard_settings: Json | null
           status: string
           updated_at: string
           user_id: string
@@ -827,6 +828,7 @@ export type Database = {
           prime_notes?: string | null
           prime_partner_since?: string | null
           prime_revenue_share?: number | null
+          scorecard_settings?: Json | null
           status?: string
           updated_at?: string
           user_id: string
@@ -852,6 +854,7 @@ export type Database = {
           prime_notes?: string | null
           prime_partner_since?: string | null
           prime_revenue_share?: number | null
+          scorecard_settings?: Json | null
           status?: string
           updated_at?: string
           user_id?: string
