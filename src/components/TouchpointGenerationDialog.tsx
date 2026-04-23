@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  BarChart3,
   CalendarDays,
+  CreditCard,
   Phone,
   Mail,
   FileCheck,
+  FileText,
   TrendingUp,
   Star,
   CheckSquare,
@@ -48,11 +51,14 @@ const TOUCHPOINT_TYPE_LABELS: Record<string, string> = {
   call: "Phone Call",
   letter: "Letter",
   annual_review: "Annual Review",
+  account_review: "Account Review",
   market_assessment: "Market Update",
+  custodian_statement: "Custodian Statement",
   newsletter: "Newsletter",
   birthday: "Birthday",
   holiday: "Holiday",
   appreciation_event: "Event",
+  premium_card: "Premium Card",
   task: "Task",
 };
 
@@ -61,11 +67,14 @@ const TOUCHPOINT_ICON_STYLES: Record<string, string> = {
   call: "bg-emerald-muted text-emerald",
   letter: "bg-accent/10 text-accent",
   annual_review: "bg-amber-muted text-amber",
+  account_review: "bg-blue-100 text-blue-600",
   market_assessment: "bg-secondary text-muted-foreground",
+  custodian_statement: "bg-secondary text-muted-foreground",
   newsletter: "bg-secondary text-muted-foreground",
   birthday: "bg-destructive/10 text-destructive",
   holiday: "bg-destructive/10 text-destructive",
   appreciation_event: "bg-amber-muted text-amber",
+  premium_card: "bg-amber-muted text-amber",
   task: "bg-secondary text-muted-foreground",
 };
 
@@ -74,11 +83,14 @@ const TOUCHPOINT_ICONS: Record<string, React.ComponentType<{ className?: string 
   call: Phone,
   letter: Mail,
   annual_review: FileCheck,
+  account_review: BarChart3,
   market_assessment: TrendingUp,
+  custodian_statement: FileText,
   newsletter: Newspaper,
   birthday: Cake,
   holiday: Gift,
   appreciation_event: Star,
+  premium_card: CreditCard,
   task: CheckSquare,
 };
 
