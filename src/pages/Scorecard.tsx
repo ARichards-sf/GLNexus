@@ -45,9 +45,9 @@ type TouchpointRow = {
   } | null;
 };
 
-type RecentNoteRow = {
+type RecentCompletedRow = {
   household_id: string;
-  date: string;
+  completed_date: string;
 };
 
 type TouchpointHouseholdRow = {
@@ -127,17 +127,18 @@ export default function Scorecard() {
     enabled: !!advisorId,
   });
 
-  const { data: recentNotes = [] } = useQuery({
-    queryKey: ["scorecard_notes", advisorId],
+  const { data: recentCompleted = [] } = useQuery({
+    queryKey: ["scorecard_recent_completed", advisorId],
     queryFn: async () => {
-      const ninetyDaysAgo = new Date();
-      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
       const { data } = await supabase
-        .from("compliance_notes")
-        .select("household_id, date")
+        .from("touchpoints")
+        .select("household_id, completed_date")
         .eq("advisor_id", advisorId!)
-        .gte("date", ninetyDaysAgo.toISOString().split("T")[0]);
-      return (data || []) as RecentNoteRow[];
+        .eq("status", "completed")
+        .gte("completed_date", sixtyDaysAgo.toISOString().split("T")[0]);
+      return (data || []) as RecentCompletedRow[];
     },
     enabled: !!advisorId,
   });
@@ -203,12 +204,27 @@ export default function Scorecard() {
     });
   }, [householdSnapshots, households]);
 
-  const noRecentContact = useMemo(() => {
-    const contactedIds = new Set(recentNotes.map((n) => n.household_id));
+  const contactGaps = useMemo(() => {
+    const recentHouseholdIds = new Set(recentCompleted.map((t) => t.household_id));
     return households
-      .filter((h) => h.status === "Active" && !contactedIds.has(h.id))
-      .slice(0, 10);
-  }, [households, recentNotes]);
+      .filter(
+        (h) =>
+          h.status === "Active" &&
+          (h.wealth_tier === "platinum" || h.wealth_tier === "gold") &&
+          !recentHouseholdIds.has(h.id)
+      )
+      .map((h) => ({
+        id: h.id,
+        name: h.name,
+        tier: h.wealth_tier as string,
+      }))
+      .sort((a, b) => {
+        if (a.tier === "platinum" && b.tier === "gold") return -1;
+        if (a.tier === "gold" && b.tier === "platinum") return 1;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, 8);
+  }, [households, recentCompleted]);
 
   const tierUpgrades = useMemo(
     () =>
@@ -316,8 +332,8 @@ ${alertLines || "None"}
 OVERDUE TOUCHPOINTS:
 ${overdueLines || "None"}
 
-NO CLIENT CONTACT IN 90+ DAYS:
-${noRecentContact.slice(0, 5).map((h) => h.name).join(", ") || "None"}
+PLATINUM/GOLD WITH NO TOUCHPOINT IN 60 DAYS:
+${contactGaps.slice(0, 5).map((h) => `${h.name} (${h.tier})`).join(", ") || "None"}
 
 OPPORTUNITIES:
 Tier upgrade candidates: ${tierUpgrades.length}
@@ -358,7 +374,7 @@ Do not mention that you are an AI.`;
     prospects,
     aumAlerts,
     overdueTouchpoints,
-    noRecentContact,
+    contactGaps,
     tierUpgrades,
     missingTimeline,
     stalledProspects,
@@ -513,23 +529,54 @@ Do not mention that you are an AI.`;
               )}
             </div>
 
-            {noRecentContact.length > 0 && (
-              <div className="rounded-lg border border-border bg-background p-4">
-                <h2 className="mb-3 text-sm font-semibold text-foreground">No Contact in 90+ Days</h2>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                No Touchpoint in 60 Days
+                <span className="ml-1.5 text-[10px] normal-case font-normal">
+                  Platinum &amp; Gold only
+                </span>
+              </p>
+              {contactGaps.length === 0 ? (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  All Platinum &amp; Gold clients have recent touchpoints
+                </p>
+              ) : (
                 <div className="space-y-2">
-                  {noRecentContact.slice(0, 5).map((hh) => (
-                    <Link
+                  {contactGaps.map((hh) => (
+                    <div
                       key={hh.id}
-                      to={`/household/${hh.id}`}
-                      className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5 text-sm transition-colors hover:bg-secondary/60"
+                      className="flex items-center justify-between border-b border-border py-1.5 last:border-0"
                     >
-                      <span className="font-medium text-foreground">{hh.name}</span>
-                      <span className="text-primary">View →</span>
-                    </Link>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span
+                          className={cn(
+                            "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase",
+                            hh.tier === "platinum"
+                              ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                          )}
+                        >
+                          {hh.tier === "platinum" ? "Plat" : "Gold"}
+                        </span>
+                        <span className="truncate text-xs font-medium text-foreground">{hh.name}</span>
+                      </div>
+                      <Link
+                        to={`/household/${hh.id}`}
+                        className="ml-2 shrink-0 text-xs text-primary hover:underline"
+                      >
+                        View →
+                      </Link>
+                    </div>
                   ))}
+                  {contactGaps.length >= 8 && (
+                    <p className="pt-1 text-xs text-muted-foreground">
+                      Showing top 8 — check Households for full list
+                    </p>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-lg border border-dashed border-border bg-secondary/40 p-4 text-sm text-muted-foreground">
