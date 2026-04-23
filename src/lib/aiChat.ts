@@ -4,92 +4,124 @@ import type { ParsedToolCall } from "@/hooks/useAiActions";
 
 export type AiMsg = { role: "user" | "assistant"; content: string; toolCalls?: ParsedToolCall[] };
 
-export function buildContextSnapshot(households: any[], notes: any[], prospects?: any[], calendarEvents?: any[]): string {
-  const totalAUM = households.reduce((s, h) => s + Number(h.total_aum), 0);
-  const active = households.filter((h) => h.status === "Active").length;
+export function buildContextSnapshot(
+  households: any[],
+  notes: any[],
+  prospects?: any[],
+  calendarEvents?: any[]
+): string {
+  const totalAUM = households.reduce(
+    (s, h) => s + Number(h.total_aum), 0
+  );
+  const active = households.filter(
+    h => h.status === "Active"
+  ).length;
   const now = new Date();
-  const fourteenDaysFromNow = new Date(now);
-  fourteenDaysFromNow.setDate(fourteenDaysFromNow.getDate() + 14);
-  const upcoming = households
-    .filter((h) => {
-      if (!h.annual_review_date) return false;
-      const d = new Date(h.annual_review_date);
-      const diff = (d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-      return diff >= 0 && diff <= 60;
-    })
-    .sort(
-      (a: any, b: any) =>
-        new Date(a.annual_review_date).getTime() - new Date(b.annual_review_date).getTime()
-    );
+  const todayStr = now.toDateString();
+  const fourteenDaysFromNow =
+    new Date(now);
+  fourteenDaysFromNow.setDate(
+    fourteenDaysFromNow.getDate() + 14
+  );
 
-  let ctx = `Total AUM: ${formatCurrency(totalAUM)}\nHouseholds: ${households.length} total, ${active} active\n\n`;
-  ctx += "HOUSEHOLDS (id | name | AUM | status | risk):\n";
-  const sorted = [...households].sort((a, b) => Number(b.total_aum) - Number(a.total_aum));
-  sorted.forEach((h) => {
-    ctx += `${h.id} | ${h.name} | ${formatCurrency(Number(h.total_aum))} | ${h.status} | ${h.risk_tolerance}`;
-    if (h.next_action) ctx += ` | Next: ${h.next_action}`;
+  // Lean overview — just the numbers
+  let ctx =
+    `Book: ${formatCurrency(totalAUM)} ` +
+    `across ${households.length} ` +
+    `households (${active} active)\n`;
+
+  // Household ID map — essential for
+  // tool calls (schedule, log note etc)
+  // Keep tier and AUM for context
+  ctx += "\nHOUSEHOLDS:\n";
+  const sorted = [...households].sort(
+    (a, b) => Number(b.total_aum) -
+              Number(a.total_aum)
+  );
+  sorted.forEach(h => {
+    ctx += `${h.id} | ${h.name}`;
+    if (h.wealth_tier)
+      ctx += ` | ${h.wealth_tier}`;
+    ctx += ` | ${formatCurrency(
+      Number(h.total_aum)
+    )}`;
     ctx += "\n";
   });
 
-  if (upcoming.length > 0) {
-    ctx += "\nANNUAL REVIEWS DUE (next 60 days):\n";
-    ctx += "NOTE: These are TARGET DUE DATES. Only mention a review as 'scheduled' if it has a booked calendar event.\n";
-    upcoming.forEach((h: any) => {
-      const hasBooked = (calendarEvents || []).some((e: any) =>
-        e.household_id === h.id &&
-        e.event_type === "Annual Review" &&
-        e.status === "scheduled" &&
-        new Date(e.start_time) > new Date()
-      );
-      ctx += `- ${h.name}: due ${new Date(h.annual_review_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} — ${hasBooked ? "meeting booked" : "not yet scheduled"}\n`;
-    });
-  }
-
-  const upcomingCalendarEvents = (calendarEvents || []).filter((e: any) => {
+  // Calendar — keep full 14-day window
+  // RAG can't handle scheduling conflicts
+  const upcomingEvents = (
+    calendarEvents || []
+  ).filter((e: any) => {
     const start = new Date(e.start_time);
-    return e.status === "scheduled" && start >= now && start <= fourteenDaysFromNow;
+    return (
+      e.status === "scheduled" &&
+      start >= now &&
+      start <= fourteenDaysFromNow
+    );
   });
 
-  if (upcomingCalendarEvents.length > 0) {
-    ctx += "\nCALENDAR AVAILABILITY CONTEXT (next 14 days):\n";
-    ctx += "Use these booked events to avoid suggesting times that overlap existing meetings.\n";
-    upcomingCalendarEvents.forEach((e: any) => {
-      const titleTarget = e.households?.name
-        || (e.prospects ? `${e.prospects.first_name} ${e.prospects.last_name}` : null)
-        || e.title;
-      ctx += `- ${new Date(e.start_time).toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      })} to ${new Date(e.end_time).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      })} | ${e.event_type} | ${titleTarget}\n`;
+  if (upcomingEvents.length > 0) {
+    ctx +=
+      "\nCALENDAR (next 14 days — " +
+      "avoid scheduling conflicts):\n";
+    upcomingEvents.forEach((e: any) => {
+      const target =
+        e.households?.name ||
+        (e.prospects
+          ? `${e.prospects.first_name} ${e.prospects.last_name}`
+          : null) ||
+        e.title;
+      ctx += `- ${new Date(e.start_time)
+        .toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        })} | ${e.event_type} | ${target}\n`;
     });
   }
 
-  if (notes.length > 0) {
-    ctx += "\nRECENT ACTIVITY:\n";
-    notes.slice(0, 8).forEach((n: any) => {
-      ctx += `- [${n.type}] ${(n as any).households?.name || "Household"}: ${n.summary.slice(0, 120)} (${new Date(n.date).toLocaleDateString()})\n`;
-    });
-  }
-
-  const activeProspects = (prospects || []).filter(
-    (p) => p.pipeline_stage !== "converted" && p.pipeline_stage !== "lost"
+  // Today's meetings highlighted
+  const todaysMeetings = (
+    calendarEvents || []
+  ).filter((e: any) =>
+    new Date(e.start_time)
+      .toDateString() === todayStr
   );
+
+  if (todaysMeetings.length > 0) {
+    ctx += "\nTODAY'S MEETINGS:\n";
+    todaysMeetings.forEach((e: any) => {
+      ctx += `- ${new Date(e.start_time)
+        .toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        })} ${e.title}\n`;
+    });
+  }
+
+  // Active prospects — keep for pipeline
+  // questions and referral context
+  const activeProspects = (
+    prospects || []
+  ).filter(p =>
+    p.pipeline_stage !== "converted" &&
+    p.pipeline_stage !== "lost"
+  );
+
   if (activeProspects.length > 0) {
-    ctx += "\nPROSPECT PIPELINE:\n";
-    ctx += `${activeProspects.length} active prospects\n`;
+    ctx += `\nPIPELINE: ` +
+      `${activeProspects.length} ` +
+      `active prospects\n`;
     activeProspects.forEach((p: any) => {
-      ctx += `- ${p.first_name} ${p.last_name}`;
-      if (p.company) ctx += ` (${p.company})`;
-      ctx += ` | Stage: ${p.pipeline_stage}`;
-      if (p.estimated_aum) ctx += ` | Est. AUM: $${Number(p.estimated_aum).toLocaleString()}`;
-      if (p.source) ctx += ` | Source: ${p.source}`;
-      ctx += "\n";
+      ctx += `- ${p.first_name} ` +
+        `${p.last_name}`;
+      if (p.estimated_aum)
+        ctx += ` | $${Number(
+          p.estimated_aum
+        ).toLocaleString()}`;
+      ctx += ` | ${p.pipeline_stage}\n`;
     });
   }
 
