@@ -379,6 +379,42 @@ export type Database = {
         }
         Relationships: []
       }
+      embeddings: {
+        Row: {
+          advisor_id: string
+          content: string
+          created_at: string
+          embedding: string | null
+          id: string
+          metadata: Json
+          record_id: string
+          table_name: string
+          updated_at: string
+        }
+        Insert: {
+          advisor_id: string
+          content: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json
+          record_id: string
+          table_name: string
+          updated_at?: string
+        }
+        Update: {
+          advisor_id?: string
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json
+          record_id?: string
+          table_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       firm_memberships: {
         Row: {
           created_at: string
