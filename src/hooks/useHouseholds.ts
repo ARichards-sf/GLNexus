@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
+import { embedRecord } from "@/lib/embedRecord";
 
 export interface HouseholdRow {
   id: string;
@@ -148,14 +149,22 @@ export function useCreateComplianceNote() {
   return useMutation({
     mutationFn: async ({ householdId, type, summary }: { householdId: string; type: string; summary: string }) => {
       const advisorId = user ? targetAdvisorId(user.id) : user!.id;
-      const { error } = await supabase.from("compliance_notes").insert({
-        household_id: householdId,
-        advisor_id: advisorId,
-        type,
-        summary,
-        date: new Date().toISOString().split("T")[0],
-      });
+      const { data, error } = await supabase
+        .from("compliance_notes")
+        .insert({
+          household_id: householdId,
+          advisor_id: advisorId,
+          type,
+          summary,
+          date: new Date().toISOString().split("T")[0],
+        })
+        .select()
+        .single();
       if (error) throw error;
+
+      if (data && user) {
+        embedRecord("compliance_notes", data, user.id);
+      }
 
       // If Annual Review, update household's annual_review_date
       if (type === "Annual Review") {
