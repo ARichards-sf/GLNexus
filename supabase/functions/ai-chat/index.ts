@@ -184,7 +184,22 @@ serve(async (req) => {
     if (!ANTHROPIC_API_KEY) 
       throw new Error("ANTHROPIC_API_KEY is not configured");
 
+    const today = new Date();
+    const todayStr = today.toLocaleDateString(
+      "en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      }
+    );
     let systemContent = SYSTEM_PROMPT;
+    systemContent +=
+      `\n\nToday's date is ${todayStr}.` +
+      ` Use this for all date calculations,` +
+      ` scheduling, and relative date` +
+      ` references like 'tomorrow',` +
+      ` 'next week', 'end of month' etc.`;
     if (context) {
       systemContent += `\n\n--- ADVISOR DATA SNAPSHOT ---\n${context}`;
     }
