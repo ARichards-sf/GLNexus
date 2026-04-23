@@ -61,6 +61,7 @@ import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useFirms } from "@/hooks/useFirms";
 import { useAuth } from "@/contexts/AuthContext";
+import { embedRecord } from "@/lib/embedRecord";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -358,6 +359,11 @@ export default function HouseholdProfile() {
     queryClient.invalidateQueries({ queryKey: ["households"] });
     const tierName = hh.tier_pending_review.charAt(0).toUpperCase() + hh.tier_pending_review.slice(1);
     toast.success(`Tier updated to ${tierName}`);
+    embedRecord(
+      "households",
+      { ...household, wealth_tier: hh.tier_pending_review },
+      user!.id
+    );
     setTouchpointGenOpen(true);
     setTierDialogOpen(false);
   };
@@ -398,6 +404,11 @@ export default function HouseholdProfile() {
     queryClient.invalidateQueries({ queryKey: ["households"] });
     const tierName = tier.charAt(0).toUpperCase() + tier.slice(1);
     toast.success(`Tier set to ${tierName}`);
+    embedRecord(
+      "households",
+      { ...household, wealth_tier: tier },
+      user!.id
+    );
     setTierDialogOpen(false);
   };
 

@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { embedRecord } from "@/lib/embedRecord";
 
 export interface ToolCall {
   id: string;
@@ -58,6 +59,11 @@ export function useAiActions() {
 
         queryClient.invalidateQueries({ queryKey: ["households"] });
         queryClient.invalidateQueries({ queryKey: ["household", args.household_id] });
+        embedRecord(
+          "households",
+          { id: args.household_id, ...updates },
+          advisorId
+        );
         return `Updated ${args.household_name || "household"} successfully.`;
       }
 
@@ -73,6 +79,16 @@ export function useAiActions() {
 
         queryClient.invalidateQueries({ queryKey: ["compliance_notes"] });
         queryClient.invalidateQueries({ queryKey: ["all_compliance_notes"] });
+        embedRecord(
+          "compliance_notes",
+          {
+            household_id: args.household_id,
+            type: args.type,
+            summary: args.summary,
+            date: new Date().toISOString().split("T")[0],
+          },
+          advisorId
+        );
         return `Compliance note added to ${args.household_name || "household"}.`;
       }
 
