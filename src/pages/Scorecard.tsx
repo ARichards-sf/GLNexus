@@ -1,28 +1,39 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, Lock, Search, ClipboardList, Crosshair } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTargetAdvisorId, useHouseholds } from "@/hooks/useHouseholds";
+import { useHouseholds, useTargetAdvisorId } from "@/hooks/useHouseholds";
 import { useTasks } from "@/hooks/useTasks";
 import { useProspects } from "@/hooks/useProspects";
+import { streamChat } from "@/lib/aiChat";
 import { formatCurrency } from "@/data/sampleData";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import TierBadge from "@/components/TierBadge";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Lock,
+  Search,
+  ClipboardList,
+  Crosshair,
+  Sparkles,
+  RefreshCw,
+  Loader2,
+} from "lucide-react";
 
 type AlertLevel = "critical" | "warning" | "info";
 
-interface HouseholdSnapshotRow {
+type HouseholdSnapshotRow = {
   household_id: string;
   snapshot_date: string;
   total_aum: number;
-}
+};
 
-interface TouchpointRow {
+type TouchpointRow = {
   id: string;
   household_id: string;
   name: string;
@@ -32,12 +43,16 @@ interface TouchpointRow {
     name: string;
     wealth_tier: string | null;
   } | null;
-}
+};
 
-interface RecentNoteRow {
+type RecentNoteRow = {
   household_id: string;
   date: string;
-}
+};
+
+type TouchpointHouseholdRow = {
+  household_id: string | null;
+};
 
 function getAlertLevel(
   currentAum: number,
@@ -45,12 +60,9 @@ function getAlertLevel(
 ): "critical" | "warning" | "info" | null {
   const dollarDrop = previousAum - currentAum;
   const percentDrop = previousAum > 0 ? (dollarDrop / previousAum) * 100 : 0;
-
   if (dollarDrop <= 0) return null;
-
   const isLarge = currentAum >= 1000000;
   const isMedium = currentAum >= 250000;
-
   if (isLarge) {
     if (dollarDrop >= 500000 || percentDrop >= 15) return "critical";
     if (dollarDrop >= 100000 || percentDrop >= 8) return "warning";
@@ -64,19 +76,23 @@ function getAlertLevel(
     if (dollarDrop >= 10000 || percentDrop >= 6) return "warning";
     if (dollarDrop >= 3000 || percentDrop >= 3) return "info";
   }
-
   return null;
 }
-
-const levelBadgeClassNames: Record<AlertLevel, string> = {
-  critical: "border-destructive/20 bg-destructive/10 text-destructive",
-  warning: "border-amber/20 bg-amber-muted text-amber",
-  info: "border-primary/20 bg-primary/10 text-primary",
-};
 
 export default function Scorecard() {
   const { user } = useAuth();
   const { advisorId } = useTargetAdvisorId();
+  const { data: households = [] } = useHouseholds();
+  const { data: allTasks = [] } = useTasks("mine");
+  const { data: prospects = [] } = useProspects();
+
+  const [summary, setSummary] = useState("");
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryGenerated, setSummaryGenerated] = useState(false);
+  const summaryRef = useRef(false);
+
+  const [blotterSearch, setBlotterSearch] = useState("");
+  const [blotterFilter, setBlotterFilter] = useState<"all" | "pending" | "completed">("all");
 
   const { data: householdSnapshots = [] } = useQuery({
     queryKey: ["scorecard_snapshots", advisorId],
@@ -91,10 +107,10 @@ export default function Scorecard() {
         .order("snapshot_date", { ascending: true });
       return (data || []) as HouseholdSnapshotRow[];
     },
-    enabled: !!advisorId && !!user,
+    enabled: !!advisorId,
   });
 
-  const { data: allTouchpoints = [] } = useQuery({
+  const { data: overdueTouchpoints = [] } = useQuery({
     queryKey: ["scorecard_touchpoints", advisorId],
     queryFn: async () => {
       const { data } = await supabase
@@ -108,7 +124,7 @@ export default function Scorecard() {
         .lte("scheduled_date", new Date().toISOString().split("T")[0]);
       return (data || []) as TouchpointRow[];
     },
-    enabled: !!advisorId && !!user,
+    enabled: !!advisorId,
   });
 
   const { data: recentNotes = [] } = useQuery({
@@ -123,14 +139,28 @@ export default function Scorecard() {
         .gte("date", ninetyDaysAgo.toISOString().split("T")[0]);
       return (data || []) as RecentNoteRow[];
     },
-    enabled: !!advisorId && !!user,
+    enabled: !!advisorId,
   });
 
-  const { data: allTasks = [] } = useTasks("mine");
-  const { data: households = [] } = useHouseholds();
-  const { data: prospects = [] } = useProspects();
+  const { data: allTouchpoints = [] } = useQuery({
+    queryKey: ["scorecard_all_touchpoints", advisorId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("touchpoints")
+        .select("household_id")
+        .eq("advisor_id", advisorId!);
+      return (data || []) as TouchpointHouseholdRow[];
+    },
+    enabled: !!advisorId,
+  });
 
   const aumAlerts = useMemo(() => {
+    const byHousehold = householdSnapshots.reduce<Record<string, HouseholdSnapshotRow[]>>((acc, snap) => {
+      if (!acc[snap.household_id]) acc[snap.household_id] = [];
+      acc[snap.household_id].push(snap);
+      return acc;
+    }, {});
+
     const alerts: {
       householdId: string;
       householdName: string;
@@ -141,12 +171,6 @@ export default function Scorecard() {
       level: AlertLevel;
     }[] = [];
 
-    const byHousehold = householdSnapshots.reduce<Record<string, HouseholdSnapshotRow[]>>((acc, snap) => {
-      if (!acc[snap.household_id]) acc[snap.household_id] = [];
-      acc[snap.household_id].push(snap);
-      return acc;
-    }, {});
-
     Object.entries(byHousehold).forEach(([hhId, snaps]) => {
       if (snaps.length < 2) return;
       const sorted = [...snaps].sort(
@@ -156,10 +180,8 @@ export default function Scorecard() {
       const previous = sorted[sorted.length - 1].total_aum;
       const level = getAlertLevel(current, previous);
       if (!level) return;
-
       const hh = households.find((h) => h.id === hhId);
       if (!hh) return;
-
       alerts.push({
         householdId: hhId,
         householdName: hh.name,
@@ -172,21 +194,14 @@ export default function Scorecard() {
     });
 
     return alerts.sort((a, b) => {
-      const order = { critical: 0, warning: 1, info: 2 };
+      const order: Record<AlertLevel, number> = {
+        critical: 0,
+        warning: 1,
+        info: 2,
+      };
       return order[a.level] - order[b.level];
     });
   }, [householdSnapshots, households]);
-
-  const overdueTouchpoints = useMemo(
-    () =>
-      allTouchpoints.filter((tp) => {
-        const scheduled = new Date(tp.scheduled_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return scheduled < today;
-      }),
-    [allTouchpoints]
-  );
 
   const noRecentContact = useMemo(() => {
     const contactedIds = new Set(recentNotes.map((n) => n.household_id));
@@ -209,45 +224,42 @@ export default function Scorecard() {
     [households]
   );
 
-  const noTimeline = useMemo(
-    () => households.filter((h) => h.wealth_tier && h.status === "Active").slice(0, 10),
-    [households]
+  const touchpointHouseholdIds = useMemo(
+    () => new Set(allTouchpoints.map((tp) => tp.household_id).filter(Boolean)),
+    [allTouchpoints]
   );
 
-  const birthdaysThisMonth = useMemo(() => {
-    return [];
-  }, []);
+  const missingTimeline = useMemo(
+    () =>
+      households
+        .filter((h) => h.wealth_tier && h.status === "Active" && !touchpointHouseholdIds.has(h.id))
+        .slice(0, 5),
+    [households, touchpointHouseholdIds]
+  );
 
   const stalledProspects = useMemo(
     () =>
-      prospects.filter((p) => {
+      (prospects as any[]).filter((p) => {
         if (p.pipeline_stage === "converted" || p.pipeline_stage === "lost") return false;
-        const updated = new Date(p.updated_at);
-        const daysSince = Math.floor((Date.now() - updated.getTime()) / (1000 * 60 * 60 * 24));
+        const daysSince = Math.floor((Date.now() - new Date(p.updated_at).getTime()) / (1000 * 60 * 60 * 24));
         return daysSince >= 14;
       }),
     [prospects]
   );
 
-  const [blotterSearch, setBlotterSearch] = useState("");
-  const [blotterFilter, setBlotterFilter] = useState<"all" | "pending" | "completed">("all");
-
   const blotterTasks = useMemo(() => {
-    let tasks = allTasks as any[];
-
+    let tasks = [...(allTasks as any[])];
     if (blotterSearch.trim()) {
       const q = blotterSearch.toLowerCase();
       tasks = tasks.filter(
         (t) => t.title?.toLowerCase().includes(q) || t.households?.name?.toLowerCase().includes(q)
       );
     }
-
     if (blotterFilter === "pending") {
       tasks = tasks.filter((t) => t.status !== "done");
     } else if (blotterFilter === "completed") {
       tasks = tasks.filter((t) => t.status === "done");
     }
-
     return tasks.sort((a, b) => {
       if (a.status === "done" && b.status !== "done") return 1;
       if (a.status !== "done" && b.status === "done") return -1;
@@ -258,21 +270,110 @@ export default function Scorecard() {
     });
   }, [allTasks, blotterSearch, blotterFilter]);
 
-  const touchpointHouseholdIds = useMemo(
-    () => new Set(allTouchpoints.map((tp) => tp.household_id)),
-    [allTouchpoints]
+  const totalAUM = useMemo(
+    () => households.reduce((sum, h) => sum + Number(h.total_aum), 0),
+    [households]
   );
 
-  const missingTimeline = useMemo(
-    () => noTimeline.filter((h) => !touchpointHouseholdIds.has(h.id)).slice(0, 5),
-    [noTimeline, touchpointHouseholdIds]
-  );
+  const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "Advisor";
 
-  void birthdaysThisMonth;
+  const generateSummary = useCallback(async () => {
+    if (summaryLoading) return;
+
+    setSummaryLoading(true);
+    setSummary("");
+
+    const alertLines = aumAlerts
+      .slice(0, 5)
+      .map(
+        (a) =>
+          `${a.householdName}: -${formatCurrency(a.dollarDrop)} (-${a.percentDrop.toFixed(1)}%) — ${a.level}`
+      )
+      .join("\n");
+
+    const overdueLines = overdueTouchpoints
+      .slice(0, 5)
+      .map((tp) => {
+        const days = Math.floor(
+          (Date.now() - new Date(tp.scheduled_date).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        return `${tp.households?.name}: ${tp.name} — ${days}d overdue`;
+      })
+      .join("\n");
+
+    const prompt = `You are reviewing the book of business for financial advisor ${firstName}.
+
+BOOK STATS:
+Total AUM: ${formatCurrency(totalAUM)}
+Active households: ${households.filter((h) => h.status === "Active").length}
+Active prospects: ${(prospects as any[]).filter(
+      (p) => p.pipeline_stage !== "converted" && p.pipeline_stage !== "lost"
+    ).length}
+
+AUM ALERTS THIS WEEK:
+${alertLines || "None"}
+
+OVERDUE TOUCHPOINTS:
+${overdueLines || "None"}
+
+NO CLIENT CONTACT IN 90+ DAYS:
+${noRecentContact.slice(0, 5).map((h) => h.name).join(", ") || "None"}
+
+OPPORTUNITIES:
+Tier upgrade candidates: ${tierUpgrades.length}
+Households missing service timeline: ${missingTimeline.length}
+Stalled prospects (14+ days): ${stalledProspects.length}
+
+Write a concise 3-4 sentence executive summary of book health for ${firstName}.
+Lead with the most urgent item.
+Name specific clients where relevant.
+End with the single most important action to take today.
+Be direct and advisor-focused.
+Do not use bullet points.
+Do not mention that you are an AI.`;
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        streamChat({
+          messages: [{ role: "user", content: prompt }],
+          context: "",
+          onDelta: (chunk) => {
+            setSummary((prev) => prev + chunk);
+          },
+          onToolCalls: () => {},
+          onDone: () => resolve(),
+          onError: (msg) => reject(new Error(msg)),
+        }).catch(reject);
+      });
+      setSummaryGenerated(true);
+    } catch {
+      setSummary("Unable to generate summary. Check your alerts below.");
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [
+    firstName,
+    totalAUM,
+    households,
+    prospects,
+    aumAlerts,
+    overdueTouchpoints,
+    noRecentContact,
+    tierUpgrades,
+    missingTimeline,
+    stalledProspects,
+    summaryLoading,
+  ]);
+
+  useEffect(() => {
+    if (summaryRef.current || summaryGenerated || summaryLoading || households.length === 0) return;
+    summaryRef.current = true;
+    generateSummary();
+  }, [households.length, generateSummary, summaryGenerated, summaryLoading]);
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6 shadow-sm md:flex-row md:items-end md:justify-between">
+      <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6 shadow-sm md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Crosshair className="h-4 w-4" />
@@ -287,25 +388,61 @@ export default function Scorecard() {
         </div>
 
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground">
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald" />
+          <CheckCircle2 className="h-3.5 w-3.5" />
           Updated daily at 6:00 AM
         </div>
-      </div>
+      </section>
+
+      <Card>
+        <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between">
+          <div className="flex gap-4">
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-secondary text-foreground">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold text-foreground">Goodie&apos;s Assessment</h2>
+                {summaryLoading && !summary && (
+                  <span className="text-sm text-muted-foreground">Analyzing your book...</span>
+                )}
+              </div>
+              {(summary || summaryLoading) && (
+                <p className="max-w-4xl text-sm leading-6 text-muted-foreground">
+                  {summary}
+                  {summaryLoading && summary && <Loader2 className="ml-2 inline h-4 w-4 animate-spin" />}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSummaryGenerated(false);
+              summaryRef.current = false;
+              generateSummary();
+            }}
+            disabled={summaryLoading}
+            className="h-7 shrink-0 text-xs text-muted-foreground"
+          >
+            {summaryLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
+            Refresh
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
-              <AlertTriangle className="h-5 w-5 text-amber" />
+              <AlertTriangle className="h-5 w-5" />
               Risk Monitor
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="rounded-lg border border-border bg-background p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-foreground">AUM Changes (7 days)</h2>
-              </div>
-
+              <h2 className="mb-3 text-sm font-semibold text-foreground">AUM Changes (7 days)</h2>
               {aumAlerts.length === 0 ? (
                 <div className="rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
                   No significant changes
@@ -325,19 +462,17 @@ export default function Scorecard() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {alert.level === "critical" && (
-                          <Badge className={cn("border", levelBadgeClassNames.critical)}>CRITICAL</Badge>
-                        )}
-                        {alert.level === "warning" && (
-                          <Badge className={cn("border", levelBadgeClassNames.warning)}>WARNING</Badge>
-                        )}
-                        {alert.level === "info" && (
-                          <Badge className={cn("border", levelBadgeClassNames.info)}>INFO</Badge>
-                        )}
-                        <Link
-                          to={`/household/${alert.householdId}`}
-                          className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                        <span
+                          className={cn(
+                            "rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                            alert.level === "critical" && "border-destructive/20 bg-destructive/10 text-destructive",
+                            alert.level === "warning" && "border-border bg-secondary text-foreground",
+                            alert.level === "info" && "border-primary/20 bg-primary/10 text-primary"
+                          )}
                         >
+                          {alert.level}
+                        </span>
+                        <Link to={`/household/${alert.householdId}`} className="text-sm font-medium text-primary">
                           View →
                         </Link>
                       </div>
@@ -347,33 +482,36 @@ export default function Scorecard() {
               )}
             </div>
 
-            {overdueTouchpoints.length > 0 && (
-              <div className="rounded-lg border border-border bg-background p-4">
-                <h2 className="mb-3 text-sm font-semibold text-foreground">Overdue Touchpoints</h2>
-                <div className="space-y-2">
-                  {overdueTouchpoints.slice(0, 5).map((tp) => (
-                    <div
-                      key={tp.id}
-                      className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5"
-                    >
-                      <div>
-                        <div className="font-medium text-foreground">{tp.households?.name}</div>
-                        <div className="text-sm text-muted-foreground">{tp.name}</div>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        {Math.floor(
-                          (Date.now() - new Date(tp.scheduled_date).getTime()) / (1000 * 60 * 60 * 24)
-                        )}
-                        d overdue
-                      </Badge>
-                    </div>
-                  ))}
-                  {overdueTouchpoints.length > 5 && (
-                    <div className="text-sm text-muted-foreground">+{overdueTouchpoints.length - 5} more</div>
-                  )}
+            <div className="rounded-lg border border-border bg-background p-4">
+              <h2 className="mb-3 text-sm font-semibold text-foreground">Overdue Touchpoints</h2>
+              {overdueTouchpoints.length === 0 ? (
+                <div className="rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
+                  All touchpoints on track
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="space-y-2">
+                  {overdueTouchpoints.slice(0, 5).map((tp) => {
+                    const days = Math.floor(
+                      (Date.now() - new Date(tp.scheduled_date).getTime()) / (1000 * 60 * 60 * 24)
+                    );
+                    return (
+                      <div
+                        key={tp.id}
+                        className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5"
+                      >
+                        <div>
+                          <div className="font-medium text-foreground">{tp.households?.name}</div>
+                          <div className="text-sm text-muted-foreground">{tp.name}</div>
+                        </div>
+                        <span className="rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-foreground">
+                          {days}d overdue
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {noRecentContact.length > 0 && (
               <div className="rounded-lg border border-border bg-background p-4">
@@ -383,7 +521,7 @@ export default function Scorecard() {
                     <Link
                       key={hh.id}
                       to={`/household/${hh.id}`}
-                      className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5 text-sm transition-colors hover:bg-secondary/40"
+                      className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5 text-sm transition-colors hover:bg-secondary/60"
                     >
                       <span className="font-medium text-foreground">{hh.name}</span>
                       <span className="text-primary">View →</span>
@@ -415,14 +553,18 @@ export default function Scorecard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
-              <Crosshair className="h-5 w-5 text-primary" />
+              <Crosshair className="h-5 w-5" />
               Opportunity Radar
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            {tierUpgrades.length > 0 && (
-              <div className="rounded-lg border border-border bg-background p-4">
-                <h2 className="mb-3 text-sm font-semibold text-foreground">Tier Upgrade Candidates</h2>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <h2 className="mb-3 text-sm font-semibold text-foreground">Tier Upgrade Candidates</h2>
+              {tierUpgrades.length === 0 ? (
+                <div className="rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
+                  No upgrades flagged
+                </div>
+              ) : (
                 <div className="space-y-3">
                   {tierUpgrades.map((hh) => (
                     <div
@@ -438,17 +580,14 @@ export default function Scorecard() {
                           Score {hh.tier_score} — consider {hh.wealth_tier === "silver" ? "Gold" : "Platinum"} upgrade
                         </div>
                       </div>
-                      <Link
-                        to={`/household/${hh.id}`}
-                        className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
-                      >
+                      <Link to={`/household/${hh.id}`} className="text-sm font-medium text-primary">
                         Review →
                       </Link>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <div className="rounded-lg border border-border bg-background p-4">
               <h2 className="mb-3 text-sm font-semibold text-foreground">Missing Service Timeline</h2>
@@ -462,11 +601,11 @@ export default function Scorecard() {
                     <Link
                       key={hh.id}
                       to={`/household/${hh.id}`}
-                      className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5 text-sm transition-colors hover:bg-secondary/40"
+                      className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5 text-sm transition-colors hover:bg-secondary/60"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{hh.name}</span>
                         <TierBadge tier={hh.wealth_tier} size="sm" />
+                        <span className="font-medium text-foreground">{hh.name}</span>
                       </div>
                       <span className="text-primary">Generate →</span>
                     </Link>
@@ -475,47 +614,47 @@ export default function Scorecard() {
               )}
             </div>
 
-            {stalledProspects.length > 0 && (
-              <div className="rounded-lg border border-border bg-background p-4">
-                <h2 className="mb-3 text-sm font-semibold text-foreground">Stalled Prospects (14+ days)</h2>
-                <div className="space-y-2">
-                  {stalledProspects.slice(0, 4).map((p) => (
-                    <Link
-                      key={p.id}
-                      to={`/prospects/${p.id}`}
-                      className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5 text-sm transition-colors hover:bg-secondary/40"
-                    >
-                      <span className="font-medium text-foreground">
-                        {p.first_name} {p.last_name}
-                      </span>
-                      <Badge variant="outline" className="text-xs">
-                        {Math.floor((Date.now() - new Date(p.updated_at).getTime()) / (1000 * 60 * 60 * 24))}d idle
-                      </Badge>
-                    </Link>
-                  ))}
+            <div className="rounded-lg border border-border bg-background p-4">
+              <h2 className="mb-3 text-sm font-semibold text-foreground">Stalled Prospects (14+ days)</h2>
+              {stalledProspects.length === 0 ? (
+                <div className="rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
+                  No stalled prospects
                 </div>
-              </div>
-            )}
-
-            {tierUpgrades.length === 0 && stalledProspects.length === 0 && (
-              <div className="rounded-lg border border-dashed border-border bg-secondary/40 p-4 text-sm text-muted-foreground">
-                No opportunities flagged
-              </div>
-            )}
+              ) : (
+                <div className="space-y-2">
+                  {stalledProspects.slice(0, 4).map((p: any) => {
+                    const days = Math.floor(
+                      (Date.now() - new Date(p.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+                    );
+                    return (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5"
+                      >
+                        <Link to={`/prospects/${p.id}`} className="font-medium text-foreground">
+                          {p.first_name} {p.last_name}
+                        </Link>
+                        <span className="text-sm text-muted-foreground">{days}d idle</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2 text-xl">
-                <ClipboardList className="h-5 w-5 text-primary" />
+                <ClipboardList className="h-5 w-5" />
                 The Blotter
               </CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">
-                Search and verify task completion across your book
+                Search to verify task completion across your book
               </p>
             </div>
           </div>
@@ -528,7 +667,7 @@ export default function Scorecard() {
                 value={blotterSearch}
                 onChange={(e) => setBlotterSearch(e.target.value)}
                 className="h-8 pl-9 text-sm"
-                placeholder="Search tasks or client"
+                placeholder="Search tasks or households"
               />
             </div>
 
@@ -553,8 +692,8 @@ export default function Scorecard() {
 
           <div className="overflow-hidden rounded-lg border border-border">
             <table className="w-full border-collapse text-sm">
-              <thead className="bg-secondary/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
+              <thead className="bg-secondary/50">
+                <tr className="text-left text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Client</th>
                   <th className="px-4 py-3 font-medium">Task</th>
                   <th className="px-4 py-3 font-medium">Due</th>
@@ -565,7 +704,7 @@ export default function Scorecard() {
               <tbody>
                 {blotterTasks.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                       {blotterSearch ? `No tasks found for "${blotterSearch}"` : "No tasks found"}
                     </td>
                   </tr>
@@ -579,11 +718,9 @@ export default function Scorecard() {
                           : "Pending";
 
                     return (
-                      <tr key={task.id} className="border-t border-border">
+                      <tr key={task.id} className="border-t border-border align-top">
                         <td className="px-4 py-3 text-foreground">{task.households?.name || "—"}</td>
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-foreground">{task.title}</div>
-                        </td>
+                        <td className="px-4 py-3 font-medium text-foreground">{task.title}</td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {task.due_date
                             ? new Date(task.due_date).toLocaleDateString("en-US", {
@@ -601,16 +738,16 @@ export default function Scorecard() {
                             : "—"}
                         </td>
                         <td className="px-4 py-3">
-                          <Badge
-                            variant="outline"
+                          <span
                             className={cn(
-                              statusLabel === "Done" && "border-emerald/20 bg-emerald-muted text-emerald",
-                              statusLabel === "Pending" && "border-primary/20 bg-primary/10 text-primary",
-                              statusLabel === "Overdue" && "border-destructive/20 bg-destructive/10 text-destructive"
+                              "rounded-full px-2.5 py-1 text-xs font-medium",
+                              statusLabel === "Done" && "bg-secondary text-foreground",
+                              statusLabel === "Overdue" && "bg-destructive/10 text-destructive",
+                              statusLabel === "Pending" && "bg-primary/10 text-primary"
                             )}
                           >
                             {statusLabel}
-                          </Badge>
+                          </span>
                         </td>
                       </tr>
                     );
@@ -621,9 +758,9 @@ export default function Scorecard() {
           </div>
 
           {blotterTasks.length > 50 && (
-            <div className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Showing 50 of {blotterTasks.length} tasks. Use search to narrow results.
-            </div>
+            </p>
           )}
         </CardContent>
       </Card>
