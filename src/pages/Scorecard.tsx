@@ -45,9 +45,9 @@ type TouchpointRow = {
   } | null;
 };
 
-type RecentNoteRow = {
+type RecentCompletedRow = {
   household_id: string;
-  date: string;
+  completed_date: string;
 };
 
 type TouchpointHouseholdRow = {
@@ -127,17 +127,18 @@ export default function Scorecard() {
     enabled: !!advisorId,
   });
 
-  const { data: recentNotes = [] } = useQuery({
-    queryKey: ["scorecard_notes", advisorId],
+  const { data: recentCompleted = [] } = useQuery({
+    queryKey: ["scorecard_recent_completed", advisorId],
     queryFn: async () => {
-      const ninetyDaysAgo = new Date();
-      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
       const { data } = await supabase
-        .from("compliance_notes")
-        .select("household_id, date")
+        .from("touchpoints")
+        .select("household_id, completed_date")
         .eq("advisor_id", advisorId!)
-        .gte("date", ninetyDaysAgo.toISOString().split("T")[0]);
-      return (data || []) as RecentNoteRow[];
+        .eq("status", "completed")
+        .gte("completed_date", sixtyDaysAgo.toISOString().split("T")[0]);
+      return (data || []) as RecentCompletedRow[];
     },
     enabled: !!advisorId,
   });
@@ -203,12 +204,27 @@ export default function Scorecard() {
     });
   }, [householdSnapshots, households]);
 
-  const noRecentContact = useMemo(() => {
-    const contactedIds = new Set(recentNotes.map((n) => n.household_id));
+  const contactGaps = useMemo(() => {
+    const recentHouseholdIds = new Set(recentCompleted.map((t) => t.household_id));
     return households
-      .filter((h) => h.status === "Active" && !contactedIds.has(h.id))
-      .slice(0, 10);
-  }, [households, recentNotes]);
+      .filter(
+        (h) =>
+          h.status === "Active" &&
+          (h.wealth_tier === "platinum" || h.wealth_tier === "gold") &&
+          !recentHouseholdIds.has(h.id)
+      )
+      .map((h) => ({
+        id: h.id,
+        name: h.name,
+        tier: h.wealth_tier as string,
+      }))
+      .sort((a, b) => {
+        if (a.tier === "platinum" && b.tier === "gold") return -1;
+        if (a.tier === "gold" && b.tier === "platinum") return 1;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, 8);
+  }, [households, recentCompleted]);
 
   const tierUpgrades = useMemo(
     () =>
