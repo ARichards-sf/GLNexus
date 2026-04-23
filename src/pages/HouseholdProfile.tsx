@@ -5,7 +5,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CalendarCheck, AlertTriangle, CalendarPlus, MoreHorizontal, Archive,
-  ArrowRightLeft, ChevronDown, ChevronUp, X, Star, TrendingUp, Sparkles, Trash2, RotateCcw,
+  ArrowRightLeft, ChevronDown, ChevronUp, X, Star, TrendingUp, Sparkles, Trash2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -580,16 +580,6 @@ export default function HouseholdProfile() {
                 <Button variant="outline" size="sm" onClick={() => setClearTimelineOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Clear Timeline
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setClearTimelineOpen(false);
-                    setTouchpointGenOpen(true);
-                  }}
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Regenerate
                 </Button>
               </div>
 
