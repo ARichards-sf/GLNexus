@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { calculateTierScore, scoreToTier } from "@/lib/tierScoring";
+import { embedRecord } from "@/lib/embedRecord";
 
 export interface Prospect {
   id: string;
@@ -216,6 +217,10 @@ export function useConvertProspect() {
         .select()
         .single();
       if (hhErr) throw hhErr;
+
+      if (household && advisorId) {
+        embedRecord("households", household, advisorId);
+      }
 
       // 1b. Create household member from prospect data
       const { error: memberErr } = await supabase

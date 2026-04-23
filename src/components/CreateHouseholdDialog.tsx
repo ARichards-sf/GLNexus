@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAllContacts } from "@/hooks/useContacts";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRight, Check, UserPlus, Search } from "lucide-react";
+import { embedRecord } from "@/lib/embedRecord";
 
 const step1Schema = z.object({
   name: z.string().trim().min(1, "Required").max(200),
@@ -92,9 +93,13 @@ export default function CreateHouseholdDialog({ open, onOpenChange }: Props) {
           investment_objective: step1Data.investment_objective || null,
           advisor_id: user.id,
         })
-        .select("id")
+        .select()
         .single();
       if (hhError) throw hhError;
+
+      if (household && user) {
+        embedRecord("households", household, user.id);
+      }
 
       if (selectedContactId) {
         await supabase
