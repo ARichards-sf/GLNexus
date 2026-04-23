@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import TierBadge from "@/components/TierBadge";
+import PageLoader from "@/components/PageLoader";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -386,6 +387,12 @@ Do not mention that you are an AI.`;
     summaryRef.current = true;
     generateSummary();
   }, [households.length, generateSummary, summaryGenerated, summaryLoading]);
+
+  const isLoading = households.length === 0 && !aumAlerts.length;
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className="space-y-6 p-6">

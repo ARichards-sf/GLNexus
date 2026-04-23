@@ -54,6 +54,7 @@ import TouchpointTimeline from "@/components/TouchpointTimeline";
 import TouchpointGenerationDialog from "@/components/TouchpointGenerationDialog";
 import AnnualReviewOutreach from "@/components/AnnualReviewOutreach";
 import TierBadge from "@/components/TierBadge";
+import PageLoader from "@/components/PageLoader";
 import { calculateTierScore, type TierScoreBreakdown } from "@/lib/tierScoring";
 import { cn } from "@/lib/utils";
 import { useFirmContext } from "@/hooks/useFirmContext";
@@ -318,16 +319,7 @@ export default function HouseholdProfile() {
   }, [accSnapshots]);
 
   if (isLoading) {
-    return (
-      <div className="p-6 lg:p-10 max-w-5xl">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-secondary rounded w-64" />
-          <div className="grid grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => <div key={i} className="h-28 bg-secondary rounded-lg" />)}
-          </div>
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!household) {

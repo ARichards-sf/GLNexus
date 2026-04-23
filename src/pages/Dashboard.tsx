@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import GoodieSuggests from "@/components/GoodieSuggests";
 import MorningBriefing from "@/components/MorningBriefing";
+import PageLoader from "@/components/PageLoader";
 import { useTasks } from "@/hooks/useTasks";
 import { useProspects } from "@/hooks/useProspects";
 import { useFirmContext } from "@/hooks/useFirmContext";
@@ -314,18 +315,7 @@ export default function Dashboard() {
   const activeLayout = editMode ? localLayout : layout;
 
   if (isLoading) {
-    return (
-      <div className="p-6 lg:p-10">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-secondary rounded w-64" />
-          <div className="grid grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-28 bg-secondary rounded-lg" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (

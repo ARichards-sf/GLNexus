@@ -17,6 +17,7 @@ import { useHouseholds } from "@/hooks/useHouseholds";
 import { useAllContacts } from "@/hooks/useContacts";
 import { formatCurrency } from "@/data/sampleData";
 import CreateHouseholdDialog from "@/components/CreateHouseholdDialog";
+import PageLoader from "@/components/PageLoader";
 import TierBadge from "@/components/TierBadge";
 import { cn } from "@/lib/utils";
 
@@ -118,14 +119,7 @@ export default function Households() {
   const hasAnyFilter = hasActiveFilters || search.trim();
 
   if (isLoading) {
-    return (
-      <div className="p-6 lg:p-10 max-w-6xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-secondary rounded w-48" />
-          {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-secondary rounded-lg" />)}
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
