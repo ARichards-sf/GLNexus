@@ -13,6 +13,7 @@ import AccountDetail from "./pages/AccountDetail";
 import Contacts from "./pages/Contacts";
 import AppLayout from "./components/AppLayout";
 import Dashboard from "./pages/Dashboard";
+import Scorecard from "./pages/Scorecard";
 import Households from "./pages/Households";
 import HouseholdProfile from "./pages/HouseholdProfile";
 import AdminAdvisors from "./pages/AdminAdvisors";
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/scorecard" element={<Scorecard />} />
               <Route path="/households" element={<Households />} />
               <Route path="/household/:id" element={<HouseholdProfile />} />
               <Route path="/contacts" element={<Contacts />} />

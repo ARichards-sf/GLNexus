@@ -46,7 +46,7 @@ export interface NoteRow {
   created_at: string;
 }
 
-function useTargetAdvisorId() {
+export function useTargetAdvisorId() {
   const { user } = useAuth();
   const { targetAdvisorId } = useImpersonation();
   const id = user ? targetAdvisorId(user.id) : undefined;
