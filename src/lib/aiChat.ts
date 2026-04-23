@@ -8,6 +8,8 @@ export function buildContextSnapshot(households: any[], notes: any[], prospects?
   const totalAUM = households.reduce((s, h) => s + Number(h.total_aum), 0);
   const active = households.filter((h) => h.status === "Active").length;
   const now = new Date();
+  const fourteenDaysFromNow = new Date(now);
+  fourteenDaysFromNow.setDate(fourteenDaysFromNow.getDate() + 14);
   const upcoming = households
     .filter((h) => {
       if (!h.annual_review_date) return false;
@@ -40,6 +42,31 @@ export function buildContextSnapshot(households: any[], notes: any[], prospects?
         new Date(e.start_time) > new Date()
       );
       ctx += `- ${h.name}: due ${new Date(h.annual_review_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} — ${hasBooked ? "meeting booked" : "not yet scheduled"}\n`;
+    });
+  }
+
+  const upcomingCalendarEvents = (calendarEvents || []).filter((e: any) => {
+    const start = new Date(e.start_time);
+    return e.status === "scheduled" && start >= now && start <= fourteenDaysFromNow;
+  });
+
+  if (upcomingCalendarEvents.length > 0) {
+    ctx += "\nCALENDAR AVAILABILITY CONTEXT (next 14 days):\n";
+    ctx += "Use these booked events to avoid suggesting times that overlap existing meetings.\n";
+    upcomingCalendarEvents.forEach((e: any) => {
+      const titleTarget = e.households?.name
+        || (e.prospects ? `${e.prospects.first_name} ${e.prospects.last_name}` : null)
+        || e.title;
+      ctx += `- ${new Date(e.start_time).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })} to ${new Date(e.end_time).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      })} | ${e.event_type} | ${titleTarget}\n`;
     });
   }
 
