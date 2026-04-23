@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap, LayoutGrid,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap, LayoutGrid, ClipboardList,
 } from "lucide-react";
 import glLogo from "@/assets/gl-logo.png";
 
@@ -286,6 +286,27 @@ export default function AppSidebar() {
             location.pathname === "/" ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity"
           )} />
           <span className="flex-1">Dashboard</span>
+        </RouterNavLink>
+        <RouterNavLink
+          to="/scorecard"
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all border",
+              isActive
+                ? "bg-primary/10 text-primary border-primary/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60 border-transparent"
+            )
+          }
+        >
+          <ClipboardList
+            className={cn(
+              "w-[18px] h-[18px]",
+              location.pathname === "/scorecard"
+                ? "opacity-100"
+                : "opacity-70 group-hover:opacity-100 transition-opacity"
+            )}
+          />
+          <span className="flex-1">Scorecard</span>
         </RouterNavLink>
         {showAdvisorNav && (
           <>
