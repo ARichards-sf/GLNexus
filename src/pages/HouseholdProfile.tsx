@@ -5,7 +5,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CalendarCheck, AlertTriangle, CalendarPlus, MoreHorizontal, Archive,
-  ArrowRightLeft, ChevronDown, ChevronUp, X, Star, TrendingUp, Sparkles,
+  ArrowRightLeft, ChevronDown, ChevronUp, X, Star, TrendingUp, Sparkles, Trash2, RotateCcw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +59,7 @@ import { cn } from "@/lib/utils";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useFirms } from "@/hooks/useFirms";
+import { useAuth } from "@/contexts/AuthContext";
 
 const noteTypeColors: Record<string, string> = {
   Prospecting: "bg-amber-muted text-amber",
@@ -197,6 +198,7 @@ function AnnualReviewWidget({
 export default function HouseholdProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: household, isLoading } = useHousehold(id);
   const { data: members = [] } = useHouseholdMembers(id);
   const { data: archivedMembers = [] } = useArchivedHouseholdMembers(id);
@@ -214,6 +216,7 @@ export default function HouseholdProfile() {
   const [showArchived, setShowArchived] = useState(false);
   const [tierDialogOpen, setTierDialogOpen] = useState(false);
   const [touchpointGenOpen, setTouchpointGenOpen] = useState(false);
+  const [clearTimelineOpen, setClearTimelineOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Reparent + archive contact state
@@ -406,6 +409,36 @@ export default function HouseholdProfile() {
     setTierDialogOpen(false);
   };
 
+  const handleClearTimeline = async () => {
+    if (!household || !user) return;
+
+    try {
+      await supabase
+        .from("tasks")
+        .delete()
+        .eq("household_id", household.id)
+        .eq("advisor_id", user.id)
+        .filter("metadata->>is_touchpoint", "eq", "true");
+
+      await supabase
+        .from("touchpoints")
+        .delete()
+        .eq("household_id", household.id)
+        .eq("advisor_id", user.id);
+
+      queryClient.invalidateQueries({
+        queryKey: ["touchpoints", id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["tasks"],
+      });
+
+      toast.success("Service timeline cleared");
+    } catch (error: any) {
+      toast.error(error?.message ?? "Failed to clear timeline");
+    }
+  };
+
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
       {/* Tier Pending Review Banner */}
@@ -541,7 +574,28 @@ export default function HouseholdProfile() {
             </div>
           )}
 
-          {touchpoints.length > 0 && id && <TouchpointTimeline householdId={id} advisorId={household.advisor_id} />}
+          {touchpoints.length > 0 && id && (
+            <>
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setClearTimelineOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear Timeline
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setClearTimelineOpen(false);
+                    setTouchpointGenOpen(true);
+                  }}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Regenerate
+                </Button>
+              </div>
+
+              <TouchpointTimeline householdId={id} advisorId={household.advisor_id} />
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -1241,6 +1295,29 @@ export default function HouseholdProfile() {
           queryClient.invalidateQueries({ queryKey: ["touchpoints", id] });
         }}
       />
+
+      <AlertDialog open={clearTimelineOpen} onOpenChange={setClearTimelineOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear Service Timeline</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all touchpoints and linked tasks for {household?.name}. This cannot be
+              undone. You can regenerate a fresh timeline afterwards.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                await handleClearTimeline();
+                setClearTimelineOpen(false);
+              }}
+            >
+              Clear Timeline
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
