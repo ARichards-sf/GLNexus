@@ -168,8 +168,48 @@ export default function TouchpointGenerationDialog({
       {} as Record<string, typeof templatesWithDates>,
     );
 
-    return Object.entries(grouped);
-  }, [templates]);
+    members
+      .filter(
+        (member) =>
+          member.date_of_birth &&
+          (member.relationship === "Primary" || member.relationship === "Spouse"),
+      )
+      .forEach((member) => {
+        const dob = new Date(member.date_of_birth!);
+        const today = new Date();
+        let nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+
+        if (nextBirthday < today) {
+          nextBirthday = new Date(today.getFullYear() + 1, dob.getMonth(), dob.getDate());
+        }
+
+        const key = nextBirthday.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        });
+
+        if (!grouped[key]) grouped[key] = [];
+
+        grouped[key].push({
+          id: `birthday-${member.id}`,
+          name: `Birthday — ${member.first_name} ${member.last_name}`,
+          touchpoint_type: "birthday",
+          scheduledDate: nextBirthday,
+          scheduling_type: "fixed_month",
+          description: "Birthday outreach",
+          tier: household.wealth_tier,
+          month_offset: null,
+          fixed_month: nextBirthday.getMonth() + 1,
+          fixed_day: nextBirthday.getDate(),
+          is_billable: false,
+          created_at: new Date().toISOString(),
+        } as any);
+      });
+
+    return Object.entries(grouped).sort(([, aItems], [, bItems]) => {
+      return aItems[0].scheduledDate.getTime() - bItems[0].scheduledDate.getTime();
+    });
+  }, [templates, members]);
 
   const birthdayMembers = useMemo(
     () =>
@@ -416,37 +456,6 @@ export default function TouchpointGenerationDialog({
                         );
                       })}
 
-                      {birthdayMembers.map((member) => {
-                        const dob = new Date(member.date_of_birth!);
-                        const today = new Date();
-                        let nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
-
-                        if (nextBirthday < today) {
-                          nextBirthday = new Date(today.getFullYear() + 1, dob.getMonth(), dob.getDate());
-                        }
-
-                        const monthKey = nextBirthday.toLocaleDateString("en-US", {
-                          month: "long",
-                          year: "numeric",
-                        });
-
-                        return key === monthKey ? (
-                          <div
-                            key={member.id}
-                            className="flex items-center gap-3 rounded-lg border border-border p-3"
-                          >
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive/10">
-                              <Cake className="h-4 w-4 text-destructive" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">
-                                Birthday — {member.first_name} {member.last_name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">Birthday · {monthKey}</p>
-                            </div>
-                          </div>
-                        ) : null;
-                      })}
                     </div>
 
                     {hasMembersMissingDob && (
