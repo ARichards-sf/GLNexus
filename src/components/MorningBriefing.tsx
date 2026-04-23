@@ -230,6 +230,7 @@ export default function MorningBriefing({
   const [minimized, setMinimized] = useState(initialCache?.minimized ?? false);
   const [dismissed, setDismissed] = useState(false);
   const hasGeneratedRef = useRef(!!initialCache);
+  const tasksSettledRef = useRef(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
 
   const cachedSnapshot = (() => {
@@ -336,9 +337,15 @@ export default function MorningBriefing({
   // Generate briefing once if no cache
   useEffect(() => {
     if (hasGeneratedRef.current) return;
-    if (households.length === 0 && pendingTasks.length === 0 && upcomingEvents.length === 0) {
+    if (households.length === 0) {
+      tasksSettledRef.current = false;
       return;
     }
+    if (pendingTasks.length === 0 && !tasksSettledRef.current) {
+      tasksSettledRef.current = true;
+      return;
+    }
+    tasksSettledRef.current = true;
     hasGeneratedRef.current = true;
 
     const now = new Date();
