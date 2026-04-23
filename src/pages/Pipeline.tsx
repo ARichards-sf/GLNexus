@@ -60,6 +60,7 @@ import {
 } from "@/hooks/useProspects";
 import { formatCurrency } from "@/data/sampleData";
 import AddProspectDialog from "@/components/AddProspectDialog";
+import PageLoader from "@/components/PageLoader";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -234,6 +235,10 @@ export default function Pipeline() {
 
   const stageMeta = (key: string) =>
     PIPELINE_STAGES.find((s) => s.key === key);
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
 
   const isEmpty = !isLoading && prospects.length === 0;
 

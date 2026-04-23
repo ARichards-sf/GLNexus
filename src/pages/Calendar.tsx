@@ -13,6 +13,7 @@ import { useCreateComplianceNote } from "@/hooks/useHouseholds";
 import ScheduleEventDialog from "@/components/ScheduleEventDialog";
 import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
 import { useInSession } from "@/contexts/InSessionContext";
+import PageLoader from "@/components/PageLoader";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -62,7 +63,7 @@ export default function Calendar() {
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
-  const { data: events = [] } = useCalendarEvents(currentMonth);
+  const { data: events = [], isLoading } = useCalendarEvents(currentMonth);
   const completeEvent = useCompleteEvent();
   const deleteEvent = useDeleteCalendarEvent();
 
@@ -83,6 +84,10 @@ export default function Calendar() {
   const prev = () => setCurrentMonth(new Date(year, month - 1, 1));
   const next = () => setCurrentMonth(new Date(year, month + 1, 1));
   const goToday = () => setCurrentMonth(new Date());
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
 
   const handleDayClick = (dateKey: string) => {
     setSelectedDate(dateKey);

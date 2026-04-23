@@ -29,6 +29,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import CreateTaskDialog, { type EditableValues } from "@/components/CreateTaskDialog";
 import ReassignTaskDialog from "@/components/ReassignTaskDialog";
+import PageLoader from "@/components/PageLoader";
 
 const PRIORITY_STYLES: Record<Task["priority"], string> = {
   urgent: "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 border-red-200/60",
@@ -208,11 +209,7 @@ function TaskList({ tasks, isLoading, showAdvisor, currentUserId, onEdit, onReas
   const doneTasks = useMemo(() => tasks.filter((t) => t.status === "done"), [tasks]);
 
   if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-secondary animate-pulse rounded-lg" />)}
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (tasks.length === 0) {

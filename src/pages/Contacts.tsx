@@ -10,6 +10,7 @@ import {
 import { Search, UserPlus, Users, Mail, Phone } from "lucide-react";
 import { useAllContacts } from "@/hooks/useContacts";
 import CreateContactDialog from "@/components/CreateContactDialog";
+import PageLoader from "@/components/PageLoader";
 
 export default function Contacts() {
   const { data: contacts = [], isLoading } = useAllContacts();
@@ -36,15 +37,7 @@ export default function Contacts() {
   }, [contacts, search, filter]);
 
   if (isLoading) {
-    return (
-      <div className="p-6 lg:p-10 max-w-6xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-secondary rounded w-48" />
-          <div className="h-10 bg-secondary rounded w-full" />
-          {[1, 2, 3, 4].map((i) => <div key={i} className="h-14 bg-secondary rounded" />)}
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
