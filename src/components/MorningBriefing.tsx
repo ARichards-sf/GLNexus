@@ -573,6 +573,25 @@ export default function MorningBriefing({
                       <Sparkles className={`w-3 h-3 ${periodConfig.color}`} />
                       {periodConfig.footer}
                     </p>
+
+                    {taskDataChanged && !isGenerating && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5 mt-2">
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        Task data has changed since this briefing was generated.
+                        <button
+                          onClick={() => {
+                            localStorage.removeItem(cacheKey);
+                            localStorage.removeItem(cacheKey + "_task_snapshot");
+                            setText("");
+                            hasGeneratedRef.current = false;
+                            setRefreshNonce((prev) => prev + 1);
+                          }}
+                          className="underline hover:no-underline font-medium"
+                        >
+                          Refresh
+                        </button>
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
