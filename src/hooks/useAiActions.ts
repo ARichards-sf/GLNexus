@@ -185,10 +185,15 @@ export function getActionDescription(name: string, args: Record<string, any>): s
     case "create_compliance_note":
       return `Log **${args.type}** note for **${args.household_name}**:\n"${args.summary?.slice(0, 100)}${(args.summary?.length || 0) > 100 ? "…" : ""}"`;
     case "schedule_meeting": {
-      const start = new Date(args.start_time);
-      const dateStr = start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-      const timeStr = start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-      return `Schedule **${args.event_type}**: "${args.title}"\n${dateStr} at ${timeStr}${args.household_name ? ` with **${args.household_name}**` : ""}`;
+      const start = args.start_time ? new Date(args.start_time) : null;
+      const isValidDate = start && !isNaN(start.getTime());
+      const dateStr = isValidDate
+        ? start!.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
+        : args.start_time || "Date TBD";
+      const timeStr = isValidDate
+        ? start!.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+        : "";
+      return `Schedule **${args.event_type}**: "${args.title}"\n${dateStr}${timeStr ? ` at ${timeStr}` : ""}${args.household_name ? ` with **${args.household_name}**` : ""}`;
     }
     case "add_financial_account":
       return `Add **${args.account_type}** account "${args.account_name}" for **${args.member_name}**\nBalance: $${Number(args.balance || 0).toLocaleString()}${args.institution ? ` at ${args.institution}` : ""}`;
