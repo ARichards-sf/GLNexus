@@ -145,6 +145,61 @@ const TOOLS = [
   },
 ];
 
+async function retrieveRelevantContext(
+  query: string,
+  advisorId: string,
+  supabaseAdmin: any,
+  openAiKey: string
+): Promise<string> {
+  try {
+    const embeddingResponse = await fetch(
+      "https://api.openai.com/v1/embeddings",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openAiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "text-embedding-3-small",
+          input: query,
+        }),
+      }
+    );
+
+    if (!embeddingResponse.ok) return "";
+
+    const embeddingData = await embeddingResponse.json();
+    const queryEmbedding = embeddingData.data[0].embedding;
+
+    const { data: matches, error } = await supabaseAdmin.rpc(
+      "match_embeddings",
+      {
+        query_embedding: queryEmbedding,
+        match_advisor_id: advisorId,
+        match_count: 8,
+        filter_table: null,
+      }
+    );
+
+    if (error || !matches?.length) return "";
+
+    const contextLines = matches
+      .filter((m: any) => m.similarity > 0.3)
+      .map((m: any) =>
+        `[${m.table_name.toUpperCase()}]\n${m.content}`
+      )
+      .join("\n\n---\n\n");
+
+    return contextLines
+      ? `\n\n--- RELEVANT RECORDS ---\n${contextLines}`
+      : "";
+  } catch (e) {
+    console.error("RAG retrieval error:", e);
+    return "";
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") 
     return new Response(null, { headers: corsHeaders });
@@ -184,6 +239,13 @@ serve(async (req) => {
     if (!ANTHROPIC_API_KEY) 
       throw new Error("ANTHROPIC_API_KEY is not configured");
 
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const advisorId = user.id;
+
     const today = new Date();
     const todayStr = today.toLocaleDateString(
       "en-US", {
@@ -201,7 +263,24 @@ serve(async (req) => {
       ` references like 'tomorrow',` +
       ` 'next week', 'end of month' etc.`;
     if (context) {
-      systemContent += `\n\n--- ADVISOR DATA SNAPSHOT ---\n${context}`;
+      systemContent += `\n\n--- ADVISOR OVERVIEW ---\n${context}`;
+    }
+
+    if (OPENAI_API_KEY && messages?.length) {
+      const lastUserMessage = [...messages]
+        .reverse()
+        .find((m: any) => m.role === "user");
+      if (lastUserMessage?.content) {
+        const ragContext = await retrieveRelevantContext(
+          lastUserMessage.content,
+          advisorId,
+          supabaseAdmin,
+          OPENAI_API_KEY
+        );
+        if (ragContext) {
+          systemContent += ragContext;
+        }
+      }
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -212,7 +291,7 @@ serve(async (req) => {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: "claude-sonnet-4-20250514",
         max_tokens: 1024,
         system: systemContent,
         messages: messages,
