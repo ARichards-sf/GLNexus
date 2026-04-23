@@ -59,7 +59,10 @@ Tools available:
 - add_financial_account: Add a new financial account linked to a household member.
 - create_task: Create a task or reminder. Use when advisor says 'remind me', 'add a task', 'don't forget', 'follow up', or any similar request to remember something.
 
-IMPORTANT: When you want to take an action, use the tool calling mechanism. Do NOT return JSON manually.`;
+IMPORTANT: When you want to take an action, use the tool calling mechanism. Do NOT return JSON manually.
+
+IMPORTANT DATE FORMAT RULE:
+When using schedule_meeting or any tool that requires a date or time, ALWAYS format dates as ISO 8601: "2026-05-02T10:00:00". Never use natural language dates like "May 2nd" in tool arguments. Only use ISO format in tool calls.`;
 
 const TOOLS = [
   {
