@@ -145,62 +145,71 @@ serve(async (req) => {
 
     const advisorId = user.id;
     let totalEmbedded = 0;
+    const { table } = await req.json()
+      .catch(() => ({ table: "households" }));
 
-    const { data: households } = 
-      await supabase
-        .from("households")
-        .select("*")
-        .eq("advisor_id", advisorId)
-        .is("archived_at", null);
-
-    for (const record of households || []) {
-      await embedRecord(
-        "households", record, 
-        advisorId, OPENAI_API_KEY, supabase
-      );
-      totalEmbedded++;
-    }
-
-    const { data: notes } = 
-      await supabase
-        .from("compliance_notes")
-        .select("*")
-        .eq("advisor_id", advisorId);
-
-    for (const record of notes || []) {
-      await embedRecord(
-        "compliance_notes", record,
-        advisorId, OPENAI_API_KEY, supabase
-      );
-      totalEmbedded++;
-    }
-
-    const { data: events } = 
-      await supabase
-        .from("calendar_events")
-        .select("*")
-        .eq("advisor_id", advisorId);
-
-    for (const record of events || []) {
-      await embedRecord(
-        "calendar_events", record,
-        advisorId, OPENAI_API_KEY, supabase
-      );
-      totalEmbedded++;
-    }
-
-    const { data: tasks } = 
-      await supabase
-        .from("tasks")
-        .select("*")
-        .eq("advisor_id", advisorId);
-
-    for (const record of tasks || []) {
-      await embedRecord(
-        "tasks", record,
-        advisorId, OPENAI_API_KEY, supabase
-      );
-      totalEmbedded++;
+    switch(table) {
+      case "households": {
+        const { data } = await supabase
+          .from("households")
+          .select("*")
+          .eq("advisor_id", advisorId)
+          .is("archived_at", null);
+        for (const record of data || []) {
+          await embedRecord(
+            "households", record,
+            advisorId, OPENAI_API_KEY, 
+            supabase
+          );
+          totalEmbedded++;
+        }
+        break;
+      }
+      case "compliance_notes": {
+        const { data } = await supabase
+          .from("compliance_notes")
+          .select("*")
+          .eq("advisor_id", advisorId);
+        for (const record of data || []) {
+          await embedRecord(
+            "compliance_notes", record,
+            advisorId, OPENAI_API_KEY,
+            supabase
+          );
+          totalEmbedded++;
+        }
+        break;
+      }
+      case "calendar_events": {
+        const { data } = await supabase
+          .from("calendar_events")
+          .select("*")
+          .eq("advisor_id", advisorId);
+        for (const record of data || []) {
+          await embedRecord(
+            "calendar_events", record,
+            advisorId, OPENAI_API_KEY,
+            supabase
+          );
+          totalEmbedded++;
+        }
+        break;
+      }
+      case "tasks": {
+        const { data } = await supabase
+          .from("tasks")
+          .select("*")
+          .eq("advisor_id", advisorId);
+        for (const record of data || []) {
+          await embedRecord(
+            "tasks", record,
+            advisorId, OPENAI_API_KEY,
+            supabase
+          );
+          totalEmbedded++;
+        }
+        break;
+      }
     }
 
     return new Response(
