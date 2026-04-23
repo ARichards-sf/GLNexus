@@ -480,20 +480,26 @@ Do not mention that you are an AI.`;
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSummaryGenerated(false);
-              summaryRef.current = false;
-              generateSummary();
-            }}
-            disabled={summaryLoading}
-            className="h-7 shrink-0 text-xs text-muted-foreground"
-          >
-            {summaryLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
-            Refresh
-          </Button>
+          <div className="flex shrink-0 flex-col items-end gap-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                clearSummaryCache();
+                setSummaryGenerated(false);
+                summaryRef.current = false;
+                generateSummary();
+              }}
+              disabled={summaryLoading}
+              className="h-7 text-xs text-muted-foreground"
+            >
+              <RefreshCw className={cn("mr-1.5 h-3 w-3", summaryLoading && "animate-spin")} />
+              Refresh
+            </Button>
+            {summaryGenerated && !summaryLoading && (
+              <span className="pr-1 text-[10px] text-muted-foreground/60">Updated today</span>
+            )}
+          </div>
         </CardContent>
       </Card>
 
