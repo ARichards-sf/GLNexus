@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { embedRecord } from "@/lib/embedRecord";
 
 export interface Task {
   id: string;
@@ -102,6 +103,8 @@ export function useCreateTask() {
 
       console.log("Task created:", task);
 
+      embedRecord("tasks", task, user.id);
+
       if (task.assigned_to && task.assigned_to !== user.id) {
         try {
           const { error: notifError } = await (supabase as any)
@@ -127,13 +130,20 @@ export function useCreateTask() {
 
 export function useCompleteTask() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   return useMutation({
     mutationFn: async (taskId: string) => {
-      const { error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("tasks")
         .update({ status: "done", completed_at: new Date().toISOString() })
-        .eq("id", taskId);
+        .eq("id", taskId)
+        .select()
+        .single();
       if (error) throw error;
+
+      if (data && user) {
+        embedRecord("tasks", { ...data, status: "done" }, user.id);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });

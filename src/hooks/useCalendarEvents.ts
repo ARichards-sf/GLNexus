@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { embedRecord } from "@/lib/embedRecord";
 
 export interface CalendarEvent {
   id: string;
@@ -104,6 +105,10 @@ export function useCreateCalendarEvent() {
         .select()
         .single();
       if (error) throw error;
+
+      if (data && user) {
+        embedRecord("calendar_events", data, user.id);
+      }
 
       // If Annual Review, update household status
       if (event.event_type === "Annual Review" && event.household_id) {
