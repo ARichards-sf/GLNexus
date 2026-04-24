@@ -26,7 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
 import { useArchiveContact } from "@/hooks/useHouseholds";
-import { formatFullCurrency } from "@/data/sampleData";
+import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
 import AddAccountDialog from "@/components/AddAccountDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
