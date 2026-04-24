@@ -37,6 +37,7 @@ export default function ContactProfile() {
   const navigate = useNavigate();
   const { data: contact, isLoading } = useContact(id);
   const { data: accounts = [] } = useContactAccounts(id);
+  const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
@@ -45,8 +46,30 @@ export default function ContactProfile() {
   const [closeAccountId, setCloseAccountId] = useState<string | null>(null);
   const [closeReason, setCloseReason] = useState("");
   const [archiveAccountId, setArchiveAccountId] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    marital_status: "",
+    employment_status: "",
+    annual_income: "" as string | number,
+    net_worth: "" as string | number,
+    tax_bracket: "",
+    filing_status: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    state: "",
+    zip_code: "",
+    country: "US",
+    preferred_contact: "",
+    has_will: false,
+    has_trust: false,
+    primary_goal: "",
+  });
   const deleteAccount = useDeleteAccount();
   const archiveContact = useArchiveContact();
+
+  // Sync form when contact loads or edit toggles on
+  useState(() => {});
 
   if (isLoading) {
     return (
