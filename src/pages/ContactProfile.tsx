@@ -25,24 +25,35 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
-import { useArchiveContact } from "@/hooks/useHouseholds";
+import { useArchiveContact, useComplianceNotes } from "@/hooks/useHouseholds";
 import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
 import AddAccountDialog from "@/components/AddAccountDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import ReparentContactDialog from "@/components/ReparentContactDialog";
+import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
+
+const noteTypeColors: Record<string, string> = {
+  "Annual Review": "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "Phone Call": "bg-blue-50 text-blue-700 border-blue-200",
+  "Email": "bg-violet-50 text-violet-700 border-violet-200",
+  "Prospecting": "bg-amber-50 text-amber-700 border-amber-200",
+  "Compliance": "bg-slate-100 text-slate-700 border-slate-200",
+};
 
 export default function ContactProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: contact, isLoading } = useContact(id);
   const { data: accounts = [] } = useContactAccounts(id);
+  const { data: allNotes = [] } = useComplianceNotes((contact as any)?.household_id);
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
   const [reparentOpen, setReparentOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [closeAccountId, setCloseAccountId] = useState<string | null>(null);
   const [closeReason, setCloseReason] = useState("");
   const [archiveAccountId, setArchiveAccountId] = useState<string | null>(null);
@@ -599,10 +610,57 @@ export default function ContactProfile() {
 
         <TabsContent value="activity" className="mt-6">
           <Card className="border-border shadow-none">
-            <CardContent className="py-16 text-center">
-              <Activity className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-sm font-medium text-foreground mb-1">No activity yet</p>
-              <p className="text-xs text-muted-foreground">Touchpoints, notes, and tasks for this contact will appear here.</p>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="text-base font-medium">Notes</CardTitle>
+              {contact.household_id && (
+                <Button size="sm" variant="outline" onClick={() => setAddNoteOpen(true)}>
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />
+                  Log Note
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const contactNotes = allNotes.filter((n: any) => {
+                  const cid = n.contact_id as string | undefined;
+                  return cid === contact.id || !cid;
+                });
+                if (contactNotes.length === 0) {
+                  return (
+                    <div className="py-12 text-center">
+                      <Activity className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
+                      <p className="text-sm font-medium text-foreground mb-1">No activity yet</p>
+                      <p className="text-xs text-muted-foreground">Notes for this contact will appear here.</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-5">
+                    {contactNotes.map((note: any) => {
+                      const isDirect = note.contact_id === contact.id;
+                      return (
+                        <div key={note.id} className="border-l-2 border-border pl-4">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 font-medium ${noteTypeColors[note.type] || ""}`}>
+                              {note.type}
+                            </Badge>
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(note.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
+                            {!isDirect && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground">
+                                Household note
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{note.summary}</p>
+                          {note.advisor_name && <p className="text-[11px] text-muted-foreground mt-1.5">— {note.advisor_name}</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
@@ -621,6 +679,14 @@ export default function ContactProfile() {
 
       <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
       <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} memberId={contact.id} />
+      {contact.household_id && (
+        <AddComplianceNoteDialog
+          open={addNoteOpen}
+          onOpenChange={setAddNoteOpen}
+          householdId={contact.household_id}
+          contactId={contact.id}
+        />
+      )}
       <RequestAssistanceDialog
         open={assistOpen}
         onOpenChange={setAssistOpen}

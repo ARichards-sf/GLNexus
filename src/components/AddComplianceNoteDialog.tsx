@@ -19,9 +19,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   householdId: string;
+  contactId?: string;
 }
 
-export default function AddComplianceNoteDialog({ open, onOpenChange, householdId }: Props) {
+export default function AddComplianceNoteDialog({ open, onOpenChange, householdId, contactId }: Props) {
   const [category, setCategory] = useState("");
   const [content, setContent] = useState("");
   const createNote = useCreateComplianceNote();
@@ -36,7 +37,7 @@ export default function AddComplianceNoteDialog({ open, onOpenChange, householdI
     if (!category || !content.trim()) return;
 
     createNote.mutate(
-      { householdId, type: category, summary: content.trim() },
+      { householdId, type: category, summary: content.trim(), contactId },
       {
         onSuccess: () => {
           toast.success("Compliance note added.");
