@@ -1,6 +1,8 @@
 import { Outlet, useLocation } from "react-router-dom";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Bot, PhoneOff, ChevronLeft, ChevronRight } from "lucide-react";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
+import IdleWarningDialog from "@/components/IdleWarningDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import AppSidebar from "./AppSidebar";
 import ImpersonationBar from "./ImpersonationBar";
@@ -25,7 +27,28 @@ import { useFirms } from "@/hooks/useFirms";
 
 function LayoutInner() {
   const { sessionEvent, isInSession, endSession, isProspectSession } = useInSession();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const [showIdleWarning, setShowIdleWarning] = useState(false);
+
+  const handleIdleWarning = useCallback(() => {
+    setShowIdleWarning(true);
+  }, []);
+
+  const handleIdleTimeout = useCallback(async () => {
+    setShowIdleWarning(false);
+    await signOut();
+  }, [signOut]);
+
+  const { resetTimer } = useIdleTimeout({
+    onWarning: handleIdleWarning,
+    onTimeout: handleIdleTimeout,
+    enabled: !!user,
+  });
+
+  const handleStayLoggedIn = useCallback(() => {
+    setShowIdleWarning(false);
+    resetTimer();
+  }, [resetTimer]);
   const { isVpmSession } = useImpersonation();
   const { pathname } = useLocation();
   const createTask = useCreateTask();
@@ -307,6 +330,12 @@ function LayoutInner() {
         )}
       </div>
       <AiAssistant />
+
+      <IdleWarningDialog
+        open={showIdleWarning}
+        onStayLoggedIn={handleStayLoggedIn}
+        onLogOut={handleIdleTimeout}
+      />
 
       {endSessionOpen && (
         <EndSessionDialog
