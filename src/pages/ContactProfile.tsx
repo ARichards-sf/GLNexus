@@ -25,12 +25,21 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
-import { useArchiveContact } from "@/hooks/useHouseholds";
+import { useArchiveContact, useComplianceNotes } from "@/hooks/useHouseholds";
 import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
 import AddAccountDialog from "@/components/AddAccountDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import ReparentContactDialog from "@/components/ReparentContactDialog";
+import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
+
+const noteTypeColors: Record<string, string> = {
+  "Annual Review": "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "Phone Call": "bg-blue-50 text-blue-700 border-blue-200",
+  "Email": "bg-violet-50 text-violet-700 border-violet-200",
+  "Prospecting": "bg-amber-50 text-amber-700 border-amber-200",
+  "Compliance": "bg-slate-100 text-slate-700 border-slate-200",
+};
 
 export default function ContactProfile() {
   const { id } = useParams();
