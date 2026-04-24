@@ -14,6 +14,7 @@ import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
   Edit, Wallet, Plus, HelpCircle, ChevronRight,
   Archive, ArrowRightLeft, MoreHorizontal, X, Wallet as WalletIcon, Check,
+  MapPin, MessageSquare, Users, Shield,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
