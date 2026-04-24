@@ -679,6 +679,14 @@ export default function ContactProfile() {
 
       <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
       <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} memberId={contact.id} />
+      {contact.household_id && (
+        <AddComplianceNoteDialog
+          open={addNoteOpen}
+          onOpenChange={setAddNoteOpen}
+          householdId={contact.household_id}
+          contactId={contact.id}
+        />
+      )}
       <RequestAssistanceDialog
         open={assistOpen}
         onOpenChange={setAssistOpen}
