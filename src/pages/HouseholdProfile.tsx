@@ -997,7 +997,7 @@ export default function HouseholdProfile() {
                           <div className="w-2.5 h-2.5 rounded-full bg-border mt-1.5 ring-4 ring-card" />
                         </div>
                         <div className="flex-1 pb-1">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 font-medium ${noteTypeColors[note.type] || ""}`}>
                               {note.type}
                             </Badge>
@@ -1005,6 +1005,17 @@ export default function HouseholdProfile() {
                               {new Date(note.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                             </span>
                             {isLocked && <Lock className="w-3 h-3 text-muted-foreground" />}
+                            {(() => {
+                              const cid = (note as any).contact_id as string | undefined;
+                              if (!cid) return null;
+                              const m = [...members, ...archivedMembers].find((x: any) => x.id === cid);
+                              if (!m) return null;
+                              return (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground">
+                                  re: {m.first_name} {m.last_name}
+                                </Badge>
+                              );
+                            })()}
                           </div>
                           <p className="text-sm text-muted-foreground leading-relaxed">{note.summary}</p>
                           {note.advisor_name && <p className="text-[11px] text-muted-foreground mt-1.5">— {note.advisor_name}</p>}
