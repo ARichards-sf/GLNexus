@@ -5,8 +5,9 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CalendarCheck, AlertTriangle, CalendarPlus, MoreHorizontal, Archive,
-  ArrowRightLeft, ChevronDown, ChevronUp, X, Star, TrendingUp, Sparkles, Trash2,
+  ArrowRightLeft, ChevronDown, ChevronUp, X, Star, TrendingUp, Sparkles, Trash2, Pencil,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
