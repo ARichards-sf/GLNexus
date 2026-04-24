@@ -170,12 +170,47 @@ export type Database = {
           },
         ]
       }
+      compliance_note_contacts: {
+        Row: {
+          compliance_note_id: string
+          contact_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          compliance_note_id: string
+          contact_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          compliance_note_id?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_note_contacts_compliance_note_id_fkey"
+            columns: ["compliance_note_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_note_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "household_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_notes: {
         Row: {
           advisor_id: string
           advisor_name: string | null
           auto_generated: boolean
-          contact_id: string | null
           created_at: string
           date: string
           household_id: string
@@ -189,7 +224,6 @@ export type Database = {
           advisor_id: string
           advisor_name?: string | null
           auto_generated?: boolean
-          contact_id?: string | null
           created_at?: string
           date?: string
           household_id: string
@@ -203,7 +237,6 @@ export type Database = {
           advisor_id?: string
           advisor_name?: string | null
           auto_generated?: boolean
-          contact_id?: string | null
           created_at?: string
           date?: string
           household_id?: string
@@ -214,13 +247,6 @@ export type Database = {
           type?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "compliance_notes_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "household_members"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "compliance_notes_household_id_fkey"
             columns: ["household_id"]
