@@ -43,7 +43,7 @@ const PERIODS = {
     color: "text-indigo-500",
     bgColor: "bg-indigo-500/10",
     cardBorder: "border-indigo-200/70 dark:border-indigo-700/40",
-    cardBg: "bg-indigo-50/20 dark:bg-indigo-950/10",
+    cardBg: "bg-card",
     footer: "Ask Goodie to help you prep for tomorrow",
   },
 } as const;
