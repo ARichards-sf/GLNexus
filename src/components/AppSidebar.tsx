@@ -76,20 +76,8 @@ function hexToSafePalette(hex: string, secondaryHex?: string): Record<string, st
     // If color is achromatic (white, black, or grey) fall back to default neutral palette
     const isAchromatic = d < 0.05;
     if (isAchromatic) {
-      return {
-        "--primary": "215 28% 17%",
-        "--primary-foreground": "210 40% 98%",
-        "--sidebar-background": "220 40% 93%",
-        "--sidebar-foreground": "220 50% 8%",
-        "--sidebar-accent": "220 35% 86%",
-        "--sidebar-accent-foreground": "220 50% 5%",
-        "--sidebar-border": "220 30% 80%",
-        "--accent": "160 84% 39%",
-        "--accent-foreground": "0 0% 100%",
-        "--ring": "215 28% 17%",
-        "--table-header": "220 30% 93%",
-        "--background": "214 20% 93%",
-      };
+      // Return null so index.css defaults take over entirely
+      return null;
     }
 
     let secondaryHue = hue;
@@ -118,7 +106,6 @@ function hexToSafePalette(hex: string, secondaryHex?: string): Record<string, st
         secondaryHue = Math.round(sh * 360);
         const secondaryIsAchromatic = sd < 0.05;
         if (secondaryIsAchromatic) {
-          // Fall back to primary hue for secondary if it's achromatic
           secondaryHue = hue;
         }
       } catch {
@@ -126,19 +113,15 @@ function hexToSafePalette(hex: string, secondaryHex?: string): Record<string, st
       }
     }
 
+    // Only apply firm color to meaningful brand surfaces:
+    // primary buttons, focus rings, accent. Leave sidebar,
+    // background, and table headers neutral (from index.css).
     return {
-      "--sidebar-background": `${hue} 45% 92%`,
-      "--sidebar-foreground": `${hue} 50% 6%`,
-      "--sidebar-accent": `${hue} 40% 85%`,
-      "--sidebar-accent-foreground": `${hue} 50% 4%`,
-      "--sidebar-border": `${hue} 35% 78%`,
       "--primary": `${hue} 50% 30%`,
       "--primary-foreground": `${hue} 40% 97%`,
       "--ring": `${hue} 50% 30%`,
       "--accent": `${hue} 40% 40%`,
       "--accent-foreground": `0 0% 100%`,
-      "--table-header": `${secondaryHue} 30% 93%`,
-      "--background": `${secondaryHue} 30% 95%`,
     };
   } catch {
     return null;
