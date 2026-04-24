@@ -248,7 +248,7 @@ export default function Households() {
             </TableHeader>
             <TableBody>
               {filtered.map((h) => (
-                <TableRow key={h.id} className="group">
+                <TableRow key={h.id} className="group bg-card hover:bg-secondary/40">
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Link to={`/household/${h.id}`} className="flex items-center gap-3 hover:underline">
