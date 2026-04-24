@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,7 +12,7 @@ import {
   ArrowLeft, User, Mail, Phone, Briefcase, Building2,
   Edit, Wallet, Plus, HelpCircle, ChevronRight,
   Archive, ArrowRightLeft, MoreHorizontal, X,
-  MapPin, MessageSquare, Users, Shield,
+  MapPin, MessageSquare, Users, Shield, FileText, Activity,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
