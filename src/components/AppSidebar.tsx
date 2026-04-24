@@ -1,4 +1,5 @@
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin, useIsGlInternal, useGlProfile } from "@/hooks/useAdmin";
