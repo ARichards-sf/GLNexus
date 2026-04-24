@@ -155,7 +155,7 @@ export default function EditContactSheet({ open, onOpenChange, contact }: Props)
     if (!user || !contact) return;
     setSaving(true);
     try {
-      await supabase
+      const { error } = await supabase
         .from("household_members")
         .update({
           first_name: form.first_name.trim(),
