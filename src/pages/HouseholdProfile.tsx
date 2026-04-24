@@ -541,15 +541,45 @@ export default function HouseholdProfile() {
             <p className="text-2xl font-semibold tracking-tight text-emerald-600">{formatFullCurrency(totalAccountsAUM)}</p>
           </CardContent>
         </Card>
-        <Card className="border-border shadow-none">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground font-medium">Risk Tolerance</span>
+        <Popover open={editRiskOpen} onOpenChange={setEditRiskOpen}>
+          <PopoverTrigger asChild>
+            <Card className="border-border shadow-none cursor-pointer transition-all hover:border-primary/40 hover:shadow-md group">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground font-medium">Risk Tolerance</span>
+                  </div>
+                  <Pencil className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className={`text-2xl font-semibold tracking-tight ${riskColors[household.risk_tolerance] || "text-foreground"}`}>
+                  {household.risk_tolerance || "Not set"}
+                </p>
+              </CardContent>
+            </Card>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+              Risk Tolerance
             </div>
-            <p className={`text-2xl font-semibold tracking-tight ${riskColors[household.risk_tolerance] || "text-foreground"}`}>{household.risk_tolerance}</p>
-          </CardContent>
-        </Card>
+            <div className="space-y-0.5">
+              {["Conservative", "Moderate", "Aggressive", "Very Aggressive"].map((option) => (
+                <button
+                  key={option}
+                  onClick={() => handleUpdateRiskDirect(option)}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
+                    household.risk_tolerance === option
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "hover:bg-secondary text-foreground"
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
         <Card
           className={cn(
             "border-border shadow-none cursor-pointer transition-all hover:border-primary/40 hover:shadow-md",
