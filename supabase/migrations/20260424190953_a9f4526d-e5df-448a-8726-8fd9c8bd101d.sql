@@ -1,0 +1,1 @@
+ALTER TABLE public.household_members ADD COLUMN middle_name TEXT;
