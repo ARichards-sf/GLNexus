@@ -89,7 +89,7 @@ function LayoutInner() {
     localStorage.setItem("goodie-panel-collapsed", String(next));
   };
 
-  const hidePanel = pathname.startsWith("/admin") || pathname === "/settings";
+  const hidePanel = pathname.startsWith("/admin") || pathname === "/settings" || pathname === "/goodie";
   const showPanel = !hidePanel && !!user;
   const sessionName = isInSession
     ? (sessionEvent?.households?.name ||
