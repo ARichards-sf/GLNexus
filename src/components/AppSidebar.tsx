@@ -1,5 +1,5 @@
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin, useIsGlInternal, useGlProfile } from "@/hooks/useAdmin";
@@ -48,85 +48,6 @@ const internalItems = [
   { to: "/admin/retention", label: "Data Retention", icon: Database },
   { to: "/admin/developer", label: "Developer Tools", icon: Terminal },
 ];
-
-function hexToSafePalette(hex: string, secondaryHex?: string): Record<string, string> | null {
-  try {
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    let h = 0;
-    const d = max - min;
-    if (d !== 0) {
-      switch (max) {
-        case r:
-          h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-          break;
-        case g:
-          h = ((b - r) / d + 2) / 6;
-          break;
-        case b:
-          h = ((r - g) / d + 4) / 6;
-          break;
-      }
-    }
-    const hue = Math.round(h * 360);
-
-    // If color is achromatic (white, black, or grey) fall back to default neutral palette
-    const isAchromatic = d < 0.05;
-    if (isAchromatic) {
-      // Return null so index.css defaults take over entirely
-      return null;
-    }
-
-    let secondaryHue = hue;
-    if (secondaryHex) {
-      try {
-        const sr = parseInt(secondaryHex.slice(1, 3), 16) / 255;
-        const sg = parseInt(secondaryHex.slice(3, 5), 16) / 255;
-        const sb = parseInt(secondaryHex.slice(5, 7), 16) / 255;
-        const smax = Math.max(sr, sg, sb);
-        const smin = Math.min(sr, sg, sb);
-        let sh = 0;
-        const sd = smax - smin;
-        if (sd !== 0) {
-          switch (smax) {
-            case sr:
-              sh = ((sg - sb) / sd + (sg < sb ? 6 : 0)) / 6;
-              break;
-            case sg:
-              sh = ((sb - sr) / sd + 2) / 6;
-              break;
-            case sb:
-              sh = ((sr - sg) / sd + 4) / 6;
-              break;
-          }
-        }
-        secondaryHue = Math.round(sh * 360);
-        const secondaryIsAchromatic = sd < 0.05;
-        if (secondaryIsAchromatic) {
-          secondaryHue = hue;
-        }
-      } catch {
-        secondaryHue = hue;
-      }
-    }
-
-    // Only apply firm color to meaningful brand surfaces:
-    // primary buttons, focus rings, accent. Leave sidebar,
-    // background, and table headers neutral (from index.css).
-    return {
-      "--primary": `${hue} 50% 30%`,
-      "--primary-foreground": `${hue} 40% 97%`,
-      "--ring": `${hue} 50% 30%`,
-      "--accent": `${hue} 40% 40%`,
-      "--accent-foreground": `0 0% 100%`,
-    };
-  } catch {
-    return null;
-  }
-}
 
 export default function AppSidebar() {
   const location = useLocation();
@@ -233,36 +154,6 @@ export default function AppSidebar() {
   const logoUrl = brandingFirm?.logo_url || glLogo;
   const firmName = brandingFirm?.name;
   const showFirmName = firmName && firmName !== "Good Life Companies";
-
-  useEffect(() => {
-    if (brandingFirm?.accent_color) {
-      const palette = hexToSafePalette(brandingFirm.accent_color, (brandingFirm as any).secondary_color || undefined);
-      if (palette) {
-        Object.entries(palette).forEach(([key, value]) => {
-          document.documentElement.style.setProperty(key, value);
-        });
-      }
-    } else {
-      // No firm color set — remove all injected properties and let index.css defaults take over
-      const keys = [
-        "--primary",
-        "--primary-foreground",
-        "--sidebar-background",
-        "--sidebar-foreground",
-        "--sidebar-accent",
-        "--sidebar-accent-foreground",
-        "--sidebar-border",
-        "--accent",
-        "--accent-foreground",
-        "--ring",
-        "--table-header",
-        "--background",
-      ];
-      keys.forEach((key) => {
-        document.documentElement.style.removeProperty(key);
-      });
-    }
-  }, [brandingFirm?.accent_color, (brandingFirm as any)?.secondary_color]);
 
   return (
     <aside
