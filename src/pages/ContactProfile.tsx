@@ -721,7 +721,42 @@ export default function ContactProfile() {
                 )}
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Tax Bracket</p>
+                <p className="text-xs text-muted-foreground mb-1">Liquid Net Worth</p>
+                {editingProfile ? (
+                  <Input
+                    type="number"
+                    value={profileForm.liquid_net_worth}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, liquid_net_worth: e.target.value }))}
+                    placeholder="0"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).liquid_net_worth
+                      ? formatCurrency(Number((contact as any).liquid_net_worth))
+                      : "—"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">SSN (Last 4)</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.ssn_last_four}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                      setProfileForm((p) => ({ ...p, ssn_last_four: val }));
+                    }}
+                    placeholder="####"
+                    maxLength={4}
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).ssn_last_four ? `XXX-XX-${(contact as any).ssn_last_four}` : "—"}
+                  </p>
+                )}
+              </div>
                 {editingProfile ? (
                   <Select
                     value={profileForm.tax_bracket}
