@@ -168,7 +168,6 @@ export default function EditContactSheet({ open, onOpenChange, contact }: Props)
           number_of_dependents: form.number_of_dependents
             ? Number(form.number_of_dependents)
             : 0,
-          citizenship: form.citizenship || null,
           primary_goal: form.primary_goal || null,
           ssn_last_four: form.ssn_last_four || null,
           email: form.email || null,
