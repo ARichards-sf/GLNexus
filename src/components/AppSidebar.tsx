@@ -106,7 +106,6 @@ function hexToSafePalette(hex: string, secondaryHex?: string): Record<string, st
         secondaryHue = Math.round(sh * 360);
         const secondaryIsAchromatic = sd < 0.05;
         if (secondaryIsAchromatic) {
-          // Fall back to primary hue for secondary if it's achromatic
           secondaryHue = hue;
         }
       } catch {
@@ -114,19 +113,15 @@ function hexToSafePalette(hex: string, secondaryHex?: string): Record<string, st
       }
     }
 
+    // Only apply firm color to meaningful brand surfaces:
+    // primary buttons, focus rings, accent. Leave sidebar,
+    // background, and table headers neutral (from index.css).
     return {
-      "--sidebar-background": `${hue} 45% 92%`,
-      "--sidebar-foreground": `${hue} 50% 6%`,
-      "--sidebar-accent": `${hue} 40% 85%`,
-      "--sidebar-accent-foreground": `${hue} 50% 4%`,
-      "--sidebar-border": `${hue} 35% 78%`,
       "--primary": `${hue} 50% 30%`,
       "--primary-foreground": `${hue} 40% 97%`,
       "--ring": `${hue} 50% 30%`,
       "--accent": `${hue} 40% 40%`,
       "--accent-foreground": `0 0% 100%`,
-      "--table-header": `${secondaryHue} 30% 93%`,
-      "--background": `${secondaryHue} 30% 95%`,
     };
   } catch {
     return null;
