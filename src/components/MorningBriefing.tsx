@@ -499,7 +499,11 @@ export default function MorningBriefing({
         });
       },
       onToolCalls: () => {},
-      onDone: () => setIsGenerating(false),
+      onDone: () => {
+        setIsGenerating(false);
+        const todayStr = new Date().toISOString().split("T")[0];
+        cleanBriefingCache(userId, currentPeriod, todayStr);
+      },
       onError: () => setIsGenerating(false),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
