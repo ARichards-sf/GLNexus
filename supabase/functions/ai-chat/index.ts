@@ -258,15 +258,20 @@ serve(async (req) => {
         day: "numeric"
       }
     );
-    let systemContent = SYSTEM_PROMPT;
-    systemContent +=
+    // Static — will be cached
+    // Never changes between calls
+    const staticSystem = SYSTEM_PROMPT;
+
+    // Dynamic — built fresh each call
+    // Date, advisor context, RAG
+    let dynamicContext =
       `\n\nToday's date is ${todayStr}.` +
       ` Use this for all date calculations,` +
       ` scheduling, and relative date` +
       ` references like 'tomorrow',` +
       ` 'next week', 'end of month' etc.`;
     if (context) {
-      systemContent += `\n\n--- ADVISOR OVERVIEW ---\n${context}`;
+      dynamicContext += `\n\n--- ADVISOR OVERVIEW ---\n${context}`;
     }
 
     if (OPENAI_API_KEY && messages?.length) {
@@ -281,7 +286,7 @@ serve(async (req) => {
           OPENAI_API_KEY
         );
         if (ragContext) {
-          systemContent += ragContext;
+          dynamicContext += ragContext;
         }
       }
     }
@@ -296,7 +301,19 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
-        system: systemContent,
+        system: [
+          {
+            type: "text",
+            text: staticSystem,
+            cache_control: {
+              type: "ephemeral"
+            }
+          },
+          {
+            type: "text",
+            text: dynamicContext,
+          }
+        ],
         messages: messages,
         tools: TOOLS,
         stream: true,
