@@ -175,6 +175,7 @@ export type Database = {
           advisor_id: string
           advisor_name: string | null
           auto_generated: boolean
+          contact_id: string | null
           created_at: string
           date: string
           household_id: string
@@ -188,6 +189,7 @@ export type Database = {
           advisor_id: string
           advisor_name?: string | null
           auto_generated?: boolean
+          contact_id?: string | null
           created_at?: string
           date?: string
           household_id: string
@@ -201,6 +203,7 @@ export type Database = {
           advisor_id?: string
           advisor_name?: string | null
           auto_generated?: boolean
+          contact_id?: string | null
           created_at?: string
           date?: string
           household_id?: string
@@ -211,6 +214,13 @@ export type Database = {
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "compliance_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "household_members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "compliance_notes_household_id_fkey"
             columns: ["household_id"]
