@@ -392,8 +392,286 @@ export default function ContactProfile() {
         </div>
       </div>
 
+      {/* Financial Profile */}
+      <Card className="mt-6 border-border shadow-none">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <WalletIcon className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-base font-semibold">Financial Profile</CardTitle>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (editingProfile) {
+                  handleSaveProfile();
+                } else {
+                  setEditingProfile(true);
+                }
+              }}
+              className="h-7 text-xs gap-1.5"
+            >
+              {editingProfile ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  Save
+                </>
+              ) : (
+                <>
+                  <Edit className="w-3.5 h-3.5" />
+                  Edit
+                </>
+              )}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Personal */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Personal</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Marital Status</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.marital_status}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, marital_status: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {["Single", "Married", "Divorced", "Widowed", "Domestic Partner"].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).marital_status || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Preferred Contact</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.preferred_contact}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, preferred_contact: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {["Email", "Phone", "Text"].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).preferred_contact || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Primary Goal</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.primary_goal}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, primary_goal: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "Retirement Planning", "Wealth Accumulation", "Wealth Preservation",
+                        "Income Generation", "Education Funding", "Estate Planning",
+                        "Business Succession", "Debt Reduction", "Insurance Planning", "Tax Minimization",
+                      ].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).primary_goal || "—"}</p>
+                )}
+              </div>
+            </div>
+          </div>
 
-      <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
+          {/* Employment & Income */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Employment & Income</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Employment Status</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.employment_status}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, employment_status: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {["Employed", "Self-Employed", "Retired", "Unemployed", "Student", "Homemaker"].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).employment_status || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Annual Income</p>
+                {editingProfile ? (
+                  <Input
+                    type="number"
+                    value={profileForm.annual_income}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, annual_income: e.target.value }))}
+                    placeholder="0"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).annual_income ? formatCurrency(Number((contact as any).annual_income)) : "—"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Financial */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Financial</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Net Worth</p>
+                {editingProfile ? (
+                  <Input
+                    type="number"
+                    value={profileForm.net_worth}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, net_worth: e.target.value }))}
+                    placeholder="0"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).net_worth ? formatCurrency(Number((contact as any).net_worth)) : "—"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Tax Bracket</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.tax_bracket}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, tax_bracket: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {["10%", "12%", "22%", "24%", "32%", "35%", "37%"].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).tax_bracket || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Filing Status</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.filing_status}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, filing_status: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "Single", "Married Filing Jointly", "Married Filing Separately",
+                        "Head of Household", "Qualifying Widow(er)",
+                      ].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).filing_status || "—"}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Address */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Address</h4>
+            {editingProfile ? (
+              <div className="space-y-2">
+                <Input
+                  value={profileForm.address_line1}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, address_line1: e.target.value }))}
+                  placeholder="Street address"
+                  className="h-8 text-sm"
+                />
+                <Input
+                  value={profileForm.address_line2}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, address_line2: e.target.value }))}
+                  placeholder="Apt, suite, unit (optional)"
+                  className="h-8 text-sm"
+                />
+                <div className="grid grid-cols-3 gap-2">
+                  <Input
+                    value={profileForm.city}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, city: e.target.value }))}
+                    placeholder="City"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={profileForm.state}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, state: e.target.value }))}
+                    placeholder="State"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={profileForm.zip_code}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, zip_code: e.target.value }))}
+                    placeholder="ZIP"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-foreground whitespace-pre-line">
+                {[
+                  (contact as any).address_line1,
+                  (contact as any).address_line2,
+                  [(contact as any).city, (contact as any).state, (contact as any).zip_code]
+                    .filter(Boolean).join(", "),
+                ].filter(Boolean).join("\n") || "—"}
+              </p>
+            )}
+          </div>
+
+          {/* Estate */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Estate Planning</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { key: "has_will" as const, label: "Has Will" },
+                { key: "has_trust" as const, label: "Has Trust" },
+              ].map(({ key, label }) => (
+                <div key={key} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                  <p className="text-sm text-foreground">{label}</p>
+                  {editingProfile ? (
+                    <Switch
+                      checked={profileForm[key]}
+                      onCheckedChange={(v) => setProfileForm((p) => ({ ...p, [key]: v }))}
+                    />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      {(contact as any)[key] ? "Yes" : "No"}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} memberId={contact.id} />
       <RequestAssistanceDialog
         open={assistOpen}
