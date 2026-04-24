@@ -1,4 +1,5 @@
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin, useIsGlInternal, useGlProfile } from "@/hooks/useAdmin";
@@ -47,6 +48,46 @@ const internalItems = [
   { to: "/admin/retention", label: "Data Retention", icon: Database },
   { to: "/admin/developer", label: "Developer Tools", icon: Terminal },
 ];
+
+function hexToSafePalette(hex: string): Record<string, string> | null {
+  try {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+    const d = max - min;
+    if (d !== 0) {
+      switch (max) {
+        case r:
+          h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+          break;
+        case g:
+          h = ((b - r) / d + 2) / 6;
+          break;
+        case b:
+          h = ((r - g) / d + 4) / 6;
+          break;
+      }
+    }
+    const hue = Math.round(h * 360);
+    return {
+      "--primary": `${hue} 25% 20%`,
+      "--primary-foreground": `${hue} 40% 97%`,
+      "--sidebar-background": `${hue} 30% 12%`,
+      "--sidebar-foreground": `${hue} 20% 88%`,
+      "--sidebar-accent": `${hue} 25% 19%`,
+      "--sidebar-accent-foreground": `${hue} 20% 88%`,
+      "--sidebar-border": `${hue} 25% 19%`,
+      "--accent": `${hue} 45% 42%`,
+      "--accent-foreground": `0 0% 100%`,
+      "--ring": `${hue} 25% 20%`,
+    };
+  } catch {
+    return null;
+  }
+}
 
 export default function AppSidebar() {
   const location = useLocation();
@@ -153,6 +194,33 @@ export default function AppSidebar() {
   const logoUrl = brandingFirm?.logo_url || glLogo;
   const firmName = brandingFirm?.name;
   const showFirmName = firmName && firmName !== "Good Life Companies";
+
+  useEffect(() => {
+    if (brandingFirm?.accent_color) {
+      const palette = hexToSafePalette(brandingFirm.accent_color);
+      if (palette) {
+        Object.entries(palette).forEach(([key, value]) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
+    } else {
+      const keys = [
+        "--primary",
+        "--primary-foreground",
+        "--sidebar-background",
+        "--sidebar-foreground",
+        "--sidebar-accent",
+        "--sidebar-accent-foreground",
+        "--sidebar-border",
+        "--accent",
+        "--accent-foreground",
+        "--ring",
+      ];
+      keys.forEach((key) => {
+        document.documentElement.style.removeProperty(key);
+      });
+    }
+  }, [brandingFirm?.accent_color]);
 
   return (
     <aside
