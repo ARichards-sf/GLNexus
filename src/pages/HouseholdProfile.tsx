@@ -232,6 +232,7 @@ export default function HouseholdProfile() {
   const [closeAccountId, setCloseAccountId] = useState<string | null>(null);
   const [closeReason, setCloseReason] = useState("");
   const [archiveAccountId, setArchiveAccountId] = useState<string | null>(null);
+  const [editRiskOpen, setEditRiskOpen] = useState(false);
 
   const archiveHousehold = useArchiveHousehold();
   const archiveContact = useArchiveContact();
