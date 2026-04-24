@@ -83,6 +83,7 @@ function hexToSafePalette(hex: string): Record<string, string> | null {
       "--ring": `${hue} 50% 30%`,
       "--accent": `${hue} 40% 40%`,
       "--accent-foreground": `0 0% 100%`,
+      "--table-header": `${hue} 30% 93%`,
     };
   } catch {
     return null;
@@ -215,6 +216,7 @@ export default function AppSidebar() {
         "--accent": "160 84% 39%",
         "--accent-foreground": "0 0% 100%",
         "--ring": "215 28% 17%",
+        "--table-header": "220 30% 94%",
       };
       Object.entries(defaults).forEach(([key, value]) => {
         document.documentElement.style.setProperty(key, value);
