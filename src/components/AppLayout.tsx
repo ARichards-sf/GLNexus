@@ -249,7 +249,7 @@ function LayoutInner() {
           <>
             {/* Collapsed strip */}
             {panelCollapsed && (
-              <aside className="hidden 2xl:flex fixed right-0 top-0 bottom-0 w-[48px] border-l border-border bg-card/30 z-40 flex-col items-center py-3 gap-2">
+              <aside className="hidden 2xl:flex fixed right-0 top-0 bottom-0 w-[48px] border-l border-border bg-card z-40 flex-col items-center py-3 gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -271,8 +271,8 @@ function LayoutInner() {
 
             {/* Expanded panel */}
             {!panelCollapsed && (
-              <aside className="hidden 2xl:flex fixed right-0 top-0 bottom-0 w-[360px] 3xl:w-[480px] border-l border-border bg-background shadow-lg z-40 flex-col">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background sticky top-0 z-10">
+              <aside className="hidden 2xl:flex fixed right-0 top-0 bottom-0 w-[360px] 3xl:w-[480px] border-l border-border bg-card shadow-lg z-40 flex-col">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card sticky top-0 z-10">
                   <div className="flex items-center gap-2 min-w-0">
                     <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                     <h2 className="text-sm font-semibold truncate">
