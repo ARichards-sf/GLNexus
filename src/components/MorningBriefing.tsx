@@ -51,6 +51,29 @@ const PERIODS = {
 const getCacheKey = (period: BriefingPeriod, userId: string) =>
   `goodie_brief_${period}_${userId}_${new Date().toISOString().split("T")[0]}_v2`;
 
+function cleanBriefingCache(
+  userId: string,
+  keepPeriod?: BriefingPeriod,
+  keepDate?: string
+): void {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => {
+        if (!k.startsWith("goodie_brief_")) return false;
+        if (!k.includes(userId)) return false;
+        if (keepPeriod && keepDate) {
+          const keepKey = `goodie_brief_${keepPeriod}_${userId}_${keepDate}_v2`;
+          const keepTaskKey = keepKey + "_task_snapshot";
+          if (k === keepKey || k === keepTaskKey) return false;
+        }
+        return true;
+      })
+      .forEach((k) => localStorage.removeItem(k));
+  } catch {
+    /* ignore */
+  }
+}
+
 interface BriefingCache {
   date: string;
   period: BriefingPeriod;
@@ -253,7 +276,7 @@ export default function MorningBriefing({
     cachedSnapshot !== null &&
     (cachedSnapshot.total !== pendingTasks.length || cachedSnapshot.overdue !== currentOverdue);
 
-  // Clean up legacy cache keys
+  // Clean up legacy cache keys + stale period/date caches
   useEffect(() => {
     try {
       localStorage.removeItem("goodie_morning_briefing");
@@ -266,7 +289,10 @@ export default function MorningBriefing({
     } catch {
       /* ignore */
     }
-  }, [userId]);
+    if (!userId) return;
+    const today = new Date().toISOString().split("T")[0];
+    cleanBriefingCache(userId, currentPeriod, today);
+  }, [userId, currentPeriod]);
 
   // Check every 60 seconds if the period has changed
   useEffect(() => {
@@ -473,7 +499,11 @@ export default function MorningBriefing({
         });
       },
       onToolCalls: () => {},
-      onDone: () => setIsGenerating(false),
+      onDone: () => {
+        setIsGenerating(false);
+        const todayStr = new Date().toISOString().split("T")[0];
+        cleanBriefingCache(userId, currentPeriod, todayStr);
+      },
       onError: () => setIsGenerating(false),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
