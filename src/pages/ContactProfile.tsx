@@ -574,6 +574,52 @@ export default function ContactProfile() {
             </div>
           </div>
 
+          {/* Contact Methods */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Contact Methods</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Mobile Phone</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.mobile_phone}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, mobile_phone: e.target.value }))}
+                    placeholder="Mobile number"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).mobile_phone || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Secondary Phone</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.secondary_phone}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, secondary_phone: e.target.value }))}
+                    placeholder="Home or work"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).secondary_phone || "—"}</p>
+                )}
+              </div>
+              <div className="md:col-span-2">
+                <p className="text-xs text-muted-foreground mb-1">Secondary Email</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.secondary_email}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, secondary_email: e.target.value }))}
+                    placeholder="Alternative email"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).secondary_email || "—"}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Employment & Income */}
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Employment & Income</h4>
