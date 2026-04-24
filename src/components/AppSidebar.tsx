@@ -195,6 +195,33 @@ export default function AppSidebar() {
   const firmName = brandingFirm?.name;
   const showFirmName = firmName && firmName !== "Good Life Companies";
 
+  useEffect(() => {
+    if (brandingFirm?.accent_color) {
+      const palette = hexToSafePalette(brandingFirm.accent_color);
+      if (palette) {
+        Object.entries(palette).forEach(([key, value]) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
+    } else {
+      const keys = [
+        "--primary",
+        "--primary-foreground",
+        "--sidebar-background",
+        "--sidebar-foreground",
+        "--sidebar-accent",
+        "--sidebar-accent-foreground",
+        "--sidebar-border",
+        "--accent",
+        "--accent-foreground",
+        "--ring",
+      ];
+      keys.forEach((key) => {
+        document.documentElement.style.removeProperty(key);
+      });
+    }
+  }, [brandingFirm?.accent_color]);
+
   return (
     <aside
       className="hidden lg:flex flex-col w-64 border-r border-border bg-card h-screen px-4 py-6 shrink-0"
