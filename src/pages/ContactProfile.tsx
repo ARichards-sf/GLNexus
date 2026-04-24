@@ -46,12 +46,14 @@ export default function ContactProfile() {
   const navigate = useNavigate();
   const { data: contact, isLoading } = useContact(id);
   const { data: accounts = [] } = useContactAccounts(id);
+  const { data: allNotes = [] } = useComplianceNotes((contact as any)?.household_id);
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
   const [reparentOpen, setReparentOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [closeAccountId, setCloseAccountId] = useState<string | null>(null);
   const [closeReason, setCloseReason] = useState("");
   const [archiveAccountId, setArchiveAccountId] = useState<string | null>(null);
