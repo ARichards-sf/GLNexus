@@ -253,8 +253,6 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
       <QuickLogNoteDialog
         open={logNoteOpen}
         onOpenChange={setLogNoteOpen}
-        defaultHouseholdId={logNoteCtx.id}
-        defaultHouseholdName={logNoteCtx.name}
       />
     </>
   );
