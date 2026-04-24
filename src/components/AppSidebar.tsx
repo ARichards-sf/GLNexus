@@ -49,6 +49,46 @@ const internalItems = [
   { to: "/admin/developer", label: "Developer Tools", icon: Terminal },
 ];
 
+function hexToSafePalette(hex: string): Record<string, string> | null {
+  try {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+    const d = max - min;
+    if (d !== 0) {
+      switch (max) {
+        case r:
+          h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+          break;
+        case g:
+          h = ((b - r) / d + 2) / 6;
+          break;
+        case b:
+          h = ((r - g) / d + 4) / 6;
+          break;
+      }
+    }
+    const hue = Math.round(h * 360);
+    return {
+      "--primary": `${hue} 25% 20%`,
+      "--primary-foreground": `${hue} 40% 97%`,
+      "--sidebar-background": `${hue} 30% 12%`,
+      "--sidebar-foreground": `${hue} 20% 88%`,
+      "--sidebar-accent": `${hue} 25% 19%`,
+      "--sidebar-accent-foreground": `${hue} 20% 88%`,
+      "--sidebar-border": `${hue} 25% 19%`,
+      "--accent": `${hue} 45% 42%`,
+      "--accent-foreground": `0 0% 100%`,
+      "--ring": `${hue} 25% 20%`,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
