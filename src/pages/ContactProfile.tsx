@@ -65,6 +65,22 @@ export default function ContactProfile() {
     has_will: false,
     has_trust: false,
     primary_goal: "",
+    preferred_name: "",
+    secondary_email: "",
+    secondary_phone: "",
+    mobile_phone: "",
+    ssn_last_four: "",
+    retirement_date: "",
+    years_to_retirement: "" as string | number,
+    estate_attorney: "",
+    estate_attorney_phone: "",
+    accountant: "",
+    accountant_phone: "",
+    beneficiary_review_date: "",
+    has_poa: false,
+    has_healthcare_directive: false,
+    number_of_dependents: 0 as number | string,
+    liquid_net_worth: "" as string | number,
   });
   const deleteAccount = useDeleteAccount();
   const archiveContact = useArchiveContact();
