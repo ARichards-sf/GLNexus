@@ -234,36 +234,6 @@ export default function AppSidebar() {
   const firmName = brandingFirm?.name;
   const showFirmName = firmName && firmName !== "Good Life Companies";
 
-  useEffect(() => {
-    if (brandingFirm?.accent_color) {
-      const palette = hexToSafePalette(brandingFirm.accent_color, (brandingFirm as any).secondary_color || undefined);
-      if (palette) {
-        Object.entries(palette).forEach(([key, value]) => {
-          document.documentElement.style.setProperty(key, value);
-        });
-      }
-    } else {
-      // No firm color set — remove all injected properties and let index.css defaults take over
-      const keys = [
-        "--primary",
-        "--primary-foreground",
-        "--sidebar-background",
-        "--sidebar-foreground",
-        "--sidebar-accent",
-        "--sidebar-accent-foreground",
-        "--sidebar-border",
-        "--accent",
-        "--accent-foreground",
-        "--ring",
-        "--table-header",
-        "--background",
-      ];
-      keys.forEach((key) => {
-        document.documentElement.style.removeProperty(key);
-      });
-    }
-  }, [brandingFirm?.accent_color, (brandingFirm as any)?.secondary_color]);
-
   return (
     <aside
       className="hidden lg:flex flex-col w-64 border-r border-sidebar-border bg-sidebar h-screen px-4 py-6 shrink-0"
