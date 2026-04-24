@@ -98,7 +98,7 @@ export default function Contacts() {
         <div className="rounded-lg border border-border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="bg-secondary/40">
+              <TableRow>
                 <TableHead className="font-semibold">Name</TableHead>
                 <TableHead className="font-semibold">Household</TableHead>
                 <TableHead className="font-semibold">Email & Phone</TableHead>
