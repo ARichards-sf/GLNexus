@@ -367,11 +367,23 @@ export default function MorningBriefing({
       tasksSettledRef.current = false;
       return;
     }
-    if (pendingTasks.length === 0 && !tasksSettledRef.current) {
+    if (!tasksSettledRef.current) {
+      // Wait until tasks have had
+      // time to load.
+      // Use a small delay to ensure
+      // the tasks query has resolved.
+      if (pendingTasks.length === 0) {
+        // Tasks might still be loading
+        // wait one more cycle
+        setTimeout(() => {
+          tasksSettledRef.current = true;
+        }, 1500);
+        return;
+      }
+      // Tasks loaded with data
       tasksSettledRef.current = true;
-      return;
     }
-    tasksSettledRef.current = true;
+    if (!tasksSettledRef.current) return;
     hasGeneratedRef.current = true;
 
     const now = new Date();
