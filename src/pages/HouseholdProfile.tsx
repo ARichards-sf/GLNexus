@@ -5,8 +5,9 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CalendarCheck, AlertTriangle, CalendarPlus, MoreHorizontal, Archive,
-  ArrowRightLeft, ChevronDown, ChevronUp, X, Star, TrendingUp, Sparkles, Trash2,
+  ArrowRightLeft, ChevronDown, ChevronUp, X, Star, TrendingUp, Sparkles, Trash2, Pencil,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -231,6 +232,7 @@ export default function HouseholdProfile() {
   const [closeAccountId, setCloseAccountId] = useState<string | null>(null);
   const [closeReason, setCloseReason] = useState("");
   const [archiveAccountId, setArchiveAccountId] = useState<string | null>(null);
+  const [editRiskOpen, setEditRiskOpen] = useState(false);
 
   const archiveHousehold = useArchiveHousehold();
   const archiveContact = useArchiveContact();
@@ -442,6 +444,30 @@ export default function HouseholdProfile() {
     }
   };
 
+  const handleUpdateRiskDirect = async (value: string) => {
+    if (!household) return;
+    try {
+      await supabase
+        .from("households")
+        .update({ risk_tolerance: value })
+        .eq("id", household.id);
+
+      queryClient.invalidateQueries({ queryKey: ["household", id] });
+      queryClient.invalidateQueries({ queryKey: ["households"] });
+
+      embedRecord(
+        "households",
+        { ...household, risk_tolerance: value },
+        user!.id
+      );
+
+      setEditRiskOpen(false);
+      toast.success(`Risk tolerance updated to ${value}`);
+    } catch {
+      toast.error("Failed to update risk tolerance");
+    }
+  };
+
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
       {/* Tier Pending Review Banner */}
@@ -515,15 +541,45 @@ export default function HouseholdProfile() {
             <p className="text-2xl font-semibold tracking-tight text-emerald-600">{formatFullCurrency(totalAccountsAUM)}</p>
           </CardContent>
         </Card>
-        <Card className="border-border shadow-none">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground font-medium">Risk Tolerance</span>
+        <Popover open={editRiskOpen} onOpenChange={setEditRiskOpen}>
+          <PopoverTrigger asChild>
+            <Card className="border-border shadow-none cursor-pointer transition-all hover:border-primary/40 hover:shadow-md group">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground font-medium">Risk Tolerance</span>
+                  </div>
+                  <Pencil className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className={`text-2xl font-semibold tracking-tight ${riskColors[household.risk_tolerance] || "text-foreground"}`}>
+                  {household.risk_tolerance || "Not set"}
+                </p>
+              </CardContent>
+            </Card>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+              Risk Tolerance
             </div>
-            <p className={`text-2xl font-semibold tracking-tight ${riskColors[household.risk_tolerance] || "text-foreground"}`}>{household.risk_tolerance}</p>
-          </CardContent>
-        </Card>
+            <div className="space-y-0.5">
+              {["Conservative", "Moderate", "Aggressive", "Very Aggressive"].map((option) => (
+                <button
+                  key={option}
+                  onClick={() => handleUpdateRiskDirect(option)}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
+                    household.risk_tolerance === option
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "hover:bg-secondary text-foreground"
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
         <Card
           className={cn(
             "border-border shadow-none cursor-pointer transition-all hover:border-primary/40 hover:shadow-md",
