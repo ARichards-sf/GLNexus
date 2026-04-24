@@ -575,55 +575,103 @@ export type Database = {
       }
       household_members: {
         Row: {
+          address_line1: string | null
+          address_line2: string | null
           advisor_id: string
+          annual_income: number | null
           archived_at: string | null
           archived_reason: string | null
+          city: string | null
           company: string | null
+          country: string | null
           created_at: string
           date_of_birth: string | null
           email: string | null
+          employment_status: string | null
+          filing_status: string | null
           first_name: string
+          has_trust: boolean | null
+          has_will: boolean | null
           household_id: string | null
           id: string
           job_title: string | null
           last_contacted: string | null
           last_name: string
+          marital_status: string | null
+          net_worth: number | null
           phone: string | null
+          preferred_contact: string | null
+          primary_goal: string | null
           relationship: string
+          state: string | null
+          tax_bracket: string | null
+          zip_code: string | null
         }
         Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
           advisor_id: string
+          annual_income?: number | null
           archived_at?: string | null
           archived_reason?: string | null
+          city?: string | null
           company?: string | null
+          country?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          employment_status?: string | null
+          filing_status?: string | null
           first_name: string
+          has_trust?: boolean | null
+          has_will?: boolean | null
           household_id?: string | null
           id?: string
           job_title?: string | null
           last_contacted?: string | null
           last_name: string
+          marital_status?: string | null
+          net_worth?: number | null
           phone?: string | null
+          preferred_contact?: string | null
+          primary_goal?: string | null
           relationship: string
+          state?: string | null
+          tax_bracket?: string | null
+          zip_code?: string | null
         }
         Update: {
+          address_line1?: string | null
+          address_line2?: string | null
           advisor_id?: string
+          annual_income?: number | null
           archived_at?: string | null
           archived_reason?: string | null
+          city?: string | null
           company?: string | null
+          country?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          employment_status?: string | null
+          filing_status?: string | null
           first_name?: string
+          has_trust?: boolean | null
+          has_will?: boolean | null
           household_id?: string | null
           id?: string
           job_title?: string | null
           last_contacted?: string | null
           last_name?: string
+          marital_status?: string | null
+          net_worth?: number | null
           phone?: string | null
+          preferred_contact?: string | null
+          primary_goal?: string | null
           relationship?: string
+          state?: string | null
+          tax_bracket?: string | null
+          zip_code?: string | null
         }
         Relationships: [
           {
