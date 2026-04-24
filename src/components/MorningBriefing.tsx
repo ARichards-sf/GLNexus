@@ -51,6 +51,29 @@ const PERIODS = {
 const getCacheKey = (period: BriefingPeriod, userId: string) =>
   `goodie_brief_${period}_${userId}_${new Date().toISOString().split("T")[0]}_v2`;
 
+function cleanBriefingCache(
+  userId: string,
+  keepPeriod?: BriefingPeriod,
+  keepDate?: string
+): void {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => {
+        if (!k.startsWith("goodie_brief_")) return false;
+        if (!k.includes(userId)) return false;
+        if (keepPeriod && keepDate) {
+          const keepKey = `goodie_brief_${keepPeriod}_${userId}_${keepDate}_v2`;
+          const keepTaskKey = keepKey + "_task_snapshot";
+          if (k === keepKey || k === keepTaskKey) return false;
+        }
+        return true;
+      })
+      .forEach((k) => localStorage.removeItem(k));
+  } catch {
+    /* ignore */
+  }
+}
+
 interface BriefingCache {
   date: string;
   period: BriefingPeriod;
