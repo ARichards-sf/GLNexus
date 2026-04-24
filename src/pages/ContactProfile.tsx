@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
 import { useArchiveContact } from "@/hooks/useHouseholds";
 import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
