@@ -228,7 +228,7 @@ export default function AppSidebar() {
 
   useEffect(() => {
     if (brandingFirm?.accent_color) {
-      const palette = hexToSafePalette(brandingFirm.accent_color);
+      const palette = hexToSafePalette(brandingFirm.accent_color, (brandingFirm as any).secondary_color || undefined);
       if (palette) {
         Object.entries(palette).forEach(([key, value]) => {
           document.documentElement.style.setProperty(key, value);
@@ -252,7 +252,7 @@ export default function AppSidebar() {
         document.documentElement.style.setProperty(key, value);
       });
     }
-  }, [brandingFirm?.accent_color]);
+  }, [brandingFirm?.accent_color, (brandingFirm as any)?.secondary_color]);
 
   return (
     <aside
