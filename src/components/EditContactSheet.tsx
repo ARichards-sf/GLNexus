@@ -207,6 +207,8 @@ export default function EditContactSheet({ open, onOpenChange, contact }: Props)
         } as any)
         .eq("id", contact.id);
 
+      if (error) throw error;
+
       queryClient.invalidateQueries({ queryKey: ["contact", contact.id] });
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({
@@ -215,8 +217,9 @@ export default function EditContactSheet({ open, onOpenChange, contact }: Props)
 
       toast.success("Contact updated");
       onOpenChange(false);
-    } catch {
-      toast.error("Failed to save changes");
+    } catch (err: any) {
+      console.error("EditContactSheet save error:", err);
+      toast.error(err?.message || "Failed to save changes");
     } finally {
       setSaving(false);
     }
