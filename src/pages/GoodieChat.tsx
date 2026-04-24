@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, Send, Sparkles, RotateCcw, StopCircle, Check, X } from "lucide-react";
+import { Bot, Send, Sparkles, RotateCcw, StopCircle, Check, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,17 @@ interface Message {
   timestamp: Date;
 }
 
+interface ChatTab {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: Date;
+}
+
+const MAX_TABS = 6;
+const STORAGE_KEY = "goodie_chat_tabs";
+const ACTIVE_TAB_KEY = "goodie_active_tab";
+
 const SUGGESTED_PROMPTS = [
   "What's my total AUM and how many active households do I have?",
   "Which clients are due for an annual review soon?",
@@ -27,6 +38,65 @@ const SUGGESTED_PROMPTS = [
   "Summarize my pipeline",
   "Which households are missing a service timeline?",
 ];
+
+function saveTabs(tabs: ChatTab[], activeId: string) {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(
+        tabs.map((t) => ({
+          ...t,
+          createdAt: t.createdAt.toISOString(),
+          messages: t.messages.map((m) => ({
+            ...m,
+            timestamp: m.timestamp.toISOString(),
+          })),
+        }))
+      )
+    );
+    localStorage.setItem(ACTIVE_TAB_KEY, activeId);
+  } catch {}
+}
+
+function loadTabs(): { tabs: ChatTab[]; activeId: string } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const activeId = localStorage.getItem(ACTIVE_TAB_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      tabs: parsed.map((t: any) => ({
+        ...t,
+        createdAt: new Date(t.createdAt),
+        messages: t.messages.map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp),
+        })),
+      })),
+      activeId: activeId || parsed[0]?.id || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function makeWelcomeMessage(firstName: string): Message {
+  return {
+    id: "welcome-" + Date.now(),
+    role: "assistant",
+    content: `Hi ${firstName}! 👋 I'm Goodie, your GL Nexus AI. Ask me anything about your book, or tell me to take action — schedule a meeting, log a note, create a task, and more. What can I help you with?`,
+    timestamp: new Date(),
+  };
+}
+
+function makeNewTab(firstName: string): ChatTab {
+  return {
+    id: Date.now().toString(),
+    title: "New Chat",
+    messages: [makeWelcomeMessage(firstName)],
+    createdAt: new Date(),
+  };
+}
 
 export default function GoodieChat() {
   const { user } = useAuth();
@@ -38,14 +108,26 @@ export default function GoodieChat() {
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "Advisor";
 
-  const welcomeMessage = (): Message => ({
-    id: "welcome",
-    role: "assistant",
-    content: `Hi ${firstName}! 👋 I'm Goodie, your GL Nexus AI. Ask me anything about your book, or tell me to take action — schedule a meeting, log a note, create a task, and more. What can I help you with?`,
-    timestamp: new Date(),
+  const [tabs, setTabs] = useState<ChatTab[]>(() => {
+    const saved = loadTabs();
+    if (saved?.tabs?.length) return saved.tabs;
+    return [makeNewTab(firstName)];
+  });
+  const [activeTabId, setActiveTabId] = useState<string>(() => {
+    const saved = loadTabs();
+    return saved?.activeId || "";
   });
 
-  const [messages, setMessages] = useState<Message[]>([welcomeMessage()]);
+  // Ensure activeTabId is valid
+  useEffect(() => {
+    if (!tabs.find((t) => t.id === activeTabId) && tabs[0]) {
+      setActiveTabId(tabs[0].id);
+    }
+  }, [tabs, activeTabId]);
+
+  const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
+  const messages = activeTab?.messages || [];
+
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pendingToolCall, setPendingToolCall] = useState<ParsedToolCall | null>(null);
@@ -62,6 +144,33 @@ export default function GoodieChat() {
 
   const { executeAction } = useAiActions();
 
+  const updateActiveMessages = useCallback(
+    (updater: (msgs: Message[]) => Message[]) => {
+      setTabs((prev) => {
+        const updated = prev.map((t) =>
+          t.id === activeTabId ? { ...t, messages: updater(t.messages) } : t
+        );
+        saveTabs(updated, activeTabId);
+        return updated;
+      });
+    },
+    [activeTabId]
+  );
+
+  const autoNameTab = useCallback(
+    (text: string) => {
+      const title = text.trim().slice(0, 32).trim();
+      setTabs((prev) => {
+        const updated = prev.map((t) =>
+          t.id === activeTabId && t.title === "New Chat" ? { ...t, title } : t
+        );
+        saveTabs(updated, activeTabId);
+        return updated;
+      });
+    },
+    [activeTabId]
+  );
+
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || isLoading) return;
@@ -75,7 +184,8 @@ export default function GoodieChat() {
         timestamp: new Date(),
       };
 
-      setMessages((prev) => [...prev, userMsg]);
+      updateActiveMessages((prev) => [...prev, userMsg]);
+      autoNameTab(text.trim());
       setInput("");
       setIsLoading(true);
 
@@ -85,7 +195,7 @@ export default function GoodieChat() {
         content: "",
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, assistantMsg]);
+      updateActiveMessages((prev) => [...prev, assistantMsg]);
 
       const context = buildContextSnapshot(
         households as any,
@@ -105,7 +215,7 @@ export default function GoodieChat() {
           context,
           onDelta: (chunk) => {
             if (abortRef.current) return;
-            setMessages((prev) => {
+            updateActiveMessages((prev) => {
               const updated = [...prev];
               const last = updated[updated.length - 1];
               if (last.role === "assistant") {
@@ -127,7 +237,7 @@ export default function GoodieChat() {
           },
           onError: () => {
             setIsLoading(false);
-            setMessages((prev) => {
+            updateActiveMessages((prev) => {
               const updated = [...prev];
               updated[updated.length - 1] = {
                 ...updated[updated.length - 1],
@@ -141,7 +251,7 @@ export default function GoodieChat() {
         setIsLoading(false);
       }
     },
-    [isLoading, messages, households, recentNotes, prospects, calendarEvents]
+    [isLoading, messages, households, recentNotes, prospects, calendarEvents, updateActiveMessages, autoNameTab]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -156,7 +266,7 @@ export default function GoodieChat() {
     try {
       const result = await executeAction(pendingToolCall);
       setPendingToolCall(null);
-      setMessages((prev) => [
+      updateActiveMessages((prev) => [
         ...prev,
         {
           id: Date.now().toString(),
@@ -170,7 +280,7 @@ export default function GoodieChat() {
       const msg = err?.message || "Action failed";
       toast.error(msg);
       setPendingToolCall(null);
-      setMessages((prev) => [
+      updateActiveMessages((prev) => [
         ...prev,
         {
           id: Date.now().toString(),
@@ -184,7 +294,7 @@ export default function GoodieChat() {
 
   const handleCancelAction = () => {
     setPendingToolCall(null);
-    setMessages((prev) => [
+    updateActiveMessages((prev) => [
       ...prev,
       {
         id: Date.now().toString(),
@@ -196,43 +306,142 @@ export default function GoodieChat() {
   };
 
   const handleClearChat = () => {
-    setMessages([
-      {
-        id: "welcome",
-        role: "assistant",
-        content: `Hi ${firstName}! 👋 I'm Goodie, your GL Nexus AI. What can I help you with?`,
-        timestamp: new Date(),
-      },
-    ]);
+    const welcome = makeWelcomeMessage(firstName);
+    setTabs((prev) => {
+      const updated = prev.map((t) =>
+        t.id === activeTabId ? { ...t, title: "New Chat", messages: [welcome] } : t
+      );
+      saveTabs(updated, activeTabId);
+      return updated;
+    });
     setPendingToolCall(null);
   };
+
+  const handleNewTab = useCallback(() => {
+    if (tabs.length >= MAX_TABS) {
+      setTabs((prev) => {
+        const nonActive = prev
+          .filter((t) => t.id !== activeTabId)
+          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        if (nonActive.length === 0) return prev;
+        const filtered = prev.filter((t) => t.id !== nonActive[0].id);
+        const newTab = makeNewTab(firstName);
+        const updated = [...filtered, newTab];
+        saveTabs(updated, newTab.id);
+        setActiveTabId(newTab.id);
+        return updated;
+      });
+      return;
+    }
+    const newTab = makeNewTab(firstName);
+    setTabs((prev) => {
+      const updated = [...prev, newTab];
+      saveTabs(updated, newTab.id);
+      return updated;
+    });
+    setActiveTabId(newTab.id);
+  }, [tabs, activeTabId, firstName]);
+
+  const handleCloseTab = useCallback(
+    (tabId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (tabs.length === 1) {
+        const reset = makeNewTab(firstName);
+        setTabs([reset]);
+        setActiveTabId(reset.id);
+        saveTabs([reset], reset.id);
+        return;
+      }
+      setTabs((prev) => {
+        const idx = prev.findIndex((t) => t.id === tabId);
+        const filtered = prev.filter((t) => t.id !== tabId);
+        if (tabId === activeTabId) {
+          const newActive = filtered[Math.min(idx, filtered.length - 1)];
+          setActiveTabId(newActive.id);
+          saveTabs(filtered, newActive.id);
+        } else {
+          saveTabs(filtered, activeTabId);
+        }
+        return filtered;
+      });
+    },
+    [tabs, activeTabId, firstName]
+  );
+
+  const handleSwitchTab = useCallback(
+    (tabId: string) => {
+      setActiveTabId(tabId);
+      saveTabs(tabs, tabId);
+      setPendingToolCall(null);
+    },
+    [tabs]
+  );
 
   const isEmpty = messages.length <= 1;
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-amber-500" />
+      <div className="bg-card border-b border-border">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            </div>
+            <h1 className="text-sm font-semibold">Goodie</h1>
           </div>
-          <div>
-            <h1 className="text-lg font-semibold text-foreground leading-tight">Goodie</h1>
-            <p className="text-xs text-muted-foreground">Your GL Nexus AI</p>
+          <div className="flex items-center gap-2">
+            {messages.length > 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearChat}
+                className="text-xs text-muted-foreground gap-1.5 h-7"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Clear
+              </Button>
+            )}
           </div>
         </div>
-        {!isEmpty && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearChat}
-            className="text-muted-foreground hover:text-foreground"
+
+        {/* Tabs bar */}
+        <div className="flex items-center gap-1 px-4 pb-0 overflow-x-auto scrollbar-none">
+          {tabs.map((tab) => (
+            <div
+              key={tab.id}
+              onClick={() => handleSwitchTab(tab.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium cursor-pointer transition-colors whitespace-nowrap max-w-[160px] group border border-b-0",
+                tab.id === activeTabId
+                  ? "bg-background border-border text-foreground -mb-px"
+                  : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+              )}
+            >
+              <span className="truncate max-w-[100px]">{tab.title}</span>
+              <button
+                onClick={(e) => handleCloseTab(tab.id, e)}
+                className={cn(
+                  "shrink-0 rounded-sm p-0.5 transition-opacity",
+                  tab.id === activeTabId
+                    ? "opacity-50 hover:opacity-100 hover:bg-secondary"
+                    : "opacity-0 group-hover:opacity-50 hover:!opacity-100 hover:bg-secondary"
+                )}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          {/* New tab button */}
+          <button
+            onClick={handleNewTab}
+            className="flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors shrink-0 mb-0.5"
+            title="New chat"
           >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            New Chat
-          </Button>
-        )}
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Messages area */}
