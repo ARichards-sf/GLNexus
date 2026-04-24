@@ -103,11 +103,11 @@ function hexToSafePalette(hex: string, secondaryHex?: string): Record<string, st
     }
 
     return {
-      "--sidebar-background": `${hue} 35% 75%`,
+      "--sidebar-background": `${hue} 45% 92%`,
       "--sidebar-foreground": `${hue} 50% 6%`,
-      "--sidebar-accent": `${hue} 32% 66%`,
+      "--sidebar-accent": `${hue} 40% 85%`,
       "--sidebar-accent-foreground": `${hue} 50% 4%`,
-      "--sidebar-border": `${hue} 28% 60%`,
+      "--sidebar-border": `${hue} 35% 78%`,
       "--primary": `${hue} 50% 30%`,
       "--primary-foreground": `${hue} 40% 97%`,
       "--ring": `${hue} 50% 30%`,
@@ -238,11 +238,11 @@ export default function AppSidebar() {
       const defaults: Record<string, string> = {
         "--primary": "215 28% 17%",
         "--primary-foreground": "210 40% 98%",
-        "--sidebar-background": "220 30% 78%",
+        "--sidebar-background": "220 40% 93%",
         "--sidebar-foreground": "220 50% 8%",
-        "--sidebar-accent": "220 28% 70%",
+        "--sidebar-accent": "220 35% 86%",
         "--sidebar-accent-foreground": "220 50% 5%",
-        "--sidebar-border": "220 25% 65%",
+        "--sidebar-border": "220 30% 80%",
         "--accent": "160 84% 39%",
         "--accent-foreground": "0 0% 100%",
         "--ring": "215 28% 17%",
