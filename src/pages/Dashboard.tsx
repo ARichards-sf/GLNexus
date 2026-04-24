@@ -349,30 +349,30 @@ export default function Dashboard() {
 
       <div
         className={cn(
-          "flex items-center justify-between gap-4 p-3 rounded-lg bg-secondary/40 mb-6",
+          "flex items-center justify-between gap-4 p-3 rounded-lg bg-card mb-6 border border-border",
           firmAccent && "border-l-[3px]",
         )}
         style={firmAccent ? { borderColor: firmAccent } : undefined}
       >
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => setLogNoteOpen(true)}>
+          <Button variant="outline" size="sm" className="bg-card" onClick={() => setLogNoteOpen(true)}>
             <FileText className="w-4 h-4 mr-1.5" />
             Log a Note
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate("/calendar")}>
+          <Button variant="outline" size="sm" className="bg-card" onClick={() => navigate("/calendar")}>
             <CalendarDays className="w-4 h-4 mr-1.5" />
             Schedule Meeting
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setCreateHouseholdOpen(true)}>
+          <Button variant="outline" size="sm" className="bg-card" onClick={() => setCreateHouseholdOpen(true)}>
             <Plus className="w-4 h-4 mr-1.5" />
             Add Household
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setAssistOpen(true)}>
+          <Button variant="outline" size="sm" className="bg-card" onClick={() => setAssistOpen(true)}>
             <HelpCircle className="w-4 h-4 mr-1.5" />
             Request GL Assistance
           </Button>
           {vpmStatus?.isVpm && (
-            <Button variant="outline" size="sm" onClick={() => setVpmOpen(true)} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setVpmOpen(true)} className="gap-2 bg-card">
               <Zap className="w-3.5 h-3.5 text-amber-500" />
               {vpmStatus.isPrimePartner ? "VPM Support ⭐" : "VPM Support"}
             </Button>
