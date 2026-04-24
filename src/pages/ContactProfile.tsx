@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -47,6 +47,36 @@ export default function ContactProfile() {
   const { data: contact, isLoading } = useContact(id);
   const { data: accounts = [] } = useContactAccounts(id);
   const { data: allNotes = [] } = useComplianceNotes((contact as any)?.household_id);
+
+  // Notes specifically tagged to this contact via junction table
+  const { data: contactNoteLinks = [] } = useQuery({
+    queryKey: ["contact_notes", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("compliance_note_contacts" as any)
+        .select("compliance_note_id, compliance_notes(*)")
+        .eq("contact_id", id!);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!id,
+  });
+
+  // For each tagged note, fetch all other contacts on the same note
+  const taggedNoteIds = (contactNoteLinks as any[]).map((l) => l.compliance_note_id);
+  const { data: allLinksForNotes = [] } = useQuery({
+    queryKey: ["note_contacts", taggedNoteIds],
+    queryFn: async () => {
+      if (taggedNoteIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("compliance_note_contacts" as any)
+        .select("compliance_note_id, contact_id, household_members(id, first_name, last_name)")
+        .in("compliance_note_id", taggedNoteIds);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: taggedNoteIds.length > 0,
+  });
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
@@ -621,10 +651,11 @@ export default function ContactProfile() {
             </CardHeader>
             <CardContent>
               {(() => {
-                const contactNotes = allNotes.filter((n: any) => {
-                  const cid = n.contact_id as string | undefined;
-                  return cid === contact.id || !cid;
-                });
+                const contactNotes = (contactNoteLinks as any[])
+                  .map((l) => l.compliance_notes)
+                  .filter(Boolean)
+                  .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
                 if (contactNotes.length === 0) {
                   return (
                     <div className="py-12 text-center">
@@ -637,7 +668,10 @@ export default function ContactProfile() {
                 return (
                   <div className="space-y-5">
                     {contactNotes.map((note: any) => {
-                      const isDirect = note.contact_id === contact.id;
+                      const others = (allLinksForNotes as any[])
+                        .filter((l) => l.compliance_note_id === note.id && l.contact_id !== contact.id)
+                        .map((l) => l.household_members)
+                        .filter(Boolean);
                       return (
                         <div key={note.id} className="border-l-2 border-border pl-4">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -647,13 +681,13 @@ export default function ContactProfile() {
                             <span className="text-[11px] text-muted-foreground">
                               {new Date(note.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                             </span>
-                            {!isDirect && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground">
-                                Household note
-                              </Badge>
-                            )}
                           </div>
                           <p className="text-sm text-muted-foreground leading-relaxed">{note.summary}</p>
+                          {others.length > 0 && (
+                            <p className="text-[11px] text-muted-foreground mt-1.5">
+                              Also with: {others.map((o: any) => `${o.first_name} ${o.last_name}`).join(", ")}
+                            </p>
+                          )}
                           {note.advisor_name && <p className="text-[11px] text-muted-foreground mt-1.5">— {note.advisor_name}</p>}
                         </div>
                       );

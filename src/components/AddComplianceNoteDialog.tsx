@@ -37,7 +37,7 @@ export default function AddComplianceNoteDialog({ open, onOpenChange, householdI
     if (!category || !content.trim()) return;
 
     createNote.mutate(
-      { householdId, type: category, summary: content.trim(), contactId },
+      { householdId, type: category, summary: content.trim(), contactIds: contactId ? [contactId] : undefined },
       {
         onSuccess: () => {
           toast.success("Compliance note added.");

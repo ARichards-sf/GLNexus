@@ -262,6 +262,31 @@ export default function HouseholdProfile() {
   });
   const hasBookedAnnualReview = householdEvents.length > 0;
 
+  // Junction-table contact tags for the household's notes
+  const noteIds = useMemo(() => notes.map((n) => n.id), [notes]);
+  const { data: noteContactLinks = [] } = useQuery({
+    queryKey: ["note_contacts", noteIds],
+    queryFn: async () => {
+      if (noteIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("compliance_note_contacts" as any)
+        .select("compliance_note_id, contact_id, household_members(id, first_name, last_name)")
+        .in("compliance_note_id", noteIds);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: noteIds.length > 0,
+  });
+  const noteTagsMap = useMemo(() => {
+    const m: Record<string, { id: string; first_name: string; last_name: string }[]> = {};
+    (noteContactLinks as any[]).forEach((l) => {
+      if (!l.household_members) return;
+      if (!m[l.compliance_note_id]) m[l.compliance_note_id] = [];
+      m[l.compliance_note_id].push(l.household_members);
+    });
+    return m;
+  }, [noteContactLinks]);
+
   // Firm branding accent
   const { currentFirm } = useFirmContext();
   const { selectedFirmId } = useSelectedFirm();
@@ -1005,17 +1030,15 @@ export default function HouseholdProfile() {
                               {new Date(note.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                             </span>
                             {isLocked && <Lock className="w-3 h-3 text-muted-foreground" />}
-                            {(() => {
-                              const cid = (note as any).contact_id as string | undefined;
-                              if (!cid) return null;
-                              const m = [...members, ...archivedMembers].find((x: any) => x.id === cid);
-                              if (!m) return null;
-                              return (
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground">
-                                  re: {m.first_name} {m.last_name}
-                                </Badge>
-                              );
-                            })()}
+                            {(noteTagsMap[note.id] || []).map((m) => (
+                              <Badge
+                                key={m.id}
+                                variant="outline"
+                                className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground"
+                              >
+                                {m.first_name} {m.last_name}
+                              </Badge>
+                            ))}
                           </div>
                           <p className="text-sm text-muted-foreground leading-relaxed">{note.summary}</p>
                           {note.advisor_name && <p className="text-[11px] text-muted-foreground mt-1.5">— {note.advisor_name}</p>}
