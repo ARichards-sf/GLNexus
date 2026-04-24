@@ -17,9 +17,10 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   defaultHouseholdId?: string;
   defaultHouseholdName?: string;
+  contactId?: string;
 }
 
-export default function QuickLogNoteDialog({ open, onOpenChange, defaultHouseholdId, defaultHouseholdName }: Props) {
+export default function QuickLogNoteDialog({ open, onOpenChange, defaultHouseholdId, defaultHouseholdName, contactId }: Props) {
   const { data: households = [] } = useHouseholds();
   const createNote = useCreateComplianceNote();
 
