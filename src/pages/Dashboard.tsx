@@ -349,7 +349,7 @@ export default function Dashboard() {
 
       <div
         className={cn(
-          "flex items-center justify-between gap-4 p-3 rounded-lg bg-card mb-6 border border-border",
+          "flex items-center justify-between gap-4 p-3 rounded-lg bg-secondary/40 mb-6",
           firmAccent && "border-l-[3px]",
         )}
         style={firmAccent ? { borderColor: firmAccent } : undefined}
