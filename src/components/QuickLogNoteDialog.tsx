@@ -78,7 +78,7 @@ export default function QuickLogNoteDialog({ open, onOpenChange, defaultHousehol
     if (!canSubmit || !selected) return;
 
     createNote.mutate(
-      { householdId: selected.id, type, summary: summary.trim() },
+      { householdId: selected.id, type, summary: summary.trim(), contactId },
       {
         onSuccess: () => {
           toast.success(`Note logged for ${selected.name}.`);
