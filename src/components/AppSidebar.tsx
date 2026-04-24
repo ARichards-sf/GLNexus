@@ -73,16 +73,16 @@ function hexToSafePalette(hex: string): Record<string, string> | null {
     }
     const hue = Math.round(h * 360);
     return {
-      "--primary": `${hue} 25% 20%`,
+      "--sidebar-background": `${hue} 35% 95%`,
+      "--sidebar-foreground": `${hue} 20% 28%`,
+      "--sidebar-accent": `${hue} 30% 89%`,
+      "--sidebar-accent-foreground": `${hue} 20% 22%`,
+      "--sidebar-border": `${hue} 25% 87%`,
+      "--primary": `${hue} 50% 30%`,
       "--primary-foreground": `${hue} 40% 97%`,
-      "--sidebar-background": `${hue} 22% 18%`,
-      "--sidebar-foreground": `${hue} 15% 72%`,
-      "--sidebar-accent": `${hue} 20% 24%`,
-      "--sidebar-accent-foreground": `${hue} 15% 88%`,
-      "--sidebar-border": `${hue} 20% 22%`,
-      "--accent": `${hue} 45% 42%`,
+      "--ring": `${hue} 50% 30%`,
+      "--accent": `${hue} 40% 40%`,
       "--accent-foreground": `0 0% 100%`,
-      "--ring": `${hue} 25% 20%`,
     };
   } catch {
     return null;
@@ -207,11 +207,11 @@ export default function AppSidebar() {
       const defaults: Record<string, string> = {
         "--primary": "215 28% 17%",
         "--primary-foreground": "210 40% 98%",
-        "--sidebar-background": "220 25% 18%",
-        "--sidebar-foreground": "215 20% 75%",
-        "--sidebar-accent": "220 22% 24%",
-        "--sidebar-accent-foreground": "215 20% 88%",
-        "--sidebar-border": "220 22% 22%",
+        "--sidebar-background": "220 30% 96%",
+        "--sidebar-foreground": "220 25% 30%",
+        "--sidebar-accent": "220 25% 91%",
+        "--sidebar-accent-foreground": "220 25% 25%",
+        "--sidebar-border": "220 20% 88%",
         "--accent": "160 84% 39%",
         "--accent-foreground": "0 0% 100%",
         "--ring": "215 28% 17%",
