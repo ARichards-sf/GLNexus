@@ -48,13 +48,13 @@
     --slate-subtle: 215 16% 47%;
     --slate-border: 214 20% 90%;
 
-    --sidebar-background: 220 25% 91%;
-    --sidebar-foreground: 220 30% 22%;
+    --sidebar-background: 220 30% 78%;
+    --sidebar-foreground: 220 40% 12%;
     --sidebar-primary: 215 20% 92%;
     --sidebar-primary-foreground: 220 25% 18%;
-    --sidebar-accent: 220 22% 85%;
-    --sidebar-accent-foreground: 220 30% 18%;
-    --sidebar-border: 220 20% 83%;
+    --sidebar-accent: 220 28% 70%;
+    --sidebar-accent-foreground: 220 40% 8%;
+    --sidebar-border: 220 25% 65%;
     --sidebar-ring: 220 25% 30%;
 
     --table-header: 220 30% 94%;
