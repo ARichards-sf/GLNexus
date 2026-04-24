@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
   Edit, Wallet, Plus, HelpCircle, ChevronRight,
-  Archive, ArrowRightLeft, MoreHorizontal, X,
+  Archive, ArrowRightLeft, MoreHorizontal, X, Wallet as WalletIcon, Check,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -21,7 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
 import { useArchiveContact } from "@/hooks/useHouseholds";
-import { formatFullCurrency } from "@/data/sampleData";
+import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
 import EditContactSheet from "@/components/EditContactSheet";
 import AddAccountDialog from "@/components/AddAccountDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
@@ -32,6 +37,7 @@ export default function ContactProfile() {
   const navigate = useNavigate();
   const { data: contact, isLoading } = useContact(id);
   const { data: accounts = [] } = useContactAccounts(id);
+  const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
@@ -40,8 +46,86 @@ export default function ContactProfile() {
   const [closeAccountId, setCloseAccountId] = useState<string | null>(null);
   const [closeReason, setCloseReason] = useState("");
   const [archiveAccountId, setArchiveAccountId] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    marital_status: "",
+    employment_status: "",
+    annual_income: "" as string | number,
+    net_worth: "" as string | number,
+    tax_bracket: "",
+    filing_status: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    state: "",
+    zip_code: "",
+    country: "US",
+    preferred_contact: "",
+    has_will: false,
+    has_trust: false,
+    primary_goal: "",
+  });
   const deleteAccount = useDeleteAccount();
   const archiveContact = useArchiveContact();
+
+  // Sync form from contact when it loads or edit mode opens
+  useEffect(() => {
+    if (!contact) return;
+    setProfileForm({
+      marital_status: (contact as any).marital_status || "",
+      employment_status: (contact as any).employment_status || "",
+      annual_income: (contact as any).annual_income ?? "",
+      net_worth: (contact as any).net_worth ?? "",
+      tax_bracket: (contact as any).tax_bracket || "",
+      filing_status: (contact as any).filing_status || "",
+      address_line1: (contact as any).address_line1 || "",
+      address_line2: (contact as any).address_line2 || "",
+      city: (contact as any).city || "",
+      state: (contact as any).state || "",
+      zip_code: (contact as any).zip_code || "",
+      country: (contact as any).country || "US",
+      preferred_contact: (contact as any).preferred_contact || "",
+      has_will: (contact as any).has_will || false,
+      has_trust: (contact as any).has_trust || false,
+      primary_goal: (contact as any).primary_goal || "",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contact?.id, editingProfile]);
+
+  const handleSaveProfile = async () => {
+    if (!contact) return;
+    try {
+      await supabase
+        .from("household_members")
+        .update({
+          marital_status: profileForm.marital_status || null,
+          employment_status: profileForm.employment_status || null,
+          annual_income: profileForm.annual_income !== "" ? Number(profileForm.annual_income) : null,
+          net_worth: profileForm.net_worth !== "" ? Number(profileForm.net_worth) : null,
+          tax_bracket: profileForm.tax_bracket || null,
+          filing_status: profileForm.filing_status || null,
+          address_line1: profileForm.address_line1 || null,
+          address_line2: profileForm.address_line2 || null,
+          city: profileForm.city || null,
+          state: profileForm.state || null,
+          zip_code: profileForm.zip_code || null,
+          country: profileForm.country || "US",
+          preferred_contact: profileForm.preferred_contact || null,
+          has_will: profileForm.has_will,
+          has_trust: profileForm.has_trust,
+          primary_goal: profileForm.primary_goal || null,
+        })
+        .eq("id", contact.id);
+
+      queryClient.invalidateQueries({ queryKey: ["contact", contact.id] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+
+      setEditingProfile(false);
+      toast.success("Profile updated");
+    } catch {
+      toast.error("Failed to save profile");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -308,6 +392,285 @@ export default function ContactProfile() {
         </div>
       </div>
 
+      {/* Financial Profile */}
+      <Card className="mt-6 border-border shadow-none">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <WalletIcon className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-base font-semibold">Financial Profile</CardTitle>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (editingProfile) {
+                  handleSaveProfile();
+                } else {
+                  setEditingProfile(true);
+                }
+              }}
+              className="h-7 text-xs gap-1.5"
+            >
+              {editingProfile ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  Save
+                </>
+              ) : (
+                <>
+                  <Edit className="w-3.5 h-3.5" />
+                  Edit
+                </>
+              )}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Personal */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Personal</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Marital Status</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.marital_status}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, marital_status: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {["Single", "Married", "Divorced", "Widowed", "Domestic Partner"].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).marital_status || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Preferred Contact</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.preferred_contact}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, preferred_contact: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {["Email", "Phone", "Text"].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).preferred_contact || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Primary Goal</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.primary_goal}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, primary_goal: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "Retirement Planning", "Wealth Accumulation", "Wealth Preservation",
+                        "Income Generation", "Education Funding", "Estate Planning",
+                        "Business Succession", "Debt Reduction", "Insurance Planning", "Tax Minimization",
+                      ].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).primary_goal || "—"}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Employment & Income */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Employment & Income</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Employment Status</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.employment_status}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, employment_status: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {["Employed", "Self-Employed", "Retired", "Unemployed", "Student", "Homemaker"].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).employment_status || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Annual Income</p>
+                {editingProfile ? (
+                  <Input
+                    type="number"
+                    value={profileForm.annual_income}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, annual_income: e.target.value }))}
+                    placeholder="0"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).annual_income ? formatCurrency(Number((contact as any).annual_income)) : "—"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Financial */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Financial</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Net Worth</p>
+                {editingProfile ? (
+                  <Input
+                    type="number"
+                    value={profileForm.net_worth}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, net_worth: e.target.value }))}
+                    placeholder="0"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).net_worth ? formatCurrency(Number((contact as any).net_worth)) : "—"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Tax Bracket</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.tax_bracket}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, tax_bracket: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {["10%", "12%", "22%", "24%", "32%", "35%", "37%"].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).tax_bracket || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Filing Status</p>
+                {editingProfile ? (
+                  <Select
+                    value={profileForm.filing_status}
+                    onValueChange={(v) => setProfileForm((p) => ({ ...p, filing_status: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "Single", "Married Filing Jointly", "Married Filing Separately",
+                        "Head of Household", "Qualifying Widow(er)",
+                      ].map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).filing_status || "—"}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Address */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Address</h4>
+            {editingProfile ? (
+              <div className="space-y-2">
+                <Input
+                  value={profileForm.address_line1}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, address_line1: e.target.value }))}
+                  placeholder="Street address"
+                  className="h-8 text-sm"
+                />
+                <Input
+                  value={profileForm.address_line2}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, address_line2: e.target.value }))}
+                  placeholder="Apt, suite, unit (optional)"
+                  className="h-8 text-sm"
+                />
+                <div className="grid grid-cols-3 gap-2">
+                  <Input
+                    value={profileForm.city}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, city: e.target.value }))}
+                    placeholder="City"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={profileForm.state}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, state: e.target.value }))}
+                    placeholder="State"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={profileForm.zip_code}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, zip_code: e.target.value }))}
+                    placeholder="ZIP"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-foreground whitespace-pre-line">
+                {[
+                  (contact as any).address_line1,
+                  (contact as any).address_line2,
+                  [(contact as any).city, (contact as any).state, (contact as any).zip_code]
+                    .filter(Boolean).join(", "),
+                ].filter(Boolean).join("\n") || "—"}
+              </p>
+            )}
+          </div>
+
+          {/* Estate */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Estate Planning</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { key: "has_will" as const, label: "Has Will" },
+                { key: "has_trust" as const, label: "Has Trust" },
+              ].map(({ key, label }) => (
+                <div key={key} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                  <p className="text-sm text-foreground">{label}</p>
+                  {editingProfile ? (
+                    <Switch
+                      checked={profileForm[key]}
+                      onCheckedChange={(v) => setProfileForm((p) => ({ ...p, [key]: v }))}
+                    />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      {(contact as any)[key] ? "Yes" : "No"}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
       <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} memberId={contact.id} />
