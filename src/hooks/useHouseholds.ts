@@ -147,7 +147,7 @@ export function useCreateComplianceNote() {
   const { targetAdvisorId } = useImpersonation();
 
   return useMutation({
-    mutationFn: async ({ householdId, type, summary }: { householdId: string; type: string; summary: string }) => {
+    mutationFn: async ({ householdId, type, summary, contactId }: { householdId: string; type: string; summary: string; contactId?: string }) => {
       const advisorId = user ? targetAdvisorId(user.id) : user!.id;
       const { data, error } = await supabase
         .from("compliance_notes")
@@ -157,7 +157,8 @@ export function useCreateComplianceNote() {
           type,
           summary,
           date: new Date().toISOString().split("T")[0],
-        })
+          ...(contactId ? { contact_id: contactId } : {}),
+        } as any)
         .select()
         .single();
       if (error) throw error;
