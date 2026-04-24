@@ -108,7 +108,7 @@ export default function Contacts() {
             </TableHeader>
             <TableBody>
               {filtered.map((contact) => (
-                <TableRow key={contact.id} className="group">
+                <TableRow key={contact.id} className="group bg-card hover:bg-secondary/40">
                   <TableCell>
                     <Link to={`/contacts/${contact.id}`} className="flex items-center gap-3 hover:underline">
                       <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
