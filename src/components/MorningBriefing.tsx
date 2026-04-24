@@ -23,7 +23,7 @@ const PERIODS = {
     color: "text-amber-500",
     bgColor: "bg-amber-500/10",
     cardBorder: "border-amber-200/70 dark:border-amber-700/40",
-    cardBg: "bg-amber-50/20 dark:bg-amber-950/10",
+    cardBg: "bg-card",
     footer: "Ask Goodie to dive deeper into any of these items",
   },
   afternoon: {
@@ -33,7 +33,7 @@ const PERIODS = {
     color: "text-orange-500",
     bgColor: "bg-orange-500/10",
     cardBorder: "border-orange-200/70 dark:border-orange-700/40",
-    cardBg: "bg-orange-50/20 dark:bg-orange-950/10",
+    cardBg: "bg-card",
     footer: "Ask Goodie how your afternoon is shaping up",
   },
   eod: {

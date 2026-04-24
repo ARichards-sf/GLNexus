@@ -137,7 +137,7 @@ function SortableWidget({
             <button
               type="button"
               onClick={() => onToggleSize(instance.id)}
-              className="bg-background border border-border rounded-md p-1 text-xs text-muted-foreground hover:text-foreground shadow-sm"
+              className="bg-card border border-border rounded-md p-1 text-xs text-muted-foreground hover:text-foreground shadow-sm"
               title={instance.size === "small" ? "Make full width" : "Make half width"}
             >
               {instance.size === "small" ? "↔" : "↕"}
@@ -147,7 +147,7 @@ function SortableWidget({
           <button
             type="button"
             onClick={() => onRemove(instance.id)}
-            className="bg-background border border-border rounded-md p-1 text-muted-foreground hover:text-destructive shadow-sm"
+            className="bg-card border border-border rounded-md p-1 text-muted-foreground hover:text-destructive shadow-sm"
             title="Remove widget"
           >
             <X className="w-3.5 h-3.5" />
@@ -157,7 +157,7 @@ function SortableWidget({
 
       {editMode && !(def as { pinned?: boolean } | undefined)?.pinned && instance.size !== "large" && (
         <div
-          className="absolute left-3 top-3 z-20 cursor-grab rounded-md border border-border bg-background p-1 text-muted-foreground shadow-sm active:cursor-grabbing"
+          className="absolute left-3 top-3 z-20 cursor-grab rounded-md border border-border bg-card p-1 text-muted-foreground shadow-sm active:cursor-grabbing"
           {...attributes}
           {...listeners}
         >
