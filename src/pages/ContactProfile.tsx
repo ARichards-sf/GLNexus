@@ -14,6 +14,7 @@ import {
   ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
   Edit, Wallet, Plus, HelpCircle, ChevronRight,
   Archive, ArrowRightLeft, MoreHorizontal, X, Wallet as WalletIcon, Check,
+  MapPin, MessageSquare, Users, Shield,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -270,177 +271,391 @@ export default function ContactProfile() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Personal Info */}
-        <Card className="lg:col-span-2 border-border shadow-none">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <CardTitle className="text-base font-semibold">Personal Info</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {contact.email && (
-              <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Email</p>
-                  <p className="text-sm text-foreground">{contact.email}</p>
-                </div>
-              </div>
-            )}
-            {contact.phone && (
-              <div className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Phone</p>
-                  <p className="text-sm text-foreground">{contact.phone}</p>
-                </div>
-              </div>
-            )}
-            {contact.date_of_birth && (
-              <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Date of Birth</p>
-                  <p className="text-sm text-foreground">
-                    {new Date(contact.date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                    {age !== null && <span className="text-muted-foreground"> (age {age})</span>}
-                  </p>
-                </div>
-              </div>
-            )}
-            {!contact.email && !contact.phone && !contact.date_of_birth && (
-              <p className="text-sm text-muted-foreground text-center py-2">No personal info added yet.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Employment & Accounts */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Employment */}
+      <div className="space-y-6">
+        {/* ROW 1 — Three column overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Contact Info card */}
           <Card className="border-border shadow-none">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-muted-foreground" />
-                <CardTitle className="text-base font-semibold">Employment</CardTitle>
-              </div>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                Contact Info
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              {contact.company || contact.job_title ? (
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                    <Building2 className="w-4 h-4 text-muted-foreground" />
+            <CardContent className="space-y-3">
+              {([
+                { icon: Mail, label: "Primary Email", value: contact.email },
+                { icon: Mail, label: "Secondary Email", value: (contact as any).secondary_email },
+                { icon: Phone, label: "Mobile", value: (contact as any).mobile_phone },
+                { icon: Phone, label: "Phone", value: contact.phone },
+                { icon: Phone, label: "Secondary Phone", value: (contact as any).secondary_phone },
+                { icon: MessageSquare, label: "Preferred Contact", value: (contact as any).preferred_contact },
+              ] as { icon: any; label: string; value: any }[])
+                .filter((f) => f.value)
+                .map((f) => (
+                  <div key={f.label} className="flex items-start gap-2.5">
+                    <f.icon className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{f.label}</p>
+                      <p className="text-sm text-foreground truncate">{f.value}</p>
+                    </div>
                   </div>
-                  <div>
-                    {contact.job_title && <p className="text-sm font-medium text-foreground">{contact.job_title}</p>}
-                    {contact.company && <p className="text-xs text-muted-foreground">{contact.company}</p>}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-2">No employment info added yet.</p>
+                ))}
+              {!contact.email && !contact.phone && (
+                <p className="text-xs text-muted-foreground text-center py-2">No contact info yet</p>
               )}
             </CardContent>
           </Card>
 
-          {/* Financial Accounts */}
+          {/* Personal card */}
           <Card className="border-border shadow-none">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wallet className="w-4 h-4 text-muted-foreground" />
-                  <CardTitle className="text-base font-semibold">Financial Accounts</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <User className="w-3.5 h-3.5 text-muted-foreground" />
+                Personal
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {([
+                {
+                  label: "Date of Birth",
+                  value: contact.date_of_birth
+                    ? `${new Date(contact.date_of_birth).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}${age !== null ? ` (age ${age})` : ""}`
+                    : null,
+                },
+                { label: "Preferred Name", value: (contact as any).preferred_name },
+                { label: "Marital Status", value: (contact as any).marital_status },
+                {
+                  label: "Dependents",
+                  value:
+                    (contact as any).number_of_dependents != null
+                      ? `${(contact as any).number_of_dependents}`
+                      : null,
+                },
+                { label: "Citizenship", value: (contact as any).citizenship },
+                { label: "Primary Goal", value: (contact as any).primary_goal },
+              ] as { label: string; value: any }[])
+                .filter((f) => f.value)
+                .map((f) => (
+                  <div key={f.label}>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{f.label}</p>
+                    <p className="text-sm text-foreground">{f.value}</p>
+                  </div>
+                ))}
+            </CardContent>
+          </Card>
+
+          {/* Employment card */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Briefcase className="w-3.5 h-3.5 text-muted-foreground" />
+                Employment
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {contact.company || contact.job_title ? (
+                <div className="flex items-center gap-3 pb-3 border-b border-border">
+                  <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                    <Building2 className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    {contact.job_title && (
+                      <p className="text-sm font-medium text-foreground">{contact.job_title}</p>
+                    )}
+                    {contact.company && (
+                      <p className="text-xs text-muted-foreground">{contact.company}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  {accounts.length > 0 && (
-                    <span className="text-sm font-semibold text-emerald-600">{formatFullCurrency(totalAccountBalance)}</span>
-                  )}
-                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => setAddAccountOpen(true)}>
-                    <Plus className="w-3.5 h-3.5 mr-1" /> Add Account
-                  </Button>
-                </div>
+              ) : null}
+              {([
+                { label: "Status", value: (contact as any).employment_status },
+                {
+                  label: "Annual Income",
+                  value: (contact as any).annual_income
+                    ? formatCurrency(Number((contact as any).annual_income))
+                    : null,
+                },
+                {
+                  label: "Retirement",
+                  value: (contact as any).retirement_date
+                    ? new Date((contact as any).retirement_date).toLocaleDateString("en-US", {
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : (contact as any).years_to_retirement
+                    ? `${(contact as any).years_to_retirement} years away`
+                    : null,
+                },
+              ] as { label: string; value: any }[])
+                .filter((f) => f.value)
+                .map((f) => (
+                  <div key={f.label}>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{f.label}</p>
+                    <p className="text-sm text-foreground">{f.value}</p>
+                  </div>
+                ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ROW 2 — Financial snapshot */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            {
+              label: "Net Worth",
+              value: (contact as any).net_worth ? formatCurrency(Number((contact as any).net_worth)) : "—",
+              color: "text-emerald-600",
+            },
+            {
+              label: "Liquid Net Worth",
+              value: (contact as any).liquid_net_worth
+                ? formatCurrency(Number((contact as any).liquid_net_worth))
+                : "—",
+              color: "text-emerald-600",
+            },
+            {
+              label: "Tax Bracket",
+              value: (contact as any).tax_bracket || "—",
+              color: "text-foreground",
+            },
+            {
+              label: "Filing Status",
+              value: (contact as any).filing_status
+                ? (contact as any).filing_status
+                    .replace("Married Filing Jointly", "MFJ")
+                    .replace("Married Filing Separately", "MFS")
+                    .replace("Head of Household", "HOH")
+                : "—",
+              color: "text-foreground",
+            },
+          ].map((item) => (
+            <Card key={item.label} className="border-border shadow-none">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{item.label}</p>
+                <p className={`text-lg font-semibold ${item.color}`}>{item.value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* ROW 3 — Accounts (full width) */}
+        <Card className="border-border shadow-none">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Wallet className="w-3.5 h-3.5 text-muted-foreground" />
+                Financial Accounts
+                {accounts.length > 0 && (
+                  <span className="text-xs font-normal text-muted-foreground">({accounts.length})</span>
+                )}
+              </CardTitle>
+              <div className="flex items-center gap-3">
+                {accounts.length > 0 && (
+                  <span className="text-sm font-semibold text-emerald-600">
+                    {formatFullCurrency(totalAccountBalance)}
+                  </span>
+                )}
+                <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setAddAccountOpen(true)}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add Account
+                </Button>
               </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {accounts.length > 0 ? (
+              <div className="rounded-lg border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Account</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Institution</TableHead>
+                      <TableHead className="text-right">Balance</TableHead>
+                      <TableHead className="w-8"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {accounts.map((account) => (
+                      <TableRow
+                        key={account.id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors group"
+                        onClick={() => navigate(`/accounts/${account.id}`)}
+                      >
+                        <TableCell>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{account.account_name}</p>
+                            {account.account_number && (
+                              <p className="text-xs text-muted-foreground">••••{account.account_number.slice(-4)}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">{account.account_type}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{account.institution || "—"}</TableCell>
+                        <TableCell className="text-right text-sm font-semibold text-emerald-600">
+                          {formatFullCurrency(Number(account.balance))}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCloseAccountId(account.id);
+                                    setCloseReason("");
+                                  }}
+                                >
+                                  <X className="w-4 h-4 mr-2" />
+                                  Close Account
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setArchiveAccountId(account.id);
+                                  }}
+                                >
+                                  <Archive className="w-4 h-4 mr-2" />
+                                  Archive Account
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No accounts linked yet. Click "Add Account" to get started.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ROW 4 — Address + Estate + Professional */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Address */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                Address
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              {accounts.length > 0 ? (
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Account</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Institution</TableHead>
-                        <TableHead className="text-right">Balance</TableHead>
-                        <TableHead className="w-8"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {accounts.map((account) => (
-                        <TableRow
-                          key={account.id}
-                          className="cursor-pointer hover:bg-muted/50 transition-colors group"
-                          onClick={() => navigate(`/accounts/${account.id}`)}
-                        >
-                          <TableCell>
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{account.account_name}</p>
-                              {account.account_number && (
-                                <p className="text-xs text-muted-foreground">••••{account.account_number.slice(-4)}</p>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">{account.account_type}</Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{account.institution || "—"}</TableCell>
-                          <TableCell className="text-right text-sm font-semibold text-emerald-600">
-                            {formatFullCurrency(Number(account.balance))}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setCloseAccountId(account.id);
-                                      setCloseReason("");
-                                    }}
-                                  >
-                                    <X className="w-4 h-4 mr-2" />
-                                    Close Account
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setArchiveAccountId(account.id);
-                                    }}
-                                  >
-                                    <Archive className="w-4 h-4 mr-2" />
-                                    Archive Account
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+              {(contact as any).address_line1 ? (
+                <div className="text-sm text-foreground leading-relaxed">
+                  <p>{(contact as any).address_line1}</p>
+                  {(contact as any).address_line2 && <p>{(contact as any).address_line2}</p>}
+                  <p>
+                    {[(contact as any).city, (contact as any).state, (contact as any).zip_code]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                  {(contact as any).country && (contact as any).country !== "US" && (
+                    <p>{(contact as any).country}</p>
+                  )}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No accounts linked yet. Click "Add Account" to get started.</p>
+                <p className="text-xs text-muted-foreground">No address on file</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Estate Planning */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Shield className="w-3.5 h-3.5 text-muted-foreground" />
+                Estate Planning
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[
+                { key: "has_will", label: "Last Will & Testament" },
+                { key: "has_trust", label: "Trust" },
+                { key: "has_poa", label: "Power of Attorney" },
+                { key: "has_healthcare_directive", label: "Healthcare Directive" },
+              ].map(({ key, label }) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between py-1.5 border-b border-border last:border-0"
+                >
+                  <span className="text-sm text-foreground">{label}</span>
+                  <span
+                    className={cn(
+                      "text-xs font-semibold px-2 py-0.5 rounded-full",
+                      (contact as any)[key]
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-secondary text-muted-foreground"
+                    )}
+                  >
+                    {(contact as any)[key] ? "✓ Yes" : "No"}
+                  </span>
+                </div>
+              ))}
+              {(contact as any).beneficiary_review_date && (
+                <p className="text-xs text-muted-foreground pt-2">
+                  Beneficiary review:{" "}
+                  {new Date((contact as any).beneficiary_review_date).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Professional Contacts */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                Professional Contacts
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(contact as any).estate_attorney ? (
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Estate Attorney</p>
+                  <p className="text-sm text-foreground font-medium">{(contact as any).estate_attorney}</p>
+                  {(contact as any).estate_attorney_phone && (
+                    <p className="text-xs text-muted-foreground">{(contact as any).estate_attorney_phone}</p>
+                  )}
+                </div>
+              ) : null}
+              {(contact as any).accountant ? (
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Accountant / CPA</p>
+                  <p className="text-sm text-foreground font-medium">{(contact as any).accountant}</p>
+                  {(contact as any).accountant_phone && (
+                    <p className="text-xs text-muted-foreground">{(contact as any).accountant_phone}</p>
+                  )}
+                </div>
+              ) : null}
+              {!(contact as any).estate_attorney && !(contact as any).accountant && (
+                <p className="text-xs text-muted-foreground">No professional contacts yet</p>
               )}
             </CardContent>
           </Card>
