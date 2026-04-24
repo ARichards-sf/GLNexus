@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -6,14 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  ArrowLeft, User, Mail, Phone, Calendar, Briefcase, Building2,
+  ArrowLeft, User, Mail, Phone, Briefcase, Building2,
   Edit, Wallet, Plus, HelpCircle, ChevronRight,
-  Archive, ArrowRightLeft, MoreHorizontal, X, Wallet as WalletIcon, Check,
+  Archive, ArrowRightLeft, MoreHorizontal, X,
   MapPin, MessageSquare, Users, Shield,
 } from "lucide-react";
 import {
