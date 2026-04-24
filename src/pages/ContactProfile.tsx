@@ -487,6 +487,33 @@ export default function ContactProfile() {
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Personal</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
+                <p className="text-xs text-muted-foreground mb-1">Preferred Name</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.preferred_name}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, preferred_name: e.target.value }))}
+                    placeholder="Nickname or preferred"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).preferred_name || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Dependents</p>
+                {editingProfile ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    value={profileForm.number_of_dependents}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, number_of_dependents: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).number_of_dependents ?? "—"}</p>
+                )}
+              </div>
+              <div>
                 <p className="text-xs text-muted-foreground mb-1">Marital Status</p>
                 {editingProfile ? (
                   <Select
