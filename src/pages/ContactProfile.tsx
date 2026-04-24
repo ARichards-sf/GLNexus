@@ -68,8 +68,64 @@ export default function ContactProfile() {
   const deleteAccount = useDeleteAccount();
   const archiveContact = useArchiveContact();
 
-  // Sync form when contact loads or edit toggles on
-  useState(() => {});
+  // Sync form from contact when it loads or edit mode opens
+  useEffect(() => {
+    if (!contact) return;
+    setProfileForm({
+      marital_status: (contact as any).marital_status || "",
+      employment_status: (contact as any).employment_status || "",
+      annual_income: (contact as any).annual_income ?? "",
+      net_worth: (contact as any).net_worth ?? "",
+      tax_bracket: (contact as any).tax_bracket || "",
+      filing_status: (contact as any).filing_status || "",
+      address_line1: (contact as any).address_line1 || "",
+      address_line2: (contact as any).address_line2 || "",
+      city: (contact as any).city || "",
+      state: (contact as any).state || "",
+      zip_code: (contact as any).zip_code || "",
+      country: (contact as any).country || "US",
+      preferred_contact: (contact as any).preferred_contact || "",
+      has_will: (contact as any).has_will || false,
+      has_trust: (contact as any).has_trust || false,
+      primary_goal: (contact as any).primary_goal || "",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contact?.id, editingProfile]);
+
+  const handleSaveProfile = async () => {
+    if (!contact) return;
+    try {
+      await supabase
+        .from("household_members")
+        .update({
+          marital_status: profileForm.marital_status || null,
+          employment_status: profileForm.employment_status || null,
+          annual_income: profileForm.annual_income !== "" ? Number(profileForm.annual_income) : null,
+          net_worth: profileForm.net_worth !== "" ? Number(profileForm.net_worth) : null,
+          tax_bracket: profileForm.tax_bracket || null,
+          filing_status: profileForm.filing_status || null,
+          address_line1: profileForm.address_line1 || null,
+          address_line2: profileForm.address_line2 || null,
+          city: profileForm.city || null,
+          state: profileForm.state || null,
+          zip_code: profileForm.zip_code || null,
+          country: profileForm.country || "US",
+          preferred_contact: profileForm.preferred_contact || null,
+          has_will: profileForm.has_will,
+          has_trust: profileForm.has_trust,
+          primary_goal: profileForm.primary_goal || null,
+        })
+        .eq("id", contact.id);
+
+      queryClient.invalidateQueries({ queryKey: ["contact", contact.id] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+
+      setEditingProfile(false);
+      toast.success("Profile updated");
+    } catch {
+      toast.error("Failed to save profile");
+    }
+  };
 
   if (isLoading) {
     return (
