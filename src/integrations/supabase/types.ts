@@ -522,6 +522,57 @@ export type Database = {
         }
         Relationships: []
       }
+      goodie_conversations: {
+        Row: {
+          actions_cancelled: Json | null
+          actions_confirmed: Json | null
+          advisor_id: string
+          contains_client_data: boolean | null
+          id: string
+          last_message_at: string | null
+          message_count: number | null
+          messages: Json
+          metadata: Json | null
+          retention_category: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          started_at: string | null
+          title: string | null
+        }
+        Insert: {
+          actions_cancelled?: Json | null
+          actions_confirmed?: Json | null
+          advisor_id: string
+          contains_client_data?: boolean | null
+          id?: string
+          last_message_at?: string | null
+          message_count?: number | null
+          messages?: Json
+          metadata?: Json | null
+          retention_category?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          started_at?: string | null
+          title?: string | null
+        }
+        Update: {
+          actions_cancelled?: Json | null
+          actions_confirmed?: Json | null
+          advisor_id?: string
+          contains_client_data?: boolean | null
+          id?: string
+          last_message_at?: string | null
+          message_count?: number | null
+          messages?: Json
+          metadata?: Json | null
+          retention_category?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          started_at?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
       household_members: {
         Row: {
           advisor_id: string
@@ -828,6 +879,8 @@ export type Database = {
           email: string | null
           firm_id: string | null
           full_name: string | null
+          goodie_disclosure_accepted: boolean | null
+          goodie_disclosure_date: string | null
           id: string
           is_gl_internal: boolean
           is_internal: boolean
@@ -854,6 +907,8 @@ export type Database = {
           email?: string | null
           firm_id?: string | null
           full_name?: string | null
+          goodie_disclosure_accepted?: boolean | null
+          goodie_disclosure_date?: string | null
           id?: string
           is_gl_internal?: boolean
           is_internal?: boolean
@@ -880,6 +935,8 @@ export type Database = {
           email?: string | null
           firm_id?: string | null
           full_name?: string | null
+          goodie_disclosure_accepted?: boolean | null
+          goodie_disclosure_date?: string | null
           id?: string
           is_gl_internal?: boolean
           is_internal?: boolean
