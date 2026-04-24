@@ -658,10 +658,45 @@ export default function ContactProfile() {
                   </p>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* Financial */}
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Retirement Date</p>
+                {editingProfile ? (
+                  <Input
+                    type="date"
+                    value={profileForm.retirement_date}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, retirement_date: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).retirement_date
+                      ? new Date((contact as any).retirement_date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "—"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Years to Retirement</p>
+                {editingProfile ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    value={profileForm.years_to_retirement}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, years_to_retirement: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).years_to_retirement
+                      ? `${(contact as any).years_to_retirement} years`
+                      : "—"}
+                  </p>
+                )}
+              </div>
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Financial</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
