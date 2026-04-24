@@ -416,7 +416,7 @@ export default function ContactProfile() {
           </Card>
         </div>
 
-        {/* ROW 3 — Accounts (full width) */}
+        {/* ROW 5 — Accounts (full width, bottom) */}
         <Card className="border-border shadow-none">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
