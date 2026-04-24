@@ -575,12 +575,15 @@ export type Database = {
       }
       household_members: {
         Row: {
+          accountant: string | null
+          accountant_phone: string | null
           address_line1: string | null
           address_line2: string | null
           advisor_id: string
           annual_income: number | null
           archived_at: string | null
           archived_reason: string | null
+          beneficiary_review_date: string | null
           city: string | null
           company: string | null
           country: string | null
@@ -588,8 +591,12 @@ export type Database = {
           date_of_birth: string | null
           email: string | null
           employment_status: string | null
+          estate_attorney: string | null
+          estate_attorney_phone: string | null
           filing_status: string | null
           first_name: string
+          has_healthcare_directive: boolean | null
+          has_poa: boolean | null
           has_trust: boolean | null
           has_will: boolean | null
           household_id: string | null
@@ -597,23 +604,35 @@ export type Database = {
           job_title: string | null
           last_contacted: string | null
           last_name: string
+          liquid_net_worth: number | null
           marital_status: string | null
+          mobile_phone: string | null
           net_worth: number | null
+          number_of_dependents: number | null
           phone: string | null
           preferred_contact: string | null
+          preferred_name: string | null
           primary_goal: string | null
           relationship: string
+          retirement_date: string | null
+          secondary_email: string | null
+          secondary_phone: string | null
+          ssn_last_four: string | null
           state: string | null
           tax_bracket: string | null
+          years_to_retirement: number | null
           zip_code: string | null
         }
         Insert: {
+          accountant?: string | null
+          accountant_phone?: string | null
           address_line1?: string | null
           address_line2?: string | null
           advisor_id: string
           annual_income?: number | null
           archived_at?: string | null
           archived_reason?: string | null
+          beneficiary_review_date?: string | null
           city?: string | null
           company?: string | null
           country?: string | null
@@ -621,8 +640,12 @@ export type Database = {
           date_of_birth?: string | null
           email?: string | null
           employment_status?: string | null
+          estate_attorney?: string | null
+          estate_attorney_phone?: string | null
           filing_status?: string | null
           first_name: string
+          has_healthcare_directive?: boolean | null
+          has_poa?: boolean | null
           has_trust?: boolean | null
           has_will?: boolean | null
           household_id?: string | null
@@ -630,23 +653,35 @@ export type Database = {
           job_title?: string | null
           last_contacted?: string | null
           last_name: string
+          liquid_net_worth?: number | null
           marital_status?: string | null
+          mobile_phone?: string | null
           net_worth?: number | null
+          number_of_dependents?: number | null
           phone?: string | null
           preferred_contact?: string | null
+          preferred_name?: string | null
           primary_goal?: string | null
           relationship: string
+          retirement_date?: string | null
+          secondary_email?: string | null
+          secondary_phone?: string | null
+          ssn_last_four?: string | null
           state?: string | null
           tax_bracket?: string | null
+          years_to_retirement?: number | null
           zip_code?: string | null
         }
         Update: {
+          accountant?: string | null
+          accountant_phone?: string | null
           address_line1?: string | null
           address_line2?: string | null
           advisor_id?: string
           annual_income?: number | null
           archived_at?: string | null
           archived_reason?: string | null
+          beneficiary_review_date?: string | null
           city?: string | null
           company?: string | null
           country?: string | null
@@ -654,8 +689,12 @@ export type Database = {
           date_of_birth?: string | null
           email?: string | null
           employment_status?: string | null
+          estate_attorney?: string | null
+          estate_attorney_phone?: string | null
           filing_status?: string | null
           first_name?: string
+          has_healthcare_directive?: boolean | null
+          has_poa?: boolean | null
           has_trust?: boolean | null
           has_will?: boolean | null
           household_id?: string | null
@@ -663,14 +702,23 @@ export type Database = {
           job_title?: string | null
           last_contacted?: string | null
           last_name?: string
+          liquid_net_worth?: number | null
           marital_status?: string | null
+          mobile_phone?: string | null
           net_worth?: number | null
+          number_of_dependents?: number | null
           phone?: string | null
           preferred_contact?: string | null
+          preferred_name?: string | null
           primary_goal?: string | null
           relationship?: string
+          retirement_date?: string | null
+          secondary_email?: string | null
+          secondary_phone?: string | null
+          ssn_last_four?: string | null
           state?: string | null
           tax_bracket?: string | null
+          years_to_retirement?: number | null
           zip_code?: string | null
         }
         Relationships: [

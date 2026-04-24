@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
 import { useArchiveContact } from "@/hooks/useHouseholds";
 import { formatFullCurrency, formatCurrency } from "@/data/sampleData";
@@ -64,6 +65,22 @@ export default function ContactProfile() {
     has_will: false,
     has_trust: false,
     primary_goal: "",
+    preferred_name: "",
+    secondary_email: "",
+    secondary_phone: "",
+    mobile_phone: "",
+    ssn_last_four: "",
+    retirement_date: "",
+    years_to_retirement: "" as string | number,
+    estate_attorney: "",
+    estate_attorney_phone: "",
+    accountant: "",
+    accountant_phone: "",
+    beneficiary_review_date: "",
+    has_poa: false,
+    has_healthcare_directive: false,
+    number_of_dependents: 0 as number | string,
+    liquid_net_worth: "" as string | number,
   });
   const deleteAccount = useDeleteAccount();
   const archiveContact = useArchiveContact();
@@ -88,6 +105,22 @@ export default function ContactProfile() {
       has_will: (contact as any).has_will || false,
       has_trust: (contact as any).has_trust || false,
       primary_goal: (contact as any).primary_goal || "",
+      preferred_name: (contact as any).preferred_name || "",
+      secondary_email: (contact as any).secondary_email || "",
+      secondary_phone: (contact as any).secondary_phone || "",
+      mobile_phone: (contact as any).mobile_phone || "",
+      ssn_last_four: (contact as any).ssn_last_four || "",
+      retirement_date: (contact as any).retirement_date || "",
+      years_to_retirement: (contact as any).years_to_retirement ?? "",
+      estate_attorney: (contact as any).estate_attorney || "",
+      estate_attorney_phone: (contact as any).estate_attorney_phone || "",
+      accountant: (contact as any).accountant || "",
+      accountant_phone: (contact as any).accountant_phone || "",
+      beneficiary_review_date: (contact as any).beneficiary_review_date || "",
+      has_poa: (contact as any).has_poa || false,
+      has_healthcare_directive: (contact as any).has_healthcare_directive || false,
+      number_of_dependents: (contact as any).number_of_dependents ?? 0,
+      liquid_net_worth: (contact as any).liquid_net_worth ?? "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contact?.id, editingProfile]);
@@ -114,6 +147,28 @@ export default function ContactProfile() {
           has_will: profileForm.has_will,
           has_trust: profileForm.has_trust,
           primary_goal: profileForm.primary_goal || null,
+          preferred_name: profileForm.preferred_name || null,
+          secondary_email: profileForm.secondary_email || null,
+          secondary_phone: profileForm.secondary_phone || null,
+          mobile_phone: profileForm.mobile_phone || null,
+          ssn_last_four: profileForm.ssn_last_four || null,
+          retirement_date: profileForm.retirement_date || null,
+          years_to_retirement:
+            profileForm.years_to_retirement !== "" && profileForm.years_to_retirement !== null
+              ? Number(profileForm.years_to_retirement)
+              : null,
+          estate_attorney: profileForm.estate_attorney || null,
+          estate_attorney_phone: profileForm.estate_attorney_phone || null,
+          accountant: profileForm.accountant || null,
+          accountant_phone: profileForm.accountant_phone || null,
+          beneficiary_review_date: profileForm.beneficiary_review_date || null,
+          has_poa: profileForm.has_poa,
+          has_healthcare_directive: profileForm.has_healthcare_directive,
+          number_of_dependents: Number(profileForm.number_of_dependents) || 0,
+          liquid_net_worth:
+            profileForm.liquid_net_worth !== "" && profileForm.liquid_net_worth !== null
+              ? Number(profileForm.liquid_net_worth)
+              : null,
         })
         .eq("id", contact.id);
 
@@ -432,6 +487,33 @@ export default function ContactProfile() {
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Personal</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
+                <p className="text-xs text-muted-foreground mb-1">Preferred Name</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.preferred_name}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, preferred_name: e.target.value }))}
+                    placeholder="Nickname or preferred"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).preferred_name || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Dependents</p>
+                {editingProfile ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    value={profileForm.number_of_dependents}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, number_of_dependents: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).number_of_dependents ?? "—"}</p>
+                )}
+              </div>
+              <div>
                 <p className="text-xs text-muted-foreground mb-1">Marital Status</p>
                 {editingProfile ? (
                   <Select
@@ -492,6 +574,52 @@ export default function ContactProfile() {
             </div>
           </div>
 
+          {/* Contact Methods */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Contact Methods</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Mobile Phone</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.mobile_phone}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, mobile_phone: e.target.value }))}
+                    placeholder="Mobile number"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).mobile_phone || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Secondary Phone</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.secondary_phone}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, secondary_phone: e.target.value }))}
+                    placeholder="Home or work"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).secondary_phone || "—"}</p>
+                )}
+              </div>
+              <div className="md:col-span-2">
+                <p className="text-xs text-muted-foreground mb-1">Secondary Email</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.secondary_email}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, secondary_email: e.target.value }))}
+                    placeholder="Alternative email"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).secondary_email || "—"}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Employment & Income */}
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Employment & Income</h4>
@@ -530,6 +658,45 @@ export default function ContactProfile() {
                   </p>
                 )}
               </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Retirement Date</p>
+                {editingProfile ? (
+                  <Input
+                    type="date"
+                    value={profileForm.retirement_date}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, retirement_date: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).retirement_date
+                      ? new Date((contact as any).retirement_date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "—"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Years to Retirement</p>
+                {editingProfile ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    value={profileForm.years_to_retirement}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, years_to_retirement: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).years_to_retirement
+                      ? `${(contact as any).years_to_retirement} years`
+                      : "—"}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -550,6 +717,43 @@ export default function ContactProfile() {
                 ) : (
                   <p className="text-sm text-foreground">
                     {(contact as any).net_worth ? formatCurrency(Number((contact as any).net_worth)) : "—"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Liquid Net Worth</p>
+                {editingProfile ? (
+                  <Input
+                    type="number"
+                    value={profileForm.liquid_net_worth}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, liquid_net_worth: e.target.value }))}
+                    placeholder="0"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).liquid_net_worth
+                      ? formatCurrency(Number((contact as any).liquid_net_worth))
+                      : "—"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">SSN (Last 4)</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.ssn_last_four}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                      setProfileForm((p) => ({ ...p, ssn_last_four: val }));
+                    }}
+                    placeholder="####"
+                    maxLength={4}
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).ssn_last_four ? `XXX-XX-${(contact as any).ssn_last_four}` : "—"}
                   </p>
                 )}
               </div>
@@ -652,21 +856,110 @@ export default function ContactProfile() {
               {[
                 { key: "has_will" as const, label: "Has Will" },
                 { key: "has_trust" as const, label: "Has Trust" },
+                { key: "has_poa" as const, label: "Power of Attorney" },
+                { key: "has_healthcare_directive" as const, label: "Healthcare Directive" },
               ].map(({ key, label }) => (
                 <div key={key} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                   <p className="text-sm text-foreground">{label}</p>
                   {editingProfile ? (
                     <Switch
-                      checked={profileForm[key]}
+                      checked={profileForm[key] as boolean}
                       onCheckedChange={(v) => setProfileForm((p) => ({ ...p, [key]: v }))}
                     />
                   ) : (
-                    <span className="text-sm text-muted-foreground">
+                    <span
+                      className={cn(
+                        "text-xs font-semibold",
+                        (contact as any)[key] ? "text-emerald-600" : "text-muted-foreground"
+                      )}
+                    >
                       {(contact as any)[key] ? "Yes" : "No"}
                     </span>
                   )}
                 </div>
               ))}
+              <div className="md:col-span-2 mt-2">
+                <p className="text-xs text-muted-foreground mb-1">Beneficiary Review Date</p>
+                {editingProfile ? (
+                  <Input
+                    type="date"
+                    value={profileForm.beneficiary_review_date}
+                    onChange={(e) =>
+                      setProfileForm((p) => ({ ...p, beneficiary_review_date: e.target.value }))
+                    }
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {(contact as any).beneficiary_review_date
+                      ? new Date((contact as any).beneficiary_review_date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "—"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Professional Contacts */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Professional Contacts</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Estate Attorney</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.estate_attorney}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, estate_attorney: e.target.value }))}
+                    placeholder="Attorney name"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).estate_attorney || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Attorney Phone</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.estate_attorney_phone}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, estate_attorney_phone: e.target.value }))}
+                    placeholder="Phone number"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).estate_attorney_phone || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Accountant / CPA</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.accountant}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, accountant: e.target.value }))}
+                    placeholder="Accountant name"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).accountant || "—"}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Accountant Phone</p>
+                {editingProfile ? (
+                  <Input
+                    value={profileForm.accountant_phone}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, accountant_phone: e.target.value }))}
+                    placeholder="Phone number"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{(contact as any).accountant_phone || "—"}</p>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
