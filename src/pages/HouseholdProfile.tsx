@@ -444,6 +444,30 @@ export default function HouseholdProfile() {
     }
   };
 
+  const handleUpdateRiskDirect = async (value: string) => {
+    if (!household) return;
+    try {
+      await supabase
+        .from("households")
+        .update({ risk_tolerance: value })
+        .eq("id", household.id);
+
+      queryClient.invalidateQueries({ queryKey: ["household", id] });
+      queryClient.invalidateQueries({ queryKey: ["households"] });
+
+      embedRecord(
+        "households",
+        { ...household, risk_tolerance: value },
+        user!.id
+      );
+
+      setEditRiskOpen(false);
+      toast.success(`Risk tolerance updated to ${value}`);
+    } catch {
+      toast.error("Failed to update risk tolerance");
+    }
+  };
+
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
       {/* Tier Pending Review Banner */}
