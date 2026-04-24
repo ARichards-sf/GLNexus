@@ -105,6 +105,22 @@ export default function ContactProfile() {
       has_will: (contact as any).has_will || false,
       has_trust: (contact as any).has_trust || false,
       primary_goal: (contact as any).primary_goal || "",
+      preferred_name: (contact as any).preferred_name || "",
+      secondary_email: (contact as any).secondary_email || "",
+      secondary_phone: (contact as any).secondary_phone || "",
+      mobile_phone: (contact as any).mobile_phone || "",
+      ssn_last_four: (contact as any).ssn_last_four || "",
+      retirement_date: (contact as any).retirement_date || "",
+      years_to_retirement: (contact as any).years_to_retirement ?? "",
+      estate_attorney: (contact as any).estate_attorney || "",
+      estate_attorney_phone: (contact as any).estate_attorney_phone || "",
+      accountant: (contact as any).accountant || "",
+      accountant_phone: (contact as any).accountant_phone || "",
+      beneficiary_review_date: (contact as any).beneficiary_review_date || "",
+      has_poa: (contact as any).has_poa || false,
+      has_healthcare_directive: (contact as any).has_healthcare_directive || false,
+      number_of_dependents: (contact as any).number_of_dependents ?? 0,
+      liquid_net_worth: (contact as any).liquid_net_worth ?? "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contact?.id, editingProfile]);
