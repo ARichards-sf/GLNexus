@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, Send, Sparkles, RotateCcw, StopCircle, Check, X, Plus } from "lucide-react";
+import { Bot, Send, Sparkles, RotateCcw, StopCircle, Check, X, Plus, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,10 @@ import { useProspects } from "@/hooks/useProspects";
 import { useUpcomingEvents } from "@/hooks/useCalendarEvents";
 import { streamChat, buildContextSnapshot } from "@/lib/aiChat";
 import { useAiActions, getActionDescription, type ParsedToolCall } from "@/hooks/useAiActions";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+// ─── Types ───────────────────────
 
 interface Message {
   id: string;
@@ -24,11 +27,17 @@ interface ChatTab {
   title: string;
   messages: Message[];
   createdAt: Date;
+  dbId?: string;
+  actionsTaken: any[];
+  actionsCancelled: any[];
 }
+
+// ─── Constants ───────────────────
 
 const MAX_TABS = 6;
 const STORAGE_KEY = "goodie_chat_tabs";
 const ACTIVE_TAB_KEY = "goodie_active_tab";
+const DISCLOSURE_KEY = "goodie_disclosure_shown";
 
 const SUGGESTED_PROMPTS = [
   "What's my total AUM and how many active households do I have?",
@@ -38,6 +47,28 @@ const SUGGESTED_PROMPTS = [
   "Summarize my pipeline",
   "Which households are missing a service timeline?",
 ];
+
+// ─── Helpers ─────────────────────
+
+function makeWelcomeMessage(firstName: string): Message {
+  return {
+    id: "welcome-" + Date.now(),
+    role: "assistant",
+    content: `Hi ${firstName}! 👋 I'm Goodie, your GL Nexus AI. Ask me anything about your book, or tell me to take action — schedule a meeting, log a note, create a task, and more. What can I help you with?`,
+    timestamp: new Date(),
+  };
+}
+
+function makeNewTab(firstName: string): ChatTab {
+  return {
+    id: Date.now().toString(),
+    title: "New Chat",
+    messages: [makeWelcomeMessage(firstName)],
+    createdAt: new Date(),
+    actionsTaken: [],
+    actionsCancelled: [],
+  };
+}
 
 function saveTabs(tabs: ChatTab[], activeId: string) {
   try {
@@ -58,16 +89,19 @@ function saveTabs(tabs: ChatTab[], activeId: string) {
   } catch {}
 }
 
-function loadTabs(): { tabs: ChatTab[]; activeId: string } | null {
+function loadTabs(firstName: string): { tabs: ChatTab[]; activeId: string } {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const activeId = localStorage.getItem(ACTIVE_TAB_KEY);
-    if (!raw) return null;
+    if (!raw) throw new Error("empty");
     const parsed = JSON.parse(raw);
+    if (!parsed?.length) throw new Error("empty");
     return {
       tabs: parsed.map((t: any) => ({
         ...t,
         createdAt: new Date(t.createdAt),
+        actionsTaken: t.actionsTaken || [],
+        actionsCancelled: t.actionsCancelled || [],
         messages: t.messages.map((m: any) => ({
           ...m,
           timestamp: new Date(m.timestamp),
@@ -76,47 +110,46 @@ function loadTabs(): { tabs: ChatTab[]; activeId: string } | null {
       activeId: activeId || parsed[0]?.id || "",
     };
   } catch {
-    return null;
+    const tab = makeNewTab(firstName);
+    return { tabs: [tab], activeId: tab.id };
   }
 }
 
-function makeWelcomeMessage(firstName: string): Message {
-  return {
-    id: "welcome-" + Date.now(),
-    role: "assistant",
-    content: `Hi ${firstName}! 👋 I'm Goodie, your GL Nexus AI. Ask me anything about your book, or tell me to take action — schedule a meeting, log a note, create a task, and more. What can I help you with?`,
-    timestamp: new Date(),
-  };
+function categorizeConversation(
+  tab: ChatTab,
+  households: any[]
+): { retention_category: string; contains_client_data: boolean } {
+  const hasActions = tab.actionsTaken.length > 0;
+  const allText = tab.messages.map((m) => m.content.toLowerCase()).join(" ");
+  const mentionsClient = households.some(
+    (h) => h.name && allText.includes(h.name.toLowerCase())
+  );
+
+  let retention_category = "standard";
+  if (mentionsClient) {
+    retention_category = "compliance_relevant";
+  } else if (hasActions) {
+    retention_category = "action_taken";
+  }
+
+  return { retention_category, contains_client_data: mentionsClient };
 }
 
-function makeNewTab(firstName: string): ChatTab {
-  return {
-    id: Date.now().toString(),
-    title: "New Chat",
-    messages: [makeWelcomeMessage(firstName)],
-    createdAt: new Date(),
-  };
-}
+// ─── Main Component ──────────────
 
 export default function GoodieChat() {
   const { user } = useAuth();
+  const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "Advisor";
+
   const { data: households = [] } = useHouseholds();
   const { data: allTasks = [] } = useTasks("mine");
   const { data: prospects = [] } = useProspects();
   const { data: calendarEvents = [] } = useUpcomingEvents(100);
   const { data: recentNotes = [] } = useAllComplianceNotes();
 
-  const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "Advisor";
-
-  const [tabs, setTabs] = useState<ChatTab[]>(() => {
-    const saved = loadTabs();
-    if (saved?.tabs?.length) return saved.tabs;
-    return [makeNewTab(firstName)];
-  });
-  const [activeTabId, setActiveTabId] = useState<string>(() => {
-    const saved = loadTabs();
-    return saved?.activeId || "";
-  });
+  // Tab state
+  const [tabs, setTabs] = useState<ChatTab[]>(() => loadTabs(firstName).tabs);
+  const [activeTabId, setActiveTabId] = useState<string>(() => loadTabs(firstName).activeId);
 
   // Ensure activeTabId is valid
   useEffect(() => {
@@ -128,13 +161,26 @@ export default function GoodieChat() {
   const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
   const messages = activeTab?.messages || [];
 
+  // Chat state
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pendingToolCall, setPendingToolCall] = useState<ParsedToolCall | null>(null);
 
+  // Disclosure
+  const [showDisclosure, setShowDisclosure] = useState(
+    () => typeof window !== "undefined" && !localStorage.getItem(DISCLOSURE_KEY)
+  );
+
+  // Refs
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeTabRef = useRef(activeTab);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -144,6 +190,81 @@ export default function GoodieChat() {
 
   const { executeAction } = useAiActions();
 
+  // ── Compliance save ──
+  const saveConversation = useCallback(
+    async (tab: ChatTab) => {
+      if (!user?.id) return;
+      if (tab.messages.length <= 1) return;
+
+      const { retention_category, contains_client_data } = categorizeConversation(
+        tab,
+        households as any[]
+      );
+
+      const payload: any = {
+        advisor_id: user.id,
+        title: tab.title,
+        messages: tab.messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp.toISOString(),
+        })),
+        actions_confirmed: tab.actionsTaken,
+        actions_cancelled: tab.actionsCancelled,
+        message_count: tab.messages.length,
+        contains_client_data,
+        retention_category,
+        last_message_at: new Date().toISOString(),
+      };
+
+      try {
+        if (tab.dbId) {
+          await supabase.from("goodie_conversations").update(payload).eq("id", tab.dbId);
+        } else {
+          const { data } = await supabase
+            .from("goodie_conversations")
+            .insert(payload)
+            .select("id")
+            .single();
+
+          if (data?.id) {
+            setTabs((prev) => {
+              const updated = prev.map((t) =>
+                t.id === tab.id ? { ...t, dbId: data.id } : t
+              );
+              saveTabs(updated, activeTabId);
+              return updated;
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to save conversation:", e);
+      }
+    },
+    [user?.id, households, activeTabId]
+  );
+
+  const scheduleSave = useCallback(
+    (tab: ChatTab) => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => saveConversation(tab), 2000);
+    },
+    [saveConversation]
+  );
+
+  // Save on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      const t = activeTabRef.current;
+      if (t && t.messages.length > 1) {
+        saveConversation(t);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Tab updaters ──
   const updateActiveMessages = useCallback(
     (updater: (msgs: Message[]) => Message[]) => {
       setTabs((prev) => {
@@ -159,7 +280,7 @@ export default function GoodieChat() {
 
   const autoNameTab = useCallback(
     (text: string) => {
-      const title = text.trim().slice(0, 32).trim();
+      const title = text.trim().slice(0, 35).trim();
       setTabs((prev) => {
         const updated = prev.map((t) =>
           t.id === activeTabId && t.title === "New Chat" ? { ...t, title } : t
@@ -171,10 +292,10 @@ export default function GoodieChat() {
     [activeTabId]
   );
 
+  // ── Chat ──
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || isLoading) return;
-
       abortRef.current = false;
 
       const userMsg: Message = {
@@ -184,8 +305,8 @@ export default function GoodieChat() {
         timestamp: new Date(),
       };
 
-      updateActiveMessages((prev) => [...prev, userMsg]);
       autoNameTab(text.trim());
+      updateActiveMessages((prev) => [...prev, userMsg]);
       setInput("");
       setIsLoading(true);
 
@@ -218,7 +339,7 @@ export default function GoodieChat() {
             updateActiveMessages((prev) => {
               const updated = [...prev];
               const last = updated[updated.length - 1];
-              if (last.role === "assistant") {
+              if (last?.role === "assistant") {
                 updated[updated.length - 1] = {
                   ...last,
                   content: last.content + chunk,
@@ -228,12 +349,15 @@ export default function GoodieChat() {
             });
           },
           onToolCalls: (calls) => {
-            if (calls.length > 0) {
-              setPendingToolCall(calls[0]);
-            }
+            if (calls.length > 0) setPendingToolCall(calls[0]);
           },
           onDone: () => {
             setIsLoading(false);
+            setTabs((prev) => {
+              const current = prev.find((t) => t.id === activeTabId);
+              if (current) scheduleSave(current);
+              return prev;
+            });
           },
           onError: () => {
             setIsLoading(false);
@@ -251,7 +375,18 @@ export default function GoodieChat() {
         setIsLoading(false);
       }
     },
-    [isLoading, messages, households, recentNotes, prospects, calendarEvents, updateActiveMessages, autoNameTab]
+    [
+      isLoading,
+      messages,
+      households,
+      recentNotes,
+      prospects,
+      calendarEvents,
+      updateActiveMessages,
+      autoNameTab,
+      activeTabId,
+      scheduleSave,
+    ]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -263,8 +398,32 @@ export default function GoodieChat() {
 
   const handleConfirmAction = async () => {
     if (!pendingToolCall) return;
+    const toolCall = pendingToolCall;
     try {
-      const result = await executeAction(pendingToolCall);
+      const result = await executeAction(toolCall);
+      // Track action for compliance
+      setTabs((prev) => {
+        const updated = prev.map((t) =>
+          t.id === activeTabId
+            ? {
+                ...t,
+                actionsTaken: [
+                  ...t.actionsTaken,
+                  {
+                    tool: toolCall.name,
+                    args: toolCall.args,
+                    timestamp: new Date().toISOString(),
+                    result,
+                  },
+                ],
+              }
+            : t
+        );
+        saveTabs(updated, activeTabId);
+        const current = updated.find((t) => t.id === activeTabId);
+        if (current) scheduleSave(current);
+        return updated;
+      });
       setPendingToolCall(null);
       updateActiveMessages((prev) => [
         ...prev,
@@ -293,6 +452,27 @@ export default function GoodieChat() {
   };
 
   const handleCancelAction = () => {
+    if (!pendingToolCall) return;
+    const toolCall = pendingToolCall;
+    setTabs((prev) => {
+      const updated = prev.map((t) =>
+        t.id === activeTabId
+          ? {
+              ...t,
+              actionsCancelled: [
+                ...t.actionsCancelled,
+                {
+                  tool: toolCall.name,
+                  args: toolCall.args,
+                  timestamp: new Date().toISOString(),
+                },
+              ],
+            }
+          : t
+      );
+      saveTabs(updated, activeTabId);
+      return updated;
+    });
     setPendingToolCall(null);
     updateActiveMessages((prev) => [
       ...prev,
@@ -309,7 +489,16 @@ export default function GoodieChat() {
     const welcome = makeWelcomeMessage(firstName);
     setTabs((prev) => {
       const updated = prev.map((t) =>
-        t.id === activeTabId ? { ...t, title: "New Chat", messages: [welcome] } : t
+        t.id === activeTabId
+          ? {
+              ...t,
+              title: "New Chat",
+              messages: [welcome],
+              actionsTaken: [],
+              actionsCancelled: [],
+              dbId: undefined,
+            }
+          : t
       );
       saveTabs(updated, activeTabId);
       return updated;
@@ -318,41 +507,36 @@ export default function GoodieChat() {
   };
 
   const handleNewTab = useCallback(() => {
-    if (tabs.length >= MAX_TABS) {
-      setTabs((prev) => {
-        const nonActive = prev
-          .filter((t) => t.id !== activeTabId)
-          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-        if (nonActive.length === 0) return prev;
-        const filtered = prev.filter((t) => t.id !== nonActive[0].id);
-        const newTab = makeNewTab(firstName);
-        const updated = [...filtered, newTab];
-        saveTabs(updated, newTab.id);
-        setActiveTabId(newTab.id);
-        return updated;
-      });
-      return;
-    }
     const newTab = makeNewTab(firstName);
     setTabs((prev) => {
-      const updated = [...prev, newTab];
+      let list = [...prev];
+      if (list.length >= MAX_TABS) {
+        const nonActive = list
+          .filter((t) => t.id !== activeTabId)
+          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        if (nonActive.length) {
+          list = list.filter((t) => t.id !== nonActive[0].id);
+        }
+      }
+      const updated = [...list, newTab];
       saveTabs(updated, newTab.id);
       return updated;
     });
     setActiveTabId(newTab.id);
-  }, [tabs, activeTabId, firstName]);
+    setPendingToolCall(null);
+    setInput("");
+  }, [activeTabId, firstName]);
 
   const handleCloseTab = useCallback(
     (tabId: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      if (tabs.length === 1) {
-        const reset = makeNewTab(firstName);
-        setTabs([reset]);
-        setActiveTabId(reset.id);
-        saveTabs([reset], reset.id);
-        return;
-      }
       setTabs((prev) => {
+        if (prev.length === 1) {
+          const reset = makeNewTab(firstName);
+          saveTabs([reset], reset.id);
+          setActiveTabId(reset.id);
+          return [reset];
+        }
         const idx = prev.findIndex((t) => t.id === tabId);
         const filtered = prev.filter((t) => t.id !== tabId);
         if (tabId === activeTabId) {
@@ -364,23 +548,85 @@ export default function GoodieChat() {
         }
         return filtered;
       });
+      setPendingToolCall(null);
     },
-    [tabs, activeTabId, firstName]
+    [activeTabId, firstName]
   );
 
   const handleSwitchTab = useCallback(
     (tabId: string) => {
+      const current = activeTabRef.current;
+      if (current && current.messages.length > 1) {
+        saveConversation(current);
+      }
       setActiveTabId(tabId);
-      saveTabs(tabs, tabId);
+      setTabs((prev) => {
+        saveTabs(prev, tabId);
+        return prev;
+      });
       setPendingToolCall(null);
+      setInput("");
     },
-    [tabs]
+    [saveConversation]
   );
+
+  const handleAcceptDisclosure = async () => {
+    localStorage.setItem(DISCLOSURE_KEY, "true");
+    setShowDisclosure(false);
+    if (user?.id) {
+      try {
+        await supabase
+          .from("profiles")
+          .update({
+            goodie_disclosure_accepted: true,
+            goodie_disclosure_date: new Date().toISOString(),
+          })
+          .eq("user_id", user.id);
+      } catch (e) {
+        console.error("Failed to save disclosure acceptance:", e);
+      }
+    }
+  };
 
   const isEmpty = messages.length <= 1;
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
+      {/* Disclosure modal */}
+      {showDisclosure && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                <Shield className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-foreground">
+                  Conversation Storage Notice
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Please review before continuing
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-foreground leading-relaxed">
+              Goodie conversations are stored for compliance and record-keeping purposes in
+              accordance with FINRA Rule 4511 and applicable securities regulations.
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Conversations involving client data are retained for 7 years. All data is encrypted
+              and accessible only to you and authorized GL compliance staff.
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Conversations are also used to improve Goodie over time.
+            </p>
+            <Button onClick={handleAcceptDisclosure} className="w-full">
+              I understand — Continue
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-card border-b border-border">
         {/* Top bar */}
@@ -390,20 +636,22 @@ export default function GoodieChat() {
               <Sparkles className="w-3.5 h-3.5 text-amber-600" />
             </div>
             <h1 className="text-sm font-semibold">Goodie</h1>
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Shield className="w-3 h-3" />
+              Conversations logged
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {messages.length > 1 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClearChat}
-                className="text-xs text-muted-foreground gap-1.5 h-7"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Clear
-              </Button>
-            )}
-          </div>
+          {!isEmpty && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearChat}
+              className="text-xs text-muted-foreground gap-1.5 h-7"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Clear
+            </Button>
+          )}
         </div>
 
         {/* Tabs bar */}
@@ -413,13 +661,19 @@ export default function GoodieChat() {
               key={tab.id}
               onClick={() => handleSwitchTab(tab.id)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium cursor-pointer transition-colors whitespace-nowrap max-w-[160px] group border border-b-0",
+                "flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium cursor-pointer transition-all whitespace-nowrap max-w-[180px] group border border-b-0 min-w-[80px]",
                 tab.id === activeTabId
-                  ? "bg-background border-border text-foreground -mb-px"
-                  : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                  ? "bg-background border-border text-foreground shadow-sm -mb-px relative z-10"
+                  : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
               )}
             >
-              <span className="truncate max-w-[100px]">{tab.title}</span>
+              <span className="truncate max-w-[120px] flex-1">{tab.title}</span>
+              {tab.actionsTaken.length > 0 && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"
+                  title={`${tab.actionsTaken.length} action(s) taken`}
+                />
+              )}
               <button
                 onClick={(e) => handleCloseTab(tab.id, e)}
                 className={cn(
@@ -433,7 +687,6 @@ export default function GoodieChat() {
               </button>
             </div>
           ))}
-          {/* New tab button */}
           <button
             onClick={handleNewTab}
             className="flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors shrink-0 mb-0.5"
@@ -455,14 +708,12 @@ export default function GoodieChat() {
                 msg.role === "user" ? "justify-end" : "justify-start"
               )}
             >
-              {/* Goodie avatar */}
               {msg.role === "assistant" && (
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                   <Sparkles className="w-4 h-4 text-amber-500" />
                 </div>
               )}
 
-              {/* Message bubble */}
               <div
                 className={cn(
                   "max-w-[85%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed",
@@ -471,18 +722,16 @@ export default function GoodieChat() {
                     : "bg-card border border-border text-foreground"
                 )}
               >
-                {msg.content || (
-                  isLoading && idx === messages.length - 1 ? (
+                {msg.content ||
+                  (isLoading && idx === messages.length - 1 ? (
                     <div className="flex gap-1 py-1">
                       <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" />
                       <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:0.2s]" />
                       <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:0.4s]" />
                     </div>
-                  ) : null
-                )}
+                  ) : null)}
               </div>
 
-              {/* User avatar */}
               {msg.role === "user" && (
                 <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0 mt-0.5 text-xs font-semibold text-foreground">
                   {firstName[0].toUpperCase()}
@@ -519,7 +768,7 @@ export default function GoodieChat() {
           )}
         </div>
 
-        {/* Suggested prompts — show only on empty chat */}
+        {/* Suggested prompts */}
         {isEmpty && (
           <div className="max-w-3xl mx-auto px-6 pb-6">
             <p className="text-xs font-medium text-muted-foreground mb-3 px-1">
@@ -540,7 +789,7 @@ export default function GoodieChat() {
         )}
       </div>
 
-      {/* Input area */}
+      {/* Input */}
       <div className="border-t border-border bg-background">
         <div className="max-w-3xl mx-auto px-6 py-4">
           <div className="flex items-end gap-2 rounded-2xl border border-border bg-card px-4 py-3 focus-within:border-primary/40 transition-colors">
@@ -567,7 +816,8 @@ export default function GoodieChat() {
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground text-center mt-2">
-            Goodie can make mistakes. Always verify important information.
+            Goodie can make mistakes. Always verify important information. Conversations are
+            logged for compliance.
           </p>
         </div>
       </div>
