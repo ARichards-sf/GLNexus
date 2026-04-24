@@ -49,7 +49,7 @@ const internalItems = [
   { to: "/admin/developer", label: "Developer Tools", icon: Terminal },
 ];
 
-function hexToSafePalette(hex: string): Record<string, string> | null {
+function hexToSafePalette(hex: string, secondaryHex?: string): Record<string, string> | null {
   try {
     const r = parseInt(hex.slice(1, 3), 16) / 255;
     const g = parseInt(hex.slice(3, 5), 16) / 255;
@@ -72,6 +72,36 @@ function hexToSafePalette(hex: string): Record<string, string> | null {
       }
     }
     const hue = Math.round(h * 360);
+
+    let secondaryHue = hue;
+    if (secondaryHex) {
+      try {
+        const sr = parseInt(secondaryHex.slice(1, 3), 16) / 255;
+        const sg = parseInt(secondaryHex.slice(3, 5), 16) / 255;
+        const sb = parseInt(secondaryHex.slice(5, 7), 16) / 255;
+        const smax = Math.max(sr, sg, sb);
+        const smin = Math.min(sr, sg, sb);
+        let sh = 0;
+        const sd = smax - smin;
+        if (sd !== 0) {
+          switch (smax) {
+            case sr:
+              sh = ((sg - sb) / sd + (sg < sb ? 6 : 0)) / 6;
+              break;
+            case sg:
+              sh = ((sb - sr) / sd + 2) / 6;
+              break;
+            case sb:
+              sh = ((sr - sg) / sd + 4) / 6;
+              break;
+          }
+        }
+        secondaryHue = Math.round(sh * 360);
+      } catch {
+        secondaryHue = hue;
+      }
+    }
+
     return {
       "--sidebar-background": `${hue} 35% 95%`,
       "--sidebar-foreground": `${hue} 20% 28%`,
@@ -83,7 +113,7 @@ function hexToSafePalette(hex: string): Record<string, string> | null {
       "--ring": `${hue} 50% 30%`,
       "--accent": `${hue} 40% 40%`,
       "--accent-foreground": `0 0% 100%`,
-      "--table-header": `${hue} 30% 93%`,
+      "--table-header": `${secondaryHue} 30% 93%`,
     };
   } catch {
     return null;
