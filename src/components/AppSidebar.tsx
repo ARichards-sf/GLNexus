@@ -260,22 +260,23 @@ export default function AppSidebar() {
         });
       }
     } else {
-      const defaults: Record<string, string> = {
-        "--primary": "215 28% 17%",
-        "--primary-foreground": "210 40% 98%",
-        "--sidebar-background": "220 40% 93%",
-        "--sidebar-foreground": "220 50% 8%",
-        "--sidebar-accent": "220 35% 86%",
-        "--sidebar-accent-foreground": "220 50% 5%",
-        "--sidebar-border": "220 30% 80%",
-        "--accent": "160 84% 39%",
-        "--accent-foreground": "0 0% 100%",
-        "--ring": "215 28% 17%",
-        "--table-header": "220 30% 94%",
-        "--background": "214 20% 93%",
-      };
-      Object.entries(defaults).forEach(([key, value]) => {
-        document.documentElement.style.setProperty(key, value);
+      // No firm color set — remove all injected properties and let index.css defaults take over
+      const keys = [
+        "--primary",
+        "--primary-foreground",
+        "--sidebar-background",
+        "--sidebar-foreground",
+        "--sidebar-accent",
+        "--sidebar-accent-foreground",
+        "--sidebar-border",
+        "--accent",
+        "--accent-foreground",
+        "--ring",
+        "--table-header",
+        "--background",
+      ];
+      keys.forEach((key) => {
+        document.documentElement.style.removeProperty(key);
       });
     }
   }, [brandingFirm?.accent_color, (brandingFirm as any)?.secondary_color]);
