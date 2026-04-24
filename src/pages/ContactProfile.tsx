@@ -757,6 +757,8 @@ export default function ContactProfile() {
                   </p>
                 )}
               </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Tax Bracket</p>
                 {editingProfile ? (
                   <Select
                     value={profileForm.tax_bracket}
