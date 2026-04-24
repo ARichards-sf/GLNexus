@@ -672,6 +672,7 @@ export default function ContactProfile() {
         </CardContent>
       </Card>
 
+      <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
       <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} memberId={contact.id} />
       <RequestAssistanceDialog
         open={assistOpen}
