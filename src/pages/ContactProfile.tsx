@@ -443,36 +443,8 @@ export default function ContactProfile() {
           </CardContent>
         </Card>
 
-        {/* ROW 4 — Address + Estate + Professional */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Address */}
-          <Card className="border-border shadow-none">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                Address
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {(contact as any).address_line1 ? (
-                <div className="text-sm text-foreground leading-relaxed">
-                  <p>{(contact as any).address_line1}</p>
-                  {(contact as any).address_line2 && <p>{(contact as any).address_line2}</p>}
-                  <p>
-                    {[(contact as any).city, (contact as any).state, (contact as any).zip_code]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </p>
-                  {(contact as any).country && (contact as any).country !== "US" && (
-                    <p>{(contact as any).country}</p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">No address on file</p>
-              )}
-            </CardContent>
-          </Card>
-
+        {/* ROW 4 — Estate + Professional */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Estate Planning */}
           <Card className="border-border shadow-none">
             <CardHeader className="pb-3">
