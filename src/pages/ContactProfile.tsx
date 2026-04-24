@@ -697,6 +697,10 @@ export default function ContactProfile() {
                   </p>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Financial */}
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Financial</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
