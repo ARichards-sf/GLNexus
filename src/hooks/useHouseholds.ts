@@ -147,7 +147,7 @@ export function useCreateComplianceNote() {
   const { targetAdvisorId } = useImpersonation();
 
   return useMutation({
-    mutationFn: async ({ householdId, type, summary, contactId }: { householdId: string; type: string; summary: string; contactId?: string }) => {
+    mutationFn: async ({ householdId, type, summary, contactIds }: { householdId: string; type: string; summary: string; contactIds?: string[] }) => {
       const advisorId = user ? targetAdvisorId(user.id) : user!.id;
       const { data, error } = await supabase
         .from("compliance_notes")
@@ -157,11 +157,21 @@ export function useCreateComplianceNote() {
           type,
           summary,
           date: new Date().toISOString().split("T")[0],
-          ...(contactId ? { contact_id: contactId } : {}),
         } as any)
         .select()
         .single();
       if (error) throw error;
+
+      if (data && contactIds && contactIds.length > 0) {
+        const links = contactIds.map((cid) => ({
+          compliance_note_id: data.id,
+          contact_id: cid,
+        }));
+        const { error: linkErr } = await supabase
+          .from("compliance_note_contacts" as any)
+          .insert(links);
+        if (linkErr) throw linkErr;
+      }
 
       if (data && user) {
         embedRecord("compliance_notes", data, user.id);
@@ -178,6 +188,8 @@ export function useCreateComplianceNote() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["compliance_notes"] });
       queryClient.invalidateQueries({ queryKey: ["all_compliance_notes"] });
+      queryClient.invalidateQueries({ queryKey: ["contact_notes"] });
+      queryClient.invalidateQueries({ queryKey: ["note_contacts"] });
       queryClient.invalidateQueries({ queryKey: ["household", vars.householdId] });
     },
   });
