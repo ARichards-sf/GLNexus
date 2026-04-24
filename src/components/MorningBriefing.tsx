@@ -276,7 +276,7 @@ export default function MorningBriefing({
     cachedSnapshot !== null &&
     (cachedSnapshot.total !== pendingTasks.length || cachedSnapshot.overdue !== currentOverdue);
 
-  // Clean up legacy cache keys
+  // Clean up legacy cache keys + stale period/date caches
   useEffect(() => {
     try {
       localStorage.removeItem("goodie_morning_briefing");
@@ -289,7 +289,10 @@ export default function MorningBriefing({
     } catch {
       /* ignore */
     }
-  }, [userId]);
+    if (!userId) return;
+    const today = new Date().toISOString().split("T")[0];
+    cleanBriefingCache(userId, currentPeriod, today);
+  }, [userId, currentPeriod]);
 
   // Check every 60 seconds if the period has changed
   useEffect(() => {
