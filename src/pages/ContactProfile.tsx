@@ -147,6 +147,28 @@ export default function ContactProfile() {
           has_will: profileForm.has_will,
           has_trust: profileForm.has_trust,
           primary_goal: profileForm.primary_goal || null,
+          preferred_name: profileForm.preferred_name || null,
+          secondary_email: profileForm.secondary_email || null,
+          secondary_phone: profileForm.secondary_phone || null,
+          mobile_phone: profileForm.mobile_phone || null,
+          ssn_last_four: profileForm.ssn_last_four || null,
+          retirement_date: profileForm.retirement_date || null,
+          years_to_retirement:
+            profileForm.years_to_retirement !== "" && profileForm.years_to_retirement !== null
+              ? Number(profileForm.years_to_retirement)
+              : null,
+          estate_attorney: profileForm.estate_attorney || null,
+          estate_attorney_phone: profileForm.estate_attorney_phone || null,
+          accountant: profileForm.accountant || null,
+          accountant_phone: profileForm.accountant_phone || null,
+          beneficiary_review_date: profileForm.beneficiary_review_date || null,
+          has_poa: profileForm.has_poa,
+          has_healthcare_directive: profileForm.has_healthcare_directive,
+          number_of_dependents: Number(profileForm.number_of_dependents) || 0,
+          liquid_net_worth:
+            profileForm.liquid_net_worth !== "" && profileForm.liquid_net_worth !== null
+              ? Number(profileForm.liquid_net_worth)
+              : null,
         })
         .eq("id", contact.id);
 
