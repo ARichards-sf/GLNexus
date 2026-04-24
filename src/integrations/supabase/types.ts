@@ -606,6 +606,7 @@ export type Database = {
           last_name: string
           liquid_net_worth: number | null
           marital_status: string | null
+          middle_name: string | null
           mobile_phone: string | null
           net_worth: number | null
           number_of_dependents: number | null
@@ -655,6 +656,7 @@ export type Database = {
           last_name: string
           liquid_net_worth?: number | null
           marital_status?: string | null
+          middle_name?: string | null
           mobile_phone?: string | null
           net_worth?: number | null
           number_of_dependents?: number | null
@@ -704,6 +706,7 @@ export type Database = {
           last_name?: string
           liquid_net_worth?: number | null
           marital_status?: string | null
+          middle_name?: string | null
           mobile_phone?: string | null
           net_worth?: number | null
           number_of_dependents?: number | null
