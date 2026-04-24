@@ -269,10 +269,20 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
                 placeholder="#1B3A6B"
                 className="font-mono"
               />
-              <div
-                className="w-9 h-9 rounded-md border border-border shrink-0"
-                style={{ backgroundColor: validHex ? accentColor : "transparent" }}
-              />
+              <div className="relative shrink-0">
+                <div
+                  className="w-9 h-9 rounded-md border border-border cursor-pointer hover:ring-2 hover:ring-ring hover:ring-offset-1 transition-all"
+                  style={{ backgroundColor: validHex ? accentColor : "#1B3A6B" }}
+                  onClick={() => document.getElementById("accent-color-picker")?.click()}
+                />
+                <input
+                  id="accent-color-picker"
+                  type="color"
+                  value={validHex ? accentColor : "#1B3A6B"}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
+                />
+              </div>
             </div>
           </div>
           <div className="space-y-2">
@@ -288,17 +298,20 @@ export default function EditFirmDialog({ open, onOpenChange, firm }: Props) {
                 placeholder="#C9A96E (optional)"
                 className="font-mono"
               />
-              <div
-                className="w-9 h-9 rounded-md border border-border shrink-0"
-                style={{ 
-                  backgroundColor: 
-                    /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(
-                      secondaryColor
-                    ) 
-                    ? secondaryColor 
-                    : "transparent" 
-                }}
-              />
+              <div className="relative shrink-0">
+                <div
+                  className="w-9 h-9 rounded-md border border-border cursor-pointer hover:ring-2 hover:ring-ring hover:ring-offset-1 transition-all"
+                  style={{ backgroundColor: secondaryColor || "#265442" }}
+                  onClick={() => document.getElementById("secondary-color-picker")?.click()}
+                />
+                <input
+                  id="secondary-color-picker"
+                  type="color"
+                  value={secondaryColor || "#265442"}
+                  onChange={(e) => setSecondaryColor(e.target.value)}
+                  className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
+                />
+              </div>
             </div>
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
