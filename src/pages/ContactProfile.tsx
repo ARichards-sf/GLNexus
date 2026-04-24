@@ -168,9 +168,33 @@ export default function ContactProfile() {
                     </div>
                   </div>
                 ))}
-              {!contact.email && !contact.phone && (
+              {!contact.email && !contact.phone && !(contact as any).secondary_email && !(contact as any).mobile_phone && !(contact as any).secondary_phone && !(contact as any).preferred_contact && (
                 <p className="text-xs text-muted-foreground text-center py-2">No contact info yet</p>
               )}
+
+              {/* Address */}
+              <div className="pt-3 mt-1 border-t border-border">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <MapPin className="w-3 h-3 text-muted-foreground" />
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Address</p>
+                </div>
+                {(contact as any).address_line1 ? (
+                  <div className="text-sm text-foreground leading-relaxed">
+                    <p>{(contact as any).address_line1}</p>
+                    {(contact as any).address_line2 && <p>{(contact as any).address_line2}</p>}
+                    <p>
+                      {[(contact as any).city, (contact as any).state, (contact as any).zip_code]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                    {(contact as any).country && (contact as any).country !== "US" && (
+                      <p>{(contact as any).country}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No address on file</p>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -311,7 +335,88 @@ export default function ContactProfile() {
           ))}
         </div>
 
-        {/* ROW 3 — Accounts (full width) */}
+        {/* ROW 4 — Estate + Professional */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Estate Planning */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Shield className="w-3.5 h-3.5 text-muted-foreground" />
+                Estate Planning
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[
+                { key: "has_will", label: "Last Will & Testament" },
+                { key: "has_trust", label: "Trust" },
+                { key: "has_poa", label: "Power of Attorney" },
+                { key: "has_healthcare_directive", label: "Healthcare Directive" },
+              ].map(({ key, label }) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between py-1.5 border-b border-border last:border-0"
+                >
+                  <span className="text-sm text-foreground">{label}</span>
+                  <span
+                    className={cn(
+                      "text-xs font-semibold px-2 py-0.5 rounded-full",
+                      (contact as any)[key]
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-secondary text-muted-foreground"
+                    )}
+                  >
+                    {(contact as any)[key] ? "✓ Yes" : "No"}
+                  </span>
+                </div>
+              ))}
+              {(contact as any).beneficiary_review_date && (
+                <p className="text-xs text-muted-foreground pt-2">
+                  Beneficiary review:{" "}
+                  {new Date((contact as any).beneficiary_review_date).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Professional Contacts */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                Professional Contacts
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(contact as any).estate_attorney ? (
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Estate Attorney</p>
+                  <p className="text-sm text-foreground font-medium">{(contact as any).estate_attorney}</p>
+                  {(contact as any).estate_attorney_phone && (
+                    <p className="text-xs text-muted-foreground">{(contact as any).estate_attorney_phone}</p>
+                  )}
+                </div>
+              ) : null}
+              {(contact as any).accountant ? (
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Accountant / CPA</p>
+                  <p className="text-sm text-foreground font-medium">{(contact as any).accountant}</p>
+                  {(contact as any).accountant_phone && (
+                    <p className="text-xs text-muted-foreground">{(contact as any).accountant_phone}</p>
+                  )}
+                </div>
+              ) : null}
+              {!(contact as any).estate_attorney && !(contact as any).accountant && (
+                <p className="text-xs text-muted-foreground">No professional contacts yet</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ROW 5 — Accounts (full width, bottom) */}
         <Card className="border-border shadow-none">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -419,114 +524,6 @@ export default function ContactProfile() {
           </CardContent>
         </Card>
 
-        {/* ROW 4 — Address + Estate + Professional */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Address */}
-          <Card className="border-border shadow-none">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                Address
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {(contact as any).address_line1 ? (
-                <div className="text-sm text-foreground leading-relaxed">
-                  <p>{(contact as any).address_line1}</p>
-                  {(contact as any).address_line2 && <p>{(contact as any).address_line2}</p>}
-                  <p>
-                    {[(contact as any).city, (contact as any).state, (contact as any).zip_code]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </p>
-                  {(contact as any).country && (contact as any).country !== "US" && (
-                    <p>{(contact as any).country}</p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">No address on file</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Estate Planning */}
-          <Card className="border-border shadow-none">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Shield className="w-3.5 h-3.5 text-muted-foreground" />
-                Estate Planning
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {[
-                { key: "has_will", label: "Last Will & Testament" },
-                { key: "has_trust", label: "Trust" },
-                { key: "has_poa", label: "Power of Attorney" },
-                { key: "has_healthcare_directive", label: "Healthcare Directive" },
-              ].map(({ key, label }) => (
-                <div
-                  key={key}
-                  className="flex items-center justify-between py-1.5 border-b border-border last:border-0"
-                >
-                  <span className="text-sm text-foreground">{label}</span>
-                  <span
-                    className={cn(
-                      "text-xs font-semibold px-2 py-0.5 rounded-full",
-                      (contact as any)[key]
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-secondary text-muted-foreground"
-                    )}
-                  >
-                    {(contact as any)[key] ? "✓ Yes" : "No"}
-                  </span>
-                </div>
-              ))}
-              {(contact as any).beneficiary_review_date && (
-                <p className="text-xs text-muted-foreground pt-2">
-                  Beneficiary review:{" "}
-                  {new Date((contact as any).beneficiary_review_date).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Professional Contacts */}
-          <Card className="border-border shadow-none">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                Professional Contacts
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {(contact as any).estate_attorney ? (
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Estate Attorney</p>
-                  <p className="text-sm text-foreground font-medium">{(contact as any).estate_attorney}</p>
-                  {(contact as any).estate_attorney_phone && (
-                    <p className="text-xs text-muted-foreground">{(contact as any).estate_attorney_phone}</p>
-                  )}
-                </div>
-              ) : null}
-              {(contact as any).accountant ? (
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Accountant / CPA</p>
-                  <p className="text-sm text-foreground font-medium">{(contact as any).accountant}</p>
-                  {(contact as any).accountant_phone && (
-                    <p className="text-xs text-muted-foreground">{(contact as any).accountant_phone}</p>
-                  )}
-                </div>
-              ) : null}
-              {!(contact as any).estate_attorney && !(contact as any).accountant && (
-                <p className="text-xs text-muted-foreground">No professional contacts yet</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
       <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
