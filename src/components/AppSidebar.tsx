@@ -114,6 +114,7 @@ function hexToSafePalette(hex: string, secondaryHex?: string): Record<string, st
       "--accent": `${hue} 40% 40%`,
       "--accent-foreground": `0 0% 100%`,
       "--table-header": `${secondaryHue} 30% 93%`,
+      "--background": `${secondaryHue} 30% 95%`,
     };
   } catch {
     return null;
@@ -247,6 +248,7 @@ export default function AppSidebar() {
         "--accent-foreground": "0 0% 100%",
         "--ring": "215 28% 17%",
         "--table-header": "220 30% 94%",
+        "--background": "214 20% 93%",
       };
       Object.entries(defaults).forEach(([key, value]) => {
         document.documentElement.style.setProperty(key, value);
