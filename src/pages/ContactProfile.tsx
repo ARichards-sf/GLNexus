@@ -139,9 +139,17 @@ export default function ContactProfile() {
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* ROW 1 — Three column overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="financial">Financial</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6 mt-6">
+          {/* Three column overview */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Contact Info card */}
           <Card className="border-border shadow-none">
             <CardHeader className="pb-3">
@@ -199,6 +207,7 @@ export default function ContactProfile() {
             </CardContent>
           </Card>
 
+
           {/* Personal card */}
           <Card className="border-border shadow-none">
             <CardHeader className="pb-3">
@@ -240,6 +249,7 @@ export default function ContactProfile() {
                 ))}
             </CardContent>
           </Card>
+
 
           {/* Employment card */}
           <Card className="border-border shadow-none">
@@ -294,51 +304,11 @@ export default function ContactProfile() {
                 ))}
             </CardContent>
           </Card>
-        </div>
+          </div>
 
-        {/* ROW 2 — Financial snapshot */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            {
-              label: "Net Worth",
-              value: (contact as any).net_worth ? formatCurrency(Number((contact as any).net_worth)) : "—",
-              color: "text-emerald-600",
-            },
-            {
-              label: "Liquid Net Worth",
-              value: (contact as any).liquid_net_worth
-                ? formatCurrency(Number((contact as any).liquid_net_worth))
-                : "—",
-              color: "text-emerald-600",
-            },
-            {
-              label: "Tax Bracket",
-              value: (contact as any).tax_bracket || "—",
-              color: "text-foreground",
-            },
-            {
-              label: "Filing Status",
-              value: (contact as any).filing_status
-                ? (contact as any).filing_status
-                    .replace("Married Filing Jointly", "MFJ")
-                    .replace("Married Filing Separately", "MFS")
-                    .replace("Head of Household", "HOH")
-                : "—",
-              color: "text-foreground",
-            },
-          ].map((item) => (
-            <Card key={item.label} className="border-border shadow-none">
-              <CardContent className="pt-4 pb-4">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{item.label}</p>
-                <p className={`text-lg font-semibold ${item.color}`}>{item.value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* ROW 4 — Estate + Professional */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Estate Planning */}
+          {/* Estate + Professionals */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+{/* Estate Planning */}
           <Card className="border-border shadow-none">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -383,7 +353,7 @@ export default function ContactProfile() {
             </CardContent>
           </Card>
 
-          {/* Professional Contacts */}
+{/* Professional Contacts */}
           <Card className="border-border shadow-none">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -415,10 +385,111 @@ export default function ContactProfile() {
               )}
             </CardContent>
           </Card>
-        </div>
+          </div>
 
-        {/* ROW 5 — Accounts (full width, bottom) */}
-        <Card className="border-border shadow-none">
+          {/* Financial Summary (overview) */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Wallet className="w-3.5 h-3.5 text-muted-foreground" />
+                Financial Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  {
+                    label: "Net Worth",
+                    value: (contact as any).net_worth ? formatCurrency(Number((contact as any).net_worth)) : "—",
+                    color: "text-emerald-600",
+                  },
+                  {
+                    label: "Liquid Net Worth",
+                    value: (contact as any).liquid_net_worth
+                      ? formatCurrency(Number((contact as any).liquid_net_worth))
+                      : "—",
+                    color: "text-emerald-600",
+                  },
+                  {
+                    label: "Annual Income",
+                    value: (contact as any).annual_income
+                      ? formatCurrency(Number((contact as any).annual_income))
+                      : "—",
+                    color: "text-foreground",
+                  },
+                  {
+                    label: "Tax Bracket",
+                    value: (contact as any).tax_bracket || "—",
+                    color: "text-foreground",
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-lg border border-border p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{item.label}</p>
+                    <p className={`text-lg font-semibold ${item.color}`}>{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="financial" className="space-y-6 mt-6">
+          {/* Financial Detail */}
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Wallet className="w-3.5 h-3.5 text-muted-foreground" />
+                Financial Detail
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {[
+                  {
+                    label: "Net Worth",
+                    value: (contact as any).net_worth ? formatCurrency(Number((contact as any).net_worth)) : "—",
+                    color: "text-emerald-600",
+                  },
+                  {
+                    label: "Liquid Net Worth",
+                    value: (contact as any).liquid_net_worth
+                      ? formatCurrency(Number((contact as any).liquid_net_worth))
+                      : "—",
+                    color: "text-emerald-600",
+                  },
+                  {
+                    label: "Annual Income",
+                    value: (contact as any).annual_income
+                      ? formatCurrency(Number((contact as any).annual_income))
+                      : "—",
+                    color: "text-foreground",
+                  },
+                  {
+                    label: "Tax Bracket",
+                    value: (contact as any).tax_bracket || "—",
+                    color: "text-foreground",
+                  },
+                  {
+                    label: "Filing Status",
+                    value: (contact as any).filing_status
+                      ? (contact as any).filing_status
+                          .replace("Married Filing Jointly", "MFJ")
+                          .replace("Married Filing Separately", "MFS")
+                          .replace("Head of Household", "HOH")
+                      : "—",
+                    color: "text-foreground",
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-lg border border-border p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{item.label}</p>
+                    <p className={`text-lg font-semibold ${item.color}`}>{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+                  <Card className="border-border shadow-none">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -524,8 +595,29 @@ export default function ContactProfile() {
             )}
           </CardContent>
         </Card>
+        </TabsContent>
 
-      </div>
+        <TabsContent value="activity" className="mt-6">
+          <Card className="border-border shadow-none">
+            <CardContent className="py-16 text-center">
+              <Activity className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">No activity yet</p>
+              <p className="text-xs text-muted-foreground">Touchpoints, notes, and tasks for this contact will appear here.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="documents" className="mt-6">
+          <Card className="border-border shadow-none">
+            <CardContent className="py-16 text-center">
+              <FileText className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">Documents coming soon</p>
+              <p className="text-xs text-muted-foreground">Upload and manage contact documents from this tab.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
 
       <EditContactSheet open={editOpen} onOpenChange={setEditOpen} contact={contact} />
       <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} memberId={contact.id} />
