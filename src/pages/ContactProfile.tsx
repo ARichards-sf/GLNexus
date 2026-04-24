@@ -610,10 +610,57 @@ export default function ContactProfile() {
 
         <TabsContent value="activity" className="mt-6">
           <Card className="border-border shadow-none">
-            <CardContent className="py-16 text-center">
-              <Activity className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-sm font-medium text-foreground mb-1">No activity yet</p>
-              <p className="text-xs text-muted-foreground">Touchpoints, notes, and tasks for this contact will appear here.</p>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="text-base font-medium">Notes</CardTitle>
+              {contact.household_id && (
+                <Button size="sm" variant="outline" onClick={() => setAddNoteOpen(true)}>
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />
+                  Log Note
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const contactNotes = allNotes.filter((n: any) => {
+                  const cid = n.contact_id as string | undefined;
+                  return cid === contact.id || !cid;
+                });
+                if (contactNotes.length === 0) {
+                  return (
+                    <div className="py-12 text-center">
+                      <Activity className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
+                      <p className="text-sm font-medium text-foreground mb-1">No activity yet</p>
+                      <p className="text-xs text-muted-foreground">Notes for this contact will appear here.</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-5">
+                    {contactNotes.map((note: any) => {
+                      const isDirect = note.contact_id === contact.id;
+                      return (
+                        <div key={note.id} className="border-l-2 border-border pl-4">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 font-medium ${noteTypeColors[note.type] || ""}`}>
+                              {note.type}
+                            </Badge>
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(note.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
+                            {!isDirect && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground">
+                                Household note
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{note.summary}</p>
+                          {note.advisor_name && <p className="text-[11px] text-muted-foreground mt-1.5">— {note.advisor_name}</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
