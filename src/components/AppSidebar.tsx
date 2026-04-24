@@ -12,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap, LayoutGrid, ClipboardList,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap, LayoutGrid, ClipboardList, Sparkles,
 } from "lucide-react";
 import glLogo from "@/assets/gl-logo.png";
 
@@ -434,6 +434,25 @@ export default function AppSidebar() {
             )}
           />
           <span className="flex-1">Scorecard</span>
+        </RouterNavLink>
+        <RouterNavLink
+          to="/goodie"
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all border",
+              isActive
+                ? "bg-sidebar-accent text-sidebar-foreground border-sidebar-accent-foreground/20"
+                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent border-transparent"
+            )
+          }
+        >
+          <Sparkles className={cn(
+            "w-[18px] h-[18px]",
+            location.pathname === "/goodie"
+              ? "opacity-100 text-amber-500"
+              : "opacity-70 group-hover:opacity-100 transition-opacity"
+          )} />
+          <span className="flex-1">Goodie</span>
         </RouterNavLink>
         {showAdvisorNav && (
           <>
