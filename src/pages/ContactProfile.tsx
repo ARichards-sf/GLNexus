@@ -168,9 +168,33 @@ export default function ContactProfile() {
                     </div>
                   </div>
                 ))}
-              {!contact.email && !contact.phone && (
+              {!contact.email && !contact.phone && !(contact as any).secondary_email && !(contact as any).mobile_phone && !(contact as any).secondary_phone && !(contact as any).preferred_contact && (
                 <p className="text-xs text-muted-foreground text-center py-2">No contact info yet</p>
               )}
+
+              {/* Address */}
+              <div className="pt-3 mt-1 border-t border-border">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <MapPin className="w-3 h-3 text-muted-foreground" />
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Address</p>
+                </div>
+                {(contact as any).address_line1 ? (
+                  <div className="text-sm text-foreground leading-relaxed">
+                    <p>{(contact as any).address_line1}</p>
+                    {(contact as any).address_line2 && <p>{(contact as any).address_line2}</p>}
+                    <p>
+                      {[(contact as any).city, (contact as any).state, (contact as any).zip_code]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                    {(contact as any).country && (contact as any).country !== "US" && (
+                      <p>{(contact as any).country}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No address on file</p>
+                )}
+              </div>
             </CardContent>
           </Card>
 
