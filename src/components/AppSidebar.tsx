@@ -287,7 +287,7 @@ export default function AppSidebar() {
 
       {hasVpmAccess && (
         <div className="px-3 mb-3 space-y-1.5">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/50">
             {isVpmSession ? "Serving" : "VPM Advisor"}
           </div>
           <Select
