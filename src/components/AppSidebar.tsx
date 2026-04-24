@@ -204,20 +204,20 @@ export default function AppSidebar() {
         });
       }
     } else {
-      const keys = [
-        "--primary",
-        "--primary-foreground",
-        "--sidebar-background",
-        "--sidebar-foreground",
-        "--sidebar-accent",
-        "--sidebar-accent-foreground",
-        "--sidebar-border",
-        "--accent",
-        "--accent-foreground",
-        "--ring",
-      ];
-      keys.forEach((key) => {
-        document.documentElement.style.removeProperty(key);
+      const defaults: Record<string, string> = {
+        "--primary": "215 28% 17%",
+        "--primary-foreground": "210 40% 98%",
+        "--sidebar-background": "222 47% 11%",
+        "--sidebar-foreground": "210 40% 92%",
+        "--sidebar-accent": "222 35% 18%",
+        "--sidebar-accent-foreground": "210 40% 92%",
+        "--sidebar-border": "222 35% 18%",
+        "--accent": "160 84% 39%",
+        "--accent-foreground": "0 0% 100%",
+        "--ring": "215 28% 17%",
+      };
+      Object.entries(defaults).forEach(([key, value]) => {
+        document.documentElement.style.setProperty(key, value);
       });
     }
   }, [brandingFirm?.accent_color]);
