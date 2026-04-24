@@ -180,7 +180,7 @@ async function retrieveRelevantContext(
       {
         query_embedding: queryEmbedding,
         match_advisor_id: advisorId,
-        match_count: 8,
+        match_count: 5,
         filter_table: null,
       }
     );
@@ -188,7 +188,7 @@ async function retrieveRelevantContext(
     if (error || !matches?.length) return "";
 
     const contextLines = matches
-      .filter((m: any) => m.similarity > 0.3)
+      .filter((m: any) => m.similarity > 0.5)
       .map((m: any) =>
         `[${m.table_name.toUpperCase()}]\n${m.content}`
       )
@@ -300,7 +300,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 1024,
+        max_tokens: 600,
         system: [
           {
             type: "text",
