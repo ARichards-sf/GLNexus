@@ -2,6 +2,7 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,14 @@ import { Separator } from "@/components/ui/separator";
 import { useCreateMember } from "@/hooks/useContacts";
 import { useHouseholds } from "@/hooks/useHouseholds";
 import { useToast } from "@/hooks/use-toast";
+
+// Format helpers for SSN: store digits only, display as XXX-XX-XXXX
+const formatSsn = (digits: string) => {
+  const d = digits.replace(/\D/g, "").slice(0, 9);
+  if (d.length <= 3) return d;
+  if (d.length <= 5) return `${d.slice(0, 3)}-${d.slice(3)}`;
+  return `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}`;
+};
 
 const contactSchema = z.object({
   first_name: z.string().trim().min(1, "Required").max(100),
@@ -22,6 +31,13 @@ const contactSchema = z.object({
   company: z.string().trim().max(200).optional(),
   job_title: z.string().trim().max(200).optional(),
   household_id: z.string().optional(),
+  ssn: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || val.replace(/\D/g, "").length === 9,
+      { message: "SSN must be exactly 9 digits" }
+    ),
 });
 
 type ContactFormValues = z.infer<typeof contactSchema>;
@@ -40,12 +56,13 @@ export default function CreateContactDialog({ open, onOpenChange }: Props) {
     resolver: zodResolver(contactSchema),
     defaultValues: {
       first_name: "", last_name: "", relationship: "", email: "", phone: "",
-      date_of_birth: "", company: "", job_title: "", household_id: "",
+      date_of_birth: "", company: "", job_title: "", household_id: "", ssn: "",
     },
   });
 
   const onSubmit = async (values: ContactFormValues) => {
     try {
+      const ssnDigits = (values.ssn || "").replace(/\D/g, "");
       await createMember.mutateAsync({
         first_name: values.first_name,
         last_name: values.last_name,
@@ -56,6 +73,7 @@ export default function CreateContactDialog({ open, onOpenChange }: Props) {
         company: values.company || null,
         job_title: values.job_title || null,
         household_id: values.household_id && values.household_id !== "none" ? values.household_id : null,
+        ...(ssnDigits.length === 9 ? { ssn: ssnDigits } as any : {}),
       });
       toast({ title: "Contact created" });
       form.reset();
@@ -115,6 +133,31 @@ export default function CreateContactDialog({ open, onOpenChange }: Props) {
                 <FormItem><FormLabel>Job Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
+
+            {/* SSN — secure entry only at creation */}
+            <FormField control={form.control} name="ssn" render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                  SSN
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="password"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="XXX-XX-XXXX"
+                    maxLength={11}
+                    value={field.value ?? ""}
+                    onChange={(e) => field.onChange(formatSsn(e.target.value))}
+                  />
+                </FormControl>
+                <p className="text-xs text-muted-foreground">
+                  SSN is encrypted and stored securely. It will never be displayed after saving.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )} />
 
             <Separator />
 
