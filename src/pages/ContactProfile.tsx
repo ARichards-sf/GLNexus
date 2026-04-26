@@ -32,6 +32,7 @@ import AddAccountDialog from "@/components/AddAccountDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import ReparentContactDialog from "@/components/ReparentContactDialog";
 import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
+import DocumentsTab from "@/components/contact/DocumentsTab";
 
 const noteTypeColors: Record<string, string> = {
   "Annual Review": "bg-emerald-50 text-emerald-700 border-emerald-200",
