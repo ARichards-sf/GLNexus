@@ -87,7 +87,7 @@ export default function RequestDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("household_members")
-        .select("*")
+        .select(MEMBER_SAFE_COLUMNS)
         .eq("household_id", request!.household_id!);
       if (error) throw error;
       return data;
