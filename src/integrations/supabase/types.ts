@@ -654,6 +654,7 @@ export type Database = {
           retirement_date: string | null
           secondary_email: string | null
           secondary_phone: string | null
+          ssn: string | null
           ssn_last_four: string | null
           state: string | null
           tax_bracket: string | null
@@ -704,6 +705,7 @@ export type Database = {
           retirement_date?: string | null
           secondary_email?: string | null
           secondary_phone?: string | null
+          ssn?: string | null
           ssn_last_four?: string | null
           state?: string | null
           tax_bracket?: string | null
@@ -754,6 +756,7 @@ export type Database = {
           retirement_date?: string | null
           secondary_email?: string | null
           secondary_phone?: string | null
+          ssn?: string | null
           ssn_last_four?: string | null
           state?: string | null
           tax_bracket?: string | null

@@ -1,0 +1,1 @@
+ALTER TABLE public.household_members ADD COLUMN IF NOT EXISTS ssn text;
