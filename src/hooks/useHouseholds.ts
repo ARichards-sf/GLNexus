@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { embedRecord } from "@/lib/embedRecord";
+import { MEMBER_SAFE_COLUMNS } from "@/lib/memberColumns";
 
 export interface HouseholdRow {
   id: string;
