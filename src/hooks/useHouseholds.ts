@@ -96,11 +96,11 @@ export function useHouseholdMembers(householdId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("household_members")
-        .select("*")
+        .select(MEMBER_SAFE_COLUMNS)
         .eq("household_id", householdId!)
         .is("archived_at", null);
       if (error) throw error;
-      return data as MemberRow[];
+      return data as unknown as MemberRow[];
     },
     enabled: !!userId && !!householdId,
   });
