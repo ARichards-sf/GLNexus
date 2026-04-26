@@ -32,6 +32,7 @@ import AddAccountDialog from "@/components/AddAccountDialog";
 import RequestAssistanceDialog from "@/components/RequestAssistanceDialog";
 import ReparentContactDialog from "@/components/ReparentContactDialog";
 import AddComplianceNoteDialog from "@/components/AddComplianceNoteDialog";
+import DocumentsTab from "@/components/contact/DocumentsTab";
 
 const noteTypeColors: Record<string, string> = {
   "Annual Review": "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -700,13 +701,17 @@ export default function ContactProfile() {
         </TabsContent>
 
         <TabsContent value="documents" className="mt-6">
-          <Card className="border-border shadow-none">
-            <CardContent className="py-16 text-center">
-              <FileText className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-sm font-medium text-foreground mb-1">Documents coming soon</p>
-              <p className="text-xs text-muted-foreground">Upload and manage contact documents from this tab.</p>
-            </CardContent>
-          </Card>
+          {contact.household_id ? (
+            <DocumentsTab contactId={contact.id} householdId={contact.household_id} />
+          ) : (
+            <Card className="border-border shadow-none">
+              <CardContent className="py-16 text-center">
+                <FileText className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
+                <p className="text-sm font-medium text-foreground mb-1">No household linked</p>
+                <p className="text-xs text-muted-foreground">Link this contact to a household to upload documents.</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 
