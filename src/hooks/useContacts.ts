@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { calculateTierScore } from "@/lib/tierScoring";
+import { MEMBER_SAFE_COLUMNS } from "@/lib/memberColumns";
 
 // Check if AUM change warrants tier reassessment
 // Only runs if no recent assessment and no review already pending
