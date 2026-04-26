@@ -299,7 +299,7 @@ serve(async (req) => {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250929",
+        model: "claude-sonnet-4-6-20251113",
         max_tokens: 600,
         system: [
           {
