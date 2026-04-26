@@ -57,7 +57,6 @@ export default function EditContactSheet({ open, onOpenChange, contact }: Props)
     number_of_dependents: "",
     citizenship: "",
     primary_goal: "",
-    ssn_last_four: "",
     // Contact
     email: "",
     secondary_email: "",
