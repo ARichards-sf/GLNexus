@@ -109,7 +109,6 @@ export default function EditContactSheet({ open, onOpenChange, contact }: Props)
         contact.number_of_dependents != null ? String(contact.number_of_dependents) : "",
       citizenship: contact.citizenship || "",
       primary_goal: contact.primary_goal || "",
-      ssn_last_four: contact.ssn_last_four || "",
       email: contact.email || "",
       secondary_email: contact.secondary_email || "",
       phone: contact.phone || "",
