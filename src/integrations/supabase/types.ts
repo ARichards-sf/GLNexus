@@ -355,6 +355,67 @@ export type Database = {
           },
         ]
       }
+      contact_documents: {
+        Row: {
+          category: string
+          contact_id: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          household_id: string
+          id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          category: string
+          contact_id: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size?: number
+          household_id: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          category?: string
+          contact_id?: string
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          household_id?: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "household_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_documents_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "active_households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_documents_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_snapshots: {
         Row: {
           advisor_id: string
