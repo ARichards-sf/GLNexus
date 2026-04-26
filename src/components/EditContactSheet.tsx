@@ -57,7 +57,6 @@ export default function EditContactSheet({ open, onOpenChange, contact }: Props)
     number_of_dependents: "",
     citizenship: "",
     primary_goal: "",
-    ssn_last_four: "",
     // Contact
     email: "",
     secondary_email: "",
@@ -110,7 +109,6 @@ export default function EditContactSheet({ open, onOpenChange, contact }: Props)
         contact.number_of_dependents != null ? String(contact.number_of_dependents) : "",
       citizenship: contact.citizenship || "",
       primary_goal: contact.primary_goal || "",
-      ssn_last_four: contact.ssn_last_four || "",
       email: contact.email || "",
       secondary_email: contact.secondary_email || "",
       phone: contact.phone || "",
@@ -169,7 +167,6 @@ export default function EditContactSheet({ open, onOpenChange, contact }: Props)
             ? Number(form.number_of_dependents)
             : 0,
           primary_goal: form.primary_goal || null,
-          ssn_last_four: form.ssn_last_four || null,
           email: form.email || null,
           secondary_email: form.secondary_email || null,
           phone: form.phone || null,
@@ -352,20 +349,6 @@ export default function EditContactSheet({ open, onOpenChange, contact }: Props)
                 "Business Succession",
                 "Tax Minimization",
               ])}
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">
-                  SSN (Last 4 digits)
-                </Label>
-                <Input
-                  value={form.ssn_last_four}
-                  onChange={(e) =>
-                    set("ssn_last_four", e.target.value.replace(/\D/g, "").slice(0, 4))
-                  }
-                  placeholder="####"
-                  maxLength={4}
-                  className="h-8 text-sm"
-                />
-              </div>
             </div>
           )}
 

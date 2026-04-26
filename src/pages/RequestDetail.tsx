@@ -14,6 +14,7 @@ import { useRequestMessages } from "@/hooks/useRequestMessages";
 import { markRequestAsRead } from "@/hooks/useUnreadRequests";
 import { toast } from "sonner";
 import type { ServiceRequest } from "@/hooks/useServiceRequests";
+import { MEMBER_SAFE_COLUMNS } from "@/lib/memberColumns";
 
 const statusStyles: Record<string, string> = {
   open: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
@@ -86,10 +87,10 @@ export default function RequestDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("household_members")
-        .select("*")
+        .select(MEMBER_SAFE_COLUMNS)
         .eq("household_id", request!.household_id!);
       if (error) throw error;
-      return data;
+      return data as any[];
     },
     enabled: !!showContextSidebar && !!request?.household_id,
   });

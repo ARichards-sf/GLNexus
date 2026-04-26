@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { embedRecord } from "@/lib/embedRecord";
+import { MEMBER_SAFE_COLUMNS } from "@/lib/memberColumns";
 
 export interface HouseholdRow {
   id: string;
@@ -96,11 +97,11 @@ export function useHouseholdMembers(householdId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("household_members")
-        .select("*")
+        .select(MEMBER_SAFE_COLUMNS)
         .eq("household_id", householdId!)
         .is("archived_at", null);
       if (error) throw error;
-      return data as MemberRow[];
+      return data as unknown as MemberRow[];
     },
     enabled: !!userId && !!householdId,
   });
@@ -113,12 +114,12 @@ export function useArchivedHouseholdMembers(householdId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("household_members")
-        .select("*")
+        .select(MEMBER_SAFE_COLUMNS)
         .eq("household_id", householdId!)
         .not("archived_at", "is", null)
         .order("archived_at", { ascending: false });
       if (error) throw error;
-      return data as (MemberRow & { archived_at: string; archived_reason: string | null })[];
+      return data as unknown as (MemberRow & { archived_at: string; archived_reason: string | null })[];
     },
     enabled: !!userId && !!householdId,
   });

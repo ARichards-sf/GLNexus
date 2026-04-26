@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { calculateTierScore } from "@/lib/tierScoring";
+import { MEMBER_SAFE_COLUMNS } from "@/lib/memberColumns";
 
 // Check if AUM change warrants tier reassessment
 // Only runs if no recent assessment and no review already pending
@@ -151,11 +152,11 @@ export function useAllContacts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("household_members")
-        .select("*, households(name)")
+        .select(`${MEMBER_SAFE_COLUMNS}, households(name)` as any)
         .eq("advisor_id", advisorId!)
         .order("last_name");
       if (error) throw error;
-      return data as ContactWithHousehold[];
+      return data as unknown as ContactWithHousehold[];
     },
     enabled: !!userId && !!advisorId,
   });
@@ -168,11 +169,11 @@ export function useContact(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("household_members")
-        .select("*, households(name)")
+        .select(`${MEMBER_SAFE_COLUMNS}, households(name)` as any)
         .eq("id", id!)
         .single();
       if (error) throw error;
-      return data;
+      return data as any;
     },
     enabled: !!userId && !!id,
   });
