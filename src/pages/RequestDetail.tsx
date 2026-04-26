@@ -14,6 +14,7 @@ import { useRequestMessages } from "@/hooks/useRequestMessages";
 import { markRequestAsRead } from "@/hooks/useUnreadRequests";
 import { toast } from "sonner";
 import type { ServiceRequest } from "@/hooks/useServiceRequests";
+import { MEMBER_SAFE_COLUMNS } from "@/lib/memberColumns";
 
 const statusStyles: Record<string, string> = {
   open: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
