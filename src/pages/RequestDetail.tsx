@@ -90,7 +90,7 @@ export default function RequestDetail() {
         .select(MEMBER_SAFE_COLUMNS)
         .eq("household_id", request!.household_id!);
       if (error) throw error;
-      return data;
+      return data as any[];
     },
     enabled: !!showContextSidebar && !!request?.household_id,
   });
