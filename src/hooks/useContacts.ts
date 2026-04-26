@@ -152,7 +152,7 @@ export function useAllContacts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("household_members")
-        .select("*, households(name)")
+        .select(`${MEMBER_SAFE_COLUMNS}, households(name)`)
         .eq("advisor_id", advisorId!)
         .order("last_name");
       if (error) throw error;
