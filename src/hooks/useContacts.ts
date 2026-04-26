@@ -169,11 +169,11 @@ export function useContact(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("household_members")
-        .select("*, households(name)")
+        .select(`${MEMBER_SAFE_COLUMNS}, households(name)` as any)
         .eq("id", id!)
         .single();
       if (error) throw error;
-      return data;
+      return data as any;
     },
     enabled: !!userId && !!id,
   });
