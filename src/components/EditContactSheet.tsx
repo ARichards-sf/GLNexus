@@ -349,20 +349,6 @@ export default function EditContactSheet({ open, onOpenChange, contact }: Props)
                 "Business Succession",
                 "Tax Minimization",
               ])}
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">
-                  SSN (Last 4 digits)
-                </Label>
-                <Input
-                  value={form.ssn_last_four}
-                  onChange={(e) =>
-                    set("ssn_last_four", e.target.value.replace(/\D/g, "").slice(0, 4))
-                  }
-                  placeholder="####"
-                  maxLength={4}
-                  className="h-8 text-sm"
-                />
-              </div>
             </div>
           )}
 
