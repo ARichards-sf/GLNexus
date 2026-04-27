@@ -147,26 +147,38 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false });
       if (pErr) throw pErr;
 
-      const { data: aumData } = await supabaseAdmin.from("households").select("advisor_id, total_aum");
+      if (!profiles || profiles.length === 0) {
+        return json({ advisors: [] });
+      }
+
+      // Run independent queries in parallel. Replaces a previous `auth.admin.listUsers()`
+      // call that paginated through every auth user in the project — slow even with no
+      // advisors. We now look up only the auth records we actually need.
+      const [aumRes, rolesRes, authResults] = await Promise.all([
+        supabaseAdmin.from("households").select("advisor_id, total_aum"),
+        supabaseAdmin.from("user_roles").select("user_id, role"),
+        Promise.all(profiles.map((p: any) => supabaseAdmin.auth.admin.getUserById(p.user_id))),
+      ]);
+
       const aumMap: Record<string, number> = {};
       const householdCountMap: Record<string, number> = {};
-      (aumData || []).forEach((h: any) => {
+      (aumRes.data || []).forEach((h: any) => {
         aumMap[h.advisor_id] = (aumMap[h.advisor_id] || 0) + Number(h.total_aum);
         householdCountMap[h.advisor_id] = (householdCountMap[h.advisor_id] || 0) + 1;
       });
 
-      const { data: roles } = await supabaseAdmin.from("user_roles").select("user_id, role");
       const roleMap: Record<string, string[]> = {};
-      (roles || []).forEach((r: any) => {
+      (rolesRes.data || []).forEach((r: any) => {
         if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
         roleMap[r.user_id].push(r.role);
       });
 
-      const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
       const authMap: Record<string, any> = {};
-      (authUsers || []).forEach((u: any) => { authMap[u.id] = u; });
+      authResults.forEach((res: any, i: number) => {
+        authMap[profiles[i].user_id] = res?.data?.user || null;
+      });
 
-      const advisors = (profiles || []).map((p: any) => ({
+      const advisors = profiles.map((p: any) => ({
         ...p,
         total_aum: aumMap[p.user_id] || 0,
         household_count: householdCountMap[p.user_id] || 0,
@@ -228,13 +240,33 @@ Deno.serve(async (req) => {
 
     // ── SYSTEM STATS ──
     if (action === "system_stats") {
-      const { data: aumData } = await supabaseAdmin.from("households").select("total_aum");
-      const totalAUM = (aumData || []).reduce((s: number, h: any) => s + Number(h.total_aum), 0);
-      const { count: advisorCount } = await supabaseAdmin.from("profiles").select("*", { count: "exact", head: true });
-      const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
-      const today = new Date().toISOString().split("T")[0];
-      const activeToday = (authUsers || []).filter((u: any) => u.last_sign_in_at?.startsWith(today)).length;
-      return json({ total_aum: totalAUM, advisor_count: advisorCount || 0, active_today: activeToday });
+      const [aumRes, advisorIdsRes] = await Promise.all([
+        supabaseAdmin.from("households").select("total_aum"),
+        supabaseAdmin.from("profiles").select("user_id").eq("is_gl_internal", false),
+      ]);
+
+      const totalAUM = (aumRes.data || []).reduce(
+        (s: number, h: any) => s + Number(h.total_aum),
+        0,
+      );
+      const advisorIds: string[] = (advisorIdsRes.data || []).map((p: any) => p.user_id);
+
+      let activeToday = 0;
+      if (advisorIds.length > 0) {
+        const today = new Date().toISOString().split("T")[0];
+        const authResults = await Promise.all(
+          advisorIds.map((id) => supabaseAdmin.auth.admin.getUserById(id)),
+        );
+        activeToday = authResults.filter(
+          (r: any) => r?.data?.user?.last_sign_in_at?.startsWith(today),
+        ).length;
+      }
+
+      return json({
+        total_aum: totalAUM,
+        advisor_count: advisorIds.length,
+        active_today: activeToday,
+      });
     }
 
     // ── INVITE ADVISOR ──
@@ -434,23 +466,34 @@ Deno.serve(async (req) => {
         .from("profiles").select("*").eq("is_gl_internal", true).order("created_at", { ascending: false });
       if (pErr) throw pErr;
 
-      const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
-      const authMap: Record<string, any> = {};
-      (authUsers || []).forEach((u: any) => { authMap[u.id] = u; });
+      if (!profiles || profiles.length === 0) {
+        return json({ internal_users: [] });
+      }
 
-      const userIds = (profiles || []).map((p: any) => p.user_id);
-      const { data: assignments } = await supabaseAdmin
-        .from("internal_user_firm_assignments")
-        .select("internal_user_id, firm_id, firms(id, name, accent_color)")
-        .in("internal_user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
+      const userIds = profiles.map((p: any) => p.user_id);
+
+      // Parallel: firm assignments + N targeted auth lookups (replaces a previous
+      // `auth.admin.listUsers()` that paginated through every auth user in the project).
+      const [assignmentsRes, authResults] = await Promise.all([
+        supabaseAdmin
+          .from("internal_user_firm_assignments")
+          .select("internal_user_id, firm_id, firms(id, name, accent_color)")
+          .in("internal_user_id", userIds),
+        Promise.all(userIds.map((id: string) => supabaseAdmin.auth.admin.getUserById(id))),
+      ]);
 
       const assignMap: Record<string, any[]> = {};
-      (assignments || []).forEach((a: any) => {
+      (assignmentsRes.data || []).forEach((a: any) => {
         if (!assignMap[a.internal_user_id]) assignMap[a.internal_user_id] = [];
         assignMap[a.internal_user_id].push({ firm_id: a.firm_id, firm: a.firms });
       });
 
-      const internal_users = (profiles || []).map((p: any) => ({
+      const authMap: Record<string, any> = {};
+      authResults.forEach((res: any, i: number) => {
+        authMap[userIds[i]] = res?.data?.user || null;
+      });
+
+      const internal_users = profiles.map((p: any) => ({
         ...p,
         last_sign_in_at: authMap[p.user_id]?.last_sign_in_at || null,
         firm_assignments: assignMap[p.user_id] || [],

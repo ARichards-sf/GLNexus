@@ -54,6 +54,28 @@ async function embedRecord(
       ].filter(Boolean).join("\n");
       break;
 
+    case "household_members":
+      content = [
+        `Member: ${record.first_name} ${record.last_name}`,
+        record.relationship ? `Relationship: ${record.relationship}` : null,
+        record.email ? `Email: ${record.email}` : null,
+        record.phone ? `Phone: ${record.phone}` : null,
+        record.date_of_birth ? `Date of Birth: ${record.date_of_birth}` : null,
+        record.job_title ? `Job Title: ${record.job_title}` : null,
+        record.company ? `Company: ${record.company}` : null,
+      ].filter(Boolean).join("\n");
+      break;
+
+    case "contact_accounts":
+      content = [
+        `Account: ${record.account_name}`,
+        `Type: ${record.account_type}`,
+        record.balance ? `Balance: $${Number(record.balance).toLocaleString()}` : null,
+        record.institution ? `Institution: ${record.institution}` : null,
+        record.status ? `Status: ${record.status}` : null,
+      ].filter(Boolean).join("\n");
+      break;
+
     default:
       content = JSON.stringify(record);
   }
@@ -203,6 +225,38 @@ serve(async (req) => {
         for (const record of data || []) {
           await embedRecord(
             "tasks", record,
+            advisorId, OPENAI_API_KEY,
+            supabase
+          );
+          totalEmbedded++;
+        }
+        break;
+      }
+      case "household_members": {
+        const { data } = await supabase
+          .from("household_members")
+          .select("*")
+          .eq("advisor_id", advisorId)
+          .is("archived_at", null);
+        for (const record of data || []) {
+          await embedRecord(
+            "household_members", record,
+            advisorId, OPENAI_API_KEY,
+            supabase
+          );
+          totalEmbedded++;
+        }
+        break;
+      }
+      case "contact_accounts": {
+        const { data } = await supabase
+          .from("contact_accounts")
+          .select("*")
+          .eq("advisor_id", advisorId)
+          .eq("status", "active");
+        for (const record of data || []) {
+          await embedRecord(
+            "contact_accounts", record,
             advisorId, OPENAI_API_KEY,
             supabase
           );
