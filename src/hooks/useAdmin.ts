@@ -44,7 +44,7 @@ export function useGlProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("is_gl_internal, platform_role, department")
+        .select("is_gl_internal, platform_role, department, full_name")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
@@ -52,6 +52,7 @@ export function useGlProfile() {
         is_gl_internal: !!data?.is_gl_internal,
         platform_role: (data?.platform_role ?? null) as string | null,
         department: (data?.department ?? null) as string | null,
+        full_name: (data?.full_name ?? null) as string | null,
       };
     },
     enabled: !!user,

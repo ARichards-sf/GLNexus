@@ -143,8 +143,12 @@ export default function AppSidebar() {
     return deptLabel ? `${deptLabel} · ${rl}` : rl;
   })();
 
-  const displayName = user?.user_metadata?.full_name || user?.email || "Advisor";
-  const initials = displayName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+  const fullName = glProfile?.full_name || user?.user_metadata?.full_name || null;
+  const displayName = fullName || user?.email || "Advisor";
+  const initials = (fullName
+    ? fullName.split(" ").map((n: string) => n[0]).join("")
+    : displayName.slice(0, 2)
+  ).slice(0, 2).toUpperCase();
 
   const isVpm = allFirms.length > 1;
   const selectedFirm = selectedFirmId ? allFirms.find((f) => f.id === selectedFirmId) ?? null : null;
@@ -552,15 +556,15 @@ export default function AppSidebar() {
       </nav>
 
       <div className="px-3 pt-6 border-t border-sidebar-border">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-foreground">{initials}</div>
-            <div>
-              <p className="text-sm font-medium text-sidebar-foreground">{displayName}</p>
-              <p className="text-xs text-sidebar-foreground/60">{roleLabel}</p>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="shrink-0 w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-foreground">{initials}</div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-sidebar-foreground truncate" title={displayName}>{displayName}</p>
+              <p className="text-xs text-sidebar-foreground/60 truncate">{roleLabel}</p>
             </div>
           </div>
-          <button onClick={signOut} className="text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors" title="Sign out">
+          <button onClick={signOut} className="shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors" title="Sign out">
             <LogOut className="w-4 h-4" />
           </button>
         </div>
