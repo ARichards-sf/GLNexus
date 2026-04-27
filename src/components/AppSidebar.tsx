@@ -1,4 +1,4 @@
-import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
+import { NavLink as RouterNavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, Settings, TrendingUp, LogOut, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap, LayoutGrid, ClipboardList, Sparkles,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, TrendingUp, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap, LayoutGrid, ClipboardList, Sparkles,
 } from "lucide-react";
 import glLogo from "@/assets/gl-logo.png";
 
@@ -51,7 +51,8 @@ const internalItems = [
 
 export default function AppSidebar() {
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { isAdmin, isManager, isSuperAdmin, isDeveloper } = useIsAdmin();
   const { data: isGlInternal = false } = useIsGlInternal();
   const { data: glProfile } = useGlProfile();
@@ -224,7 +225,7 @@ export default function AppSidebar() {
 
       {hasVpmAccess && (
         <div className="px-3 mb-3 space-y-1.5">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/50">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/70">
             {isVpmSession ? "Serving" : "VPM Advisor"}
           </div>
           <Select
@@ -249,7 +250,7 @@ export default function AppSidebar() {
                     <span>{advisor.name}</span>
                     {advisor.isPrime && <span>⭐</span>}
                     {advisor.firmName && (
-                      <span className="text-sidebar-foreground/50 text-[11px]">· {advisor.firmName}</span>
+                      <span className="text-sidebar-foreground/70 text-[11px]">· {advisor.firmName}</span>
                     )}
                   </div>
                 </SelectItem>
@@ -259,7 +260,7 @@ export default function AppSidebar() {
           {isVpmSession && (
             <button
               onClick={stopVpmSession}
-              className="flex items-center gap-1 text-[11px] text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors"
+              className="flex items-center gap-1 text-[11px] text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
             >
               <X className="w-3 h-3" />
               End session
@@ -277,7 +278,7 @@ export default function AppSidebar() {
             brandingFirm?.accent_color ? "border-l-[3px]" : "border-l-[3px] border-transparent",
             location.pathname === "/"
               ? "bg-sidebar-accent text-sidebar-foreground"
-              : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+              : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
             location.pathname !== "/" && "border-transparent"
           )}
           style={
@@ -299,7 +300,7 @@ export default function AppSidebar() {
               "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all border",
               isActive
                 ? "bg-primary/10 text-primary border-primary/20"
-                : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent border-transparent"
+                : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent border-transparent"
             )
           }
         >
@@ -338,7 +339,7 @@ export default function AppSidebar() {
 
             {/* GROUP 1 — Client Service */}
             <div className="mt-4 mb-1 px-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/50">Client Service</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/70">Client Service</span>
             </div>
             {clientServiceItems.map((item) => {
               const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
@@ -350,7 +351,7 @@ export default function AppSidebar() {
                     "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
                     isActive
                       ? "bg-sidebar-accent text-sidebar-foreground"
-                      : "border-transparent text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+                      : "border-transparent text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
                     isActive && !brandingFirm?.accent_color && "border-transparent"
                   )}
                   style={
@@ -370,7 +371,7 @@ export default function AppSidebar() {
 
             {/* GROUP 2 — Activity */}
             <div className="mt-4 mb-1 px-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/50">Activity</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/70">Activity</span>
             </div>
             {activityItems.map((item) => {
               const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
@@ -387,7 +388,7 @@ export default function AppSidebar() {
                     "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
                     isActive
                       ? "bg-sidebar-accent text-sidebar-foreground"
-                      : "border-transparent text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+                      : "border-transparent text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
                     isActive && !brandingFirm?.accent_color && "border-transparent"
                   )}
                   style={
@@ -412,7 +413,7 @@ export default function AppSidebar() {
 
             {/* GROUP 3 — Insights */}
             <div className="mt-4 mb-1 px-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/50">Insights</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/70">Insights</span>
             </div>
             {insightsItems.map((item) => {
               const isActive = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
@@ -424,7 +425,7 @@ export default function AppSidebar() {
                     "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
                     isActive
                       ? "bg-sidebar-accent text-sidebar-foreground"
-                      : "border-transparent text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+                      : "border-transparent text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
                     isActive && !brandingFirm?.accent_color && "border-transparent"
                   )}
                   style={
@@ -444,7 +445,7 @@ export default function AppSidebar() {
 
             {/* GROUP 4 — Business Development */}
             <div className="mt-4 mb-2 px-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/50">Business Development</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/70">Business Development</span>
             </div>
             {bdItems.map((item) => {
               const isActive = location.pathname === item.to || location.pathname.startsWith(item.to);
@@ -456,7 +457,7 @@ export default function AppSidebar() {
                     "group flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
                     isActive
                       ? "bg-sidebar-accent text-sidebar-foreground"
-                      : "border-transparent text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+                      : "border-transparent text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
                     isActive && !brandingFirm?.accent_color && "border-transparent"
                   )}
                   style={
@@ -479,7 +480,7 @@ export default function AppSidebar() {
         {showInternal && (
           <>
             <div className="mt-6 mb-2 px-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/50">Internal</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/70">Internal</span>
             </div>
             {internalItems.map((item) => {
               if (item.to === "/admin/advisors" && !hasAdvisorAccess) return null;
@@ -501,7 +502,7 @@ export default function AppSidebar() {
                     "flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
                     isActive
                       ? "bg-sidebar-accent text-sidebar-foreground"
-                      : "border-transparent text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+                      : "border-transparent text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
                     isActive && !brandingFirm?.accent_color && "border-transparent"
                   )}
                   style={
@@ -532,42 +533,21 @@ export default function AppSidebar() {
           </>
         )}
 
-        {/* Settings - standalone at bottom */}
-        <div className="pt-4 mt-4 border-t border-sidebar-border">
-          <RouterNavLink
-            to="/settings"
-            className={cn(
-              "flex items-center gap-3 pl-[9px] pr-3 py-2.5 rounded-lg text-sm font-medium transition-colors border-l-[3px]",
-              location.pathname === "/settings"
-                ? "bg-sidebar-accent text-sidebar-foreground"
-                : "border-transparent text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent",
-              location.pathname === "/settings" && !brandingFirm?.accent_color && "border-transparent"
-            )}
-            style={
-              location.pathname === "/settings" && brandingFirm?.accent_color
-                ? { borderColor: brandingFirm.accent_color }
-                : undefined
-            }
-          >
-            <Settings className="w-[18px] h-[18px] text-sidebar-foreground/60" />
-            <span className="flex-1">Settings</span>
-          </RouterNavLink>
-        </div>
       </nav>
 
       <div className="px-3 pt-6 border-t border-sidebar-border">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="shrink-0 w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-foreground">{initials}</div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-sidebar-foreground truncate" title={displayName}>{displayName}</p>
-              <p className="text-xs text-sidebar-foreground/60 truncate">{roleLabel}</p>
-            </div>
+        <button
+          type="button"
+          onClick={() => navigate("/settings")}
+          className="w-full flex items-center gap-3 min-w-0 rounded-md px-1 py-1 -mx-1 hover:bg-sidebar-accent focus:outline-none focus:ring-2 focus:ring-sidebar-foreground/20 transition-colors text-left"
+          title="Account settings"
+        >
+          <div className="shrink-0 w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-foreground">{initials}</div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-sidebar-foreground truncate" title={displayName}>{displayName}</p>
+            <p className="text-xs text-sidebar-foreground/80 truncate">{roleLabel}</p>
           </div>
-          <button onClick={signOut} className="shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors" title="Sign out">
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
+        </button>
       </div>
     </aside>
   );
