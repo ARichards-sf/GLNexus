@@ -69,16 +69,22 @@ export default function AddComplianceNoteDialog({ open, onOpenChange, householdI
     setSelectedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
 
+  const canSubmit =
+    !!category &&
+    content.trim().length > 0 &&
+    selectedIds.length > 0 &&
+    !createNote.isPending;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!category || !content.trim()) return;
+    if (!canSubmit) return;
 
     createNote.mutate(
       {
         householdId,
         type: category,
         summary: content.trim(),
-        contactIds: selectedIds.length > 0 ? selectedIds : undefined,
+        contactIds: selectedIds,
       },
       {
         onSuccess: () => {
@@ -99,7 +105,12 @@ export default function AddComplianceNoteDialog({ open, onOpenChange, householdI
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           {/* Tagged contacts */}
           <div className="space-y-2">
-            <Label>Tagged Contacts</Label>
+            <Label>
+              Tagged Contacts <span className="text-destructive">*</span>
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Notes are logged on contacts and roll up to the household. Select at least one.
+            </p>
 
             {/* Selected contact badges */}
             {selectedIds.length > 0 && (
@@ -161,7 +172,9 @@ export default function AddComplianceNoteDialog({ open, onOpenChange, householdI
                 })}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">No household members to tag.</p>
+              <p className="text-xs text-destructive">
+                No household members yet — add a contact before logging notes.
+              </p>
             )}
 
             {/* + Add Another Contact (mirrors QuickLogNoteDialog) */}
@@ -212,7 +225,7 @@ export default function AddComplianceNoteDialog({ open, onOpenChange, householdI
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={createNote.isPending}>
+            <Button type="submit" disabled={!canSubmit}>
               {createNote.isPending ? "Saving..." : "Save Note"}
             </Button>
           </div>
