@@ -45,7 +45,7 @@ export default function Households() {
   const headMap = useMemo(() => {
     const map: Record<string, string> = {};
     contacts.forEach((c) => {
-      if (c.household_id && c.relationship === "Head of Household") {
+      if (c.household_id && c.relationship === "Primary") {
         map[c.household_id] = `${c.first_name} ${c.last_name}`;
       }
     });
@@ -138,7 +138,7 @@ export default function Households() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name or head of household..."
+            placeholder="Search by name or primary contact..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -223,7 +223,7 @@ export default function Households() {
                     <SortIcon field="name" />
                   </button>
                 </TableHead>
-                <TableHead>Head of Household</TableHead>
+                <TableHead>Primary Contact</TableHead>
                 <TableHead className="text-right">
                   <button
                     onClick={() => handleSort("aum")}

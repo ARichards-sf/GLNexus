@@ -5,6 +5,7 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { calculateTierScore } from "@/lib/tierScoring";
 import { MEMBER_SAFE_COLUMNS } from "@/lib/memberColumns";
+import { embedRecord } from "@/lib/embedRecord";
 
 // Check if AUM change warrants tier reassessment
 // Only runs if no recent assessment and no review already pending
@@ -200,13 +201,19 @@ export function useAccount(id: string | undefined) {
 
 export function useUpdateAccount() {
   const queryClient = useQueryClient();
+  const { user } = useTargetAdvisorId();
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: TablesUpdate<"contact_accounts"> }) => {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("contact_accounts")
         .update(data)
-        .eq("id", id);
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw error;
+      if (updated && user) {
+        embedRecord("contact_accounts", updated, user.id);
+      }
     },
     onSuccess: async (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["contact_account", vars.id] });
@@ -255,13 +262,19 @@ export function useAllContactAccounts(memberId: string | undefined) {
 
 export function useUpdateContact() {
   const queryClient = useQueryClient();
+  const { user } = useTargetAdvisorId();
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: TablesUpdate<"household_members"> }) => {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("household_members")
         .update(data)
-        .eq("id", id);
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw error;
+      if (updated && user) {
+        embedRecord("household_members", updated, user.id);
+      }
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["contact", vars.id] });
@@ -275,10 +288,15 @@ export function useCreateMember() {
   const { user } = useTargetAdvisorId();
   return useMutation({
     mutationFn: async (data: Omit<TablesInsert<"household_members">, "advisor_id">) => {
-      const { error } = await supabase
+      const { data: created, error } = await supabase
         .from("household_members")
-        .insert({ ...data, advisor_id: user!.id });
+        .insert({ ...data, advisor_id: user!.id })
+        .select()
+        .single();
       if (error) throw error;
+      if (created && user) {
+        embedRecord("household_members", created, user.id);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["household_members"] });
@@ -292,10 +310,15 @@ export function useCreateAccount() {
   const { user } = useTargetAdvisorId();
   return useMutation({
     mutationFn: async (data: Omit<TablesInsert<"contact_accounts">, "advisor_id">) => {
-      const { error } = await supabase
+      const { data: created, error } = await supabase
         .from("contact_accounts")
-        .insert({ ...data, advisor_id: user!.id });
+        .insert({ ...data, advisor_id: user!.id })
+        .select()
+        .single();
       if (error) throw error;
+      if (created && user) {
+        embedRecord("contact_accounts", created, user.id);
+      }
     },
     onSuccess: async (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["contact_accounts", vars.member_id] });

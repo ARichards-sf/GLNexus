@@ -13,6 +13,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DollarSign, Users, Activity, Search, UserPlus, Eye, ShieldCheck, Play, Clock, CheckCircle2, XCircle,
 } from "lucide-react";
@@ -26,7 +27,7 @@ import { useSelectedFirm } from "@/contexts/FirmContext";
 export default function AdminAdvisors() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: advisors = [], isLoading } = useAdminAdvisors();
-  const { data: logs = [] } = useAutomationLogs();
+  const { data: logs = [], isLoading: logsLoading } = useAutomationLogs();
   const toggleStatus = useToggleAdvisorStatus();
   const runSnapshots = useRunSnapshots();
   const { toast } = useToast();
@@ -84,20 +85,6 @@ export default function AdminAdvisors() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-6 lg:p-10 max-w-6xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-secondary rounded w-64" />
-          <div className="grid grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => <div key={i} className="h-24 bg-secondary rounded-lg" />)}
-          </div>
-          <div className="h-64 bg-secondary rounded-lg" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
       {/* Header */}
@@ -119,9 +106,15 @@ export default function AdminAdvisors() {
               <DollarSign className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground font-medium">Total Firm AUM</span>
             </div>
-            <p className="text-2xl font-semibold tracking-tight text-foreground">
-              {stats ? formatFullCurrency(stats.total_aum) : "—"}
-            </p>
+            <div className="h-8 flex items-center">
+              {statsLoading ? (
+                <Skeleton className="h-7 w-32" />
+              ) : (
+                <p className="text-2xl font-semibold tracking-tight text-foreground">
+                  {stats ? formatFullCurrency(stats.total_aum) : "—"}
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
         <Card className="border-border shadow-none">
@@ -130,9 +123,15 @@ export default function AdminAdvisors() {
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground font-medium">Total Advisors</span>
             </div>
-            <p className="text-2xl font-semibold tracking-tight text-foreground">
-              {stats?.advisor_count ?? "—"}
-            </p>
+            <div className="h-8 flex items-center">
+              {statsLoading ? (
+                <Skeleton className="h-7 w-12" />
+              ) : (
+                <p className="text-2xl font-semibold tracking-tight text-foreground">
+                  {stats?.advisor_count ?? "—"}
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
         <Card className="border-border shadow-none">
@@ -141,9 +140,15 @@ export default function AdminAdvisors() {
               <Activity className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground font-medium">Active Today</span>
             </div>
-            <p className="text-2xl font-semibold tracking-tight text-foreground">
-              {stats?.active_today ?? "—"}
-            </p>
+            <div className="h-8 flex items-center">
+              {statsLoading ? (
+                <Skeleton className="h-7 w-12" />
+              ) : (
+                <p className="text-2xl font-semibold tracking-tight text-foreground">
+                  {stats?.active_today ?? "—"}
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -264,7 +269,16 @@ export default function AdminAdvisors() {
                 </TableCell>
               </TableRow>
             ))}
-            {filtered.length === 0 && (
+            {isLoading && filtered.length === 0 && (
+              Array.from({ length: 3 }).map((_, i) => (
+                <TableRow key={`advisor-skeleton-${i}`}>
+                  <TableCell colSpan={8} className="py-3">
+                    <Skeleton className="h-6 w-full" />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+            {!isLoading && filtered.length === 0 && (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-sm text-muted-foreground">
                   No advisors found.
@@ -343,7 +357,16 @@ export default function AdminAdvisors() {
                   </TableRow>
                 );
               })}
-              {logs.length === 0 && (
+              {logsLoading && logs.length === 0 && (
+                Array.from({ length: 2 }).map((_, i) => (
+                  <TableRow key={`log-skeleton-${i}`}>
+                    <TableCell colSpan={6} className="py-3">
+                      <Skeleton className="h-6 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+              {!logsLoading && logs.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
                     No automation logs yet. Click "Run Now" to trigger the first snapshot.

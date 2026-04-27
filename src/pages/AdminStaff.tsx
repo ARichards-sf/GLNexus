@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/table";
 import { UserPlus, Pencil } from "lucide-react";
 import { useInternalUsers } from "@/hooks/useAdmin";
+import { Skeleton } from "@/components/ui/skeleton";
 import InviteStaffDialog from "@/components/InviteStaffDialog";
 
 const DEPT_META: Record<string, { label: string; className: string }> = {
@@ -40,17 +41,6 @@ export default function AdminStaff() {
   const { data: staff = [], isLoading } = useInternalUsers();
   const navigate = useNavigate();
   const [inviteOpen, setInviteOpen] = useState(false);
-
-  if (isLoading) {
-    return (
-      <div className="p-6 lg:p-10 max-w-6xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-secondary rounded w-64" />
-          <div className="h-64 bg-secondary rounded-lg" />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
@@ -121,7 +111,16 @@ export default function AdminStaff() {
                 </TableRow>
               );
             })}
-            {staff.length === 0 && (
+            {isLoading && staff.length === 0 && (
+              Array.from({ length: 3 }).map((_, i) => (
+                <TableRow key={`staff-skeleton-${i}`}>
+                  <TableCell colSpan={6} className="py-3">
+                    <Skeleton className="h-6 w-full" />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+            {!isLoading && staff.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
                   No GL staff members yet. Click "Invite Staff Member" to add one.

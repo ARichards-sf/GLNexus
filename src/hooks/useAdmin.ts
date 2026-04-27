@@ -132,7 +132,22 @@ async function callAdmin(action: string, payload: Record<string, any> = {}) {
   const res = await supabase.functions.invoke("admin-operations", {
     body: { action, ...payload },
   });
-  if (res.error) throw new Error(res.error.message || "Admin operation failed");
+  if (res.error) {
+    // The function returns `{ error: "..." }` on non-2xx responses; supabase-js
+    // hides that body behind a generic FunctionsHttpError. Read it back so the
+    // real message surfaces in toasts / logs.
+    let detail: string | null = null;
+    try {
+      const ctx: any = (res.error as any).context;
+      if (ctx && typeof ctx.json === "function") {
+        const parsed = await ctx.json();
+        detail = parsed?.error || null;
+      }
+    } catch {
+      // fall through to the generic message
+    }
+    throw new Error(detail || res.error.message || "Admin operation failed");
+  }
   return res.data;
 }
 

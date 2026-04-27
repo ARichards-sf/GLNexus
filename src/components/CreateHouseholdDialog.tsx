@@ -104,7 +104,7 @@ export default function CreateHouseholdDialog({ open, onOpenChange }: Props) {
       if (selectedContactId) {
         await supabase
           .from("household_members")
-          .update({ household_id: household.id, relationship: "Head of Household" })
+          .update({ household_id: household.id, relationship: "Primary" })
           .eq("id", selectedContactId);
       } else if (newMember) {
         await supabase.from("household_members").insert({
@@ -113,7 +113,7 @@ export default function CreateHouseholdDialog({ open, onOpenChange }: Props) {
           last_name: newMember.last_name,
           email: newMember.email || null,
           phone: newMember.phone || null,
-          relationship: "Head of Household",
+          relationship: "Primary",
           advisor_id: user.id,
         });
       }
@@ -134,7 +134,7 @@ export default function CreateHouseholdDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetDialog(); onOpenChange(v); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{step === 1 ? "Create Household" : "Add Head of Household"}</DialogTitle>
+          <DialogTitle>{step === 1 ? "Create Household" : "Add Primary Contact"}</DialogTitle>
           <DialogDescription>
             {step === 1 ? "Enter the core household information." : "Assign or create the primary contact."}
           </DialogDescription>
