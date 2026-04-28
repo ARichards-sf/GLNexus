@@ -42,6 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    try {
+      const PREFIXES = ["goodie_", "scorecard_", "vpm_", "session_pillars_"];
+      for (const key of Object.keys(localStorage)) {
+        if (PREFIXES.some((p) => key.startsWith(p))) localStorage.removeItem(key);
+      }
+    } catch {}
     await supabase.auth.signOut();
   };
 

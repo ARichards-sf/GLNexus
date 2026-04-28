@@ -56,37 +56,39 @@ type TouchpointHouseholdRow = {
   household_id: string | null;
 };
 
-const SUMMARY_CACHE_KEY = "scorecard_goodie_summary";
+const summaryCacheKey = (userId: string) => `scorecard_goodie_summary:${userId}`;
+const summaryDateKey = (userId: string) => `scorecard_goodie_summary_date:${userId}`;
 
-const SUMMARY_DATE_KEY = "scorecard_goodie_summary_date";
-
-function getCachedSummary(): string | null {
+function getCachedSummary(userId: string | undefined): string | null {
+  if (!userId) return null;
   try {
-    const cachedDate = localStorage.getItem(SUMMARY_DATE_KEY);
+    const cachedDate = localStorage.getItem(summaryDateKey(userId));
     const today = new Date().toISOString().split("T")[0];
 
     if (cachedDate !== today) return null;
 
-    return localStorage.getItem(SUMMARY_CACHE_KEY);
+    return localStorage.getItem(summaryCacheKey(userId));
   } catch {
     return null;
   }
 }
 
-function cacheSummary(summary: string): void {
+function cacheSummary(summary: string, userId: string | undefined): void {
+  if (!userId) return;
   try {
     const today = new Date().toISOString().split("T")[0];
-    localStorage.setItem(SUMMARY_CACHE_KEY, summary);
-    localStorage.setItem(SUMMARY_DATE_KEY, today);
+    localStorage.setItem(summaryCacheKey(userId), summary);
+    localStorage.setItem(summaryDateKey(userId), today);
   } catch {
     // localStorage unavailable
   }
 }
 
-function clearSummaryCache(): void {
+function clearSummaryCache(userId: string | undefined): void {
+  if (!userId) return;
   try {
-    localStorage.removeItem(SUMMARY_CACHE_KEY);
-    localStorage.removeItem(SUMMARY_DATE_KEY);
+    localStorage.removeItem(summaryCacheKey(userId));
+    localStorage.removeItem(summaryDateKey(userId));
   } catch {}
 }
 
@@ -122,7 +124,7 @@ export default function Scorecard() {
   const { data: allTasks = [] } = useTasks("mine");
   const { data: prospects = [] } = useProspects();
 
-  const cachedOnMount = getCachedSummary();
+  const cachedOnMount = getCachedSummary(user?.id);
   const [summary, setSummary] = useState(cachedOnMount || "");
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryGenerated, setSummaryGenerated] = useState(!!cachedOnMount);
@@ -404,7 +406,7 @@ Do not mention that you are an AI.`;
         }).catch(reject);
       });
       setSummaryGenerated(true);
-      cacheSummary(summaryTextRef.current);
+      cacheSummary(summaryTextRef.current, user?.id);
       summaryTextRef.current = "";
     } catch {
       setSummary("Unable to generate summary. Check your alerts below.");
@@ -499,7 +501,7 @@ Do not mention that you are an AI.`;
               variant="ghost"
               size="sm"
               onClick={() => {
-                clearSummaryCache();
+                clearSummaryCache(user?.id);
                 setSummaryGenerated(false);
                 summaryRef.current = false;
                 generateSummary();

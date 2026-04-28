@@ -35,9 +35,9 @@ interface ChatTab {
 // ─── Constants ───────────────────
 
 const MAX_TABS = 6;
-const STORAGE_KEY = "goodie_chat_tabs";
-const ACTIVE_TAB_KEY = "goodie_active_tab";
-const DISCLOSURE_KEY = "goodie_disclosure_shown";
+const tabsKey = (userId: string) => `goodie_chat_tabs:${userId}`;
+const activeTabKey = (userId: string) => `goodie_active_tab:${userId}`;
+const disclosureKey = (userId: string) => `goodie_disclosure_shown:${userId}`;
 
 const SUGGESTED_PROMPTS = [
   "What's my total AUM and how many active households do I have?",
@@ -70,10 +70,11 @@ function makeNewTab(firstName: string): ChatTab {
   };
 }
 
-function saveTabs(tabs: ChatTab[], activeId: string) {
+function saveTabs(tabs: ChatTab[], activeId: string, userId: string | undefined) {
+  if (!userId) return;
   try {
     localStorage.setItem(
-      STORAGE_KEY,
+      tabsKey(userId),
       JSON.stringify(
         tabs.map((t) => ({
           ...t,
@@ -85,14 +86,18 @@ function saveTabs(tabs: ChatTab[], activeId: string) {
         }))
       )
     );
-    localStorage.setItem(ACTIVE_TAB_KEY, activeId);
+    localStorage.setItem(activeTabKey(userId), activeId);
   } catch {}
 }
 
-function loadTabs(firstName: string): { tabs: ChatTab[]; activeId: string } {
+function loadTabs(firstName: string, userId: string | undefined): { tabs: ChatTab[]; activeId: string } {
+  if (!userId) {
+    const tab = makeNewTab(firstName);
+    return { tabs: [tab], activeId: tab.id };
+  }
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const activeId = localStorage.getItem(ACTIVE_TAB_KEY);
+    const raw = localStorage.getItem(tabsKey(userId));
+    const activeId = localStorage.getItem(activeTabKey(userId));
     if (!raw) throw new Error("empty");
     const parsed = JSON.parse(raw);
     if (!parsed?.length) throw new Error("empty");
@@ -139,6 +144,7 @@ function categorizeConversation(
 
 export default function GoodieChat() {
   const { user } = useAuth();
+  const userId = user?.id;
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "Advisor";
 
   const { data: households = [] } = useHouseholds();
@@ -148,8 +154,8 @@ export default function GoodieChat() {
   const { data: recentNotes = [] } = useAllComplianceNotes();
 
   // Tab state
-  const [tabs, setTabs] = useState<ChatTab[]>(() => loadTabs(firstName).tabs);
-  const [activeTabId, setActiveTabId] = useState<string>(() => loadTabs(firstName).activeId);
+  const [tabs, setTabs] = useState<ChatTab[]>(() => loadTabs(firstName, userId).tabs);
+  const [activeTabId, setActiveTabId] = useState<string>(() => loadTabs(firstName, userId).activeId);
 
   // Ensure activeTabId is valid
   useEffect(() => {
@@ -168,7 +174,7 @@ export default function GoodieChat() {
 
   // Disclosure
   const [showDisclosure, setShowDisclosure] = useState(
-    () => typeof window !== "undefined" && !localStorage.getItem(DISCLOSURE_KEY)
+    () => typeof window !== "undefined" && !!userId && !localStorage.getItem(disclosureKey(userId))
   );
 
   // Refs
@@ -232,7 +238,7 @@ export default function GoodieChat() {
               const updated = prev.map((t) =>
                 t.id === tab.id ? { ...t, dbId: data.id } : t
               );
-              saveTabs(updated, activeTabId);
+              saveTabs(updated, activeTabId, userId);
               return updated;
             });
           }
@@ -271,7 +277,7 @@ export default function GoodieChat() {
         const updated = prev.map((t) =>
           t.id === activeTabId ? { ...t, messages: updater(t.messages) } : t
         );
-        saveTabs(updated, activeTabId);
+        saveTabs(updated, activeTabId, userId);
         return updated;
       });
     },
@@ -285,7 +291,7 @@ export default function GoodieChat() {
         const updated = prev.map((t) =>
           t.id === activeTabId && t.title === "New Chat" ? { ...t, title } : t
         );
-        saveTabs(updated, activeTabId);
+        saveTabs(updated, activeTabId, userId);
         return updated;
       });
     },
@@ -419,7 +425,7 @@ export default function GoodieChat() {
               }
             : t
         );
-        saveTabs(updated, activeTabId);
+        saveTabs(updated, activeTabId, userId);
         const current = updated.find((t) => t.id === activeTabId);
         if (current) scheduleSave(current);
         return updated;
@@ -470,7 +476,7 @@ export default function GoodieChat() {
             }
           : t
       );
-      saveTabs(updated, activeTabId);
+      saveTabs(updated, activeTabId, userId);
       return updated;
     });
     setPendingToolCall(null);
@@ -500,7 +506,7 @@ export default function GoodieChat() {
             }
           : t
       );
-      saveTabs(updated, activeTabId);
+      saveTabs(updated, activeTabId, userId);
       return updated;
     });
     setPendingToolCall(null);
@@ -519,7 +525,7 @@ export default function GoodieChat() {
         }
       }
       const updated = [...list, newTab];
-      saveTabs(updated, newTab.id);
+      saveTabs(updated, newTab.id, userId);
       return updated;
     });
     setActiveTabId(newTab.id);
@@ -533,7 +539,7 @@ export default function GoodieChat() {
       setTabs((prev) => {
         if (prev.length === 1) {
           const reset = makeNewTab(firstName);
-          saveTabs([reset], reset.id);
+          saveTabs([reset], reset.id, userId);
           setActiveTabId(reset.id);
           return [reset];
         }
@@ -542,9 +548,9 @@ export default function GoodieChat() {
         if (tabId === activeTabId) {
           const newActive = filtered[Math.min(idx, filtered.length - 1)];
           setActiveTabId(newActive.id);
-          saveTabs(filtered, newActive.id);
+          saveTabs(filtered, newActive.id, userId);
         } else {
-          saveTabs(filtered, activeTabId);
+          saveTabs(filtered, activeTabId, userId);
         }
         return filtered;
       });
@@ -561,7 +567,7 @@ export default function GoodieChat() {
       }
       setActiveTabId(tabId);
       setTabs((prev) => {
-        saveTabs(prev, tabId);
+        saveTabs(prev, tabId, userId);
         return prev;
       });
       setPendingToolCall(null);
@@ -571,7 +577,7 @@ export default function GoodieChat() {
   );
 
   const handleAcceptDisclosure = async () => {
-    localStorage.setItem(DISCLOSURE_KEY, "true");
+    if (userId) localStorage.setItem(disclosureKey(userId), "true");
     setShowDisclosure(false);
     if (user?.id) {
       try {
