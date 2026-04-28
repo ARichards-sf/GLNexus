@@ -1,48 +1,78 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, CalendarCheck, FileText, MessageCircle, Sparkles, X, type LucideIcon } from "lucide-react";
+import {
+  Bot,
+  CalendarCheck,
+  FileText,
+  MessageCircle,
+  Sparkles,
+  TrendingDown,
+  Clock,
+  AlertCircle,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import ScheduleEventDialog from "@/components/ScheduleEventDialog";
 import QuickLogNoteDialog from "@/components/QuickLogNoteDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useTargetAdvisorId } from "@/hooks/useHouseholds";
+import { useProspects } from "@/hooks/useProspects";
+import { formatCurrency } from "@/data/sampleData";
 import type { HouseholdRow } from "@/hooks/useHouseholds";
 
-type ActionKind = "schedule" | "households" | "logNote";
+type ActionKind =
+  | "schedule"
+  | "households"
+  | "logNote"
+  | "household"
+  | "prospect";
 
 interface NoteLite {
   household_id: string;
   date: string;
 }
 
-interface ScheduleSuggestion {
-  id: "s-schedule";
+interface BaseSuggestion {
+  id: string;
+  text: string;
+  context: string;
+  icon: LucideIcon;
+  iconClass: string;
+  priority: number;
+}
+
+interface ScheduleSuggestion extends BaseSuggestion {
   action: "schedule";
   household: HouseholdRow;
-  text: string;
-  context: string;
-  icon: LucideIcon;
-  iconClass: string;
 }
 
-interface HouseholdsSuggestion {
-  id: "s-households";
+interface HouseholdsSuggestion extends BaseSuggestion {
   action: "households";
-  text: string;
-  context: string;
-  icon: LucideIcon;
-  iconClass: string;
 }
 
-interface LogNoteSuggestion {
-  id: "s-lognote";
+interface LogNoteSuggestion extends BaseSuggestion {
   action: "logNote";
   household: HouseholdRow;
-  text: string;
-  context: string;
-  icon: LucideIcon;
-  iconClass: string;
 }
 
-type Suggestion = ScheduleSuggestion | HouseholdsSuggestion | LogNoteSuggestion;
+interface HouseholdNavSuggestion extends BaseSuggestion {
+  action: "household";
+  householdId: string;
+}
+
+interface ProspectNavSuggestion extends BaseSuggestion {
+  action: "prospect";
+  prospectId: string;
+}
+
+type Suggestion =
+  | ScheduleSuggestion
+  | HouseholdsSuggestion
+  | LogNoteSuggestion
+  | HouseholdNavSuggestion
+  | ProspectNavSuggestion;
 
 interface Props {
   households: HouseholdRow[];
@@ -55,29 +85,158 @@ const formatDate = (iso: string) =>
 const daysBetween = (a: Date, b: Date) =>
   Math.floor((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
 
+// Mirrors the alert thresholds in Scorecard.tsx
+function getAumAlertLevel(currentAum: number, previousAum: number): "critical" | "warning" | null {
+  const dollarDrop = previousAum - currentAum;
+  const percentDrop = previousAum > 0 ? (dollarDrop / previousAum) * 100 : 0;
+  if (dollarDrop <= 0) return null;
+  const isLarge = currentAum >= 1000000;
+  const isMedium = currentAum >= 250000;
+  if (isLarge) {
+    if (dollarDrop >= 500000 || percentDrop >= 15) return "critical";
+    if (dollarDrop >= 100000 || percentDrop >= 8) return "warning";
+  } else if (isMedium) {
+    if (dollarDrop >= 100000 || percentDrop >= 12) return "critical";
+    if (dollarDrop >= 25000 || percentDrop >= 7) return "warning";
+  } else {
+    if (dollarDrop >= 25000 || percentDrop >= 10) return "critical";
+    if (dollarDrop >= 10000 || percentDrop >= 6) return "warning";
+  }
+  return null;
+}
+
+const MAX_VISIBLE = 5;
+
 export default function GoodieSuggests({ households, recentNotes }: Props) {
   const notes = recentNotes ?? [];
   const navigate = useNavigate();
+  const { advisorId } = useTargetAdvisorId();
+  const { data: prospects = [] } = useProspects();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [logNoteOpen, setLogNoteOpen] = useState(false);
   const [scheduleCtx, setScheduleCtx] = useState<{ id?: string; name?: string; title?: string }>({});
   const [logNoteCtx, setLogNoteCtx] = useState<{ id?: string; name?: string }>({});
 
+  // Scorecard-style data — reuses Scorecard's query keys so the cache is shared.
+  const { data: householdSnapshots = [] } = useQuery({
+    queryKey: ["scorecard_snapshots", advisorId],
+    queryFn: async () => {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const { data } = await supabase
+        .from("household_snapshots")
+        .select("household_id, snapshot_date, total_aum")
+        .eq("advisor_id", advisorId!)
+        .gte("snapshot_date", thirtyDaysAgo.toISOString().split("T")[0])
+        .order("snapshot_date", { ascending: true });
+      return data || [];
+    },
+    enabled: !!advisorId,
+  });
+
+  const { data: overdueTouchpoints = [] } = useQuery({
+    queryKey: ["scorecard_touchpoints", advisorId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("touchpoints")
+        .select(`*, households(id, name, wealth_tier)`)
+        .eq("advisor_id", advisorId!)
+        .eq("status", "upcoming")
+        .lte("scheduled_date", new Date().toISOString().split("T")[0]);
+      return data || [];
+    },
+    enabled: !!advisorId,
+  });
+
   const suggestions = useMemo<Suggestion[]>(() => {
     const out: Suggestion[] = [];
+    const seenHouseholds = new Set<string>();
     const now = new Date();
 
-    // --- Suggestion 1: Most urgent annual review ---
-    const withReview = households.filter((h) => !!h.annual_review_date);
+    // --- AUM drops (priority 90 critical / 75 warning) ---
+    const byHh = new Map<string, { date: string; total_aum: number }[]>();
+    for (const s of householdSnapshots as any[]) {
+      const arr = byHh.get(s.household_id) || [];
+      arr.push({ date: s.snapshot_date, total_aum: Number(s.total_aum) });
+      byHh.set(s.household_id, arr);
+    }
+    const aumAlerts: {
+      household: HouseholdRow;
+      level: "critical" | "warning";
+      dollarDrop: number;
+      percentDrop: number;
+    }[] = [];
+    byHh.forEach((snaps, hhId) => {
+      if (snaps.length < 2) return;
+      const sorted = [...snaps].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      const current = sorted[0].total_aum;
+      const previous = sorted[sorted.length - 1].total_aum;
+      const level = getAumAlertLevel(current, previous);
+      if (!level) return;
+      const hh = households.find((h) => h.id === hhId);
+      if (!hh) return;
+      aumAlerts.push({
+        household: hh,
+        level,
+        dollarDrop: previous - current,
+        percentDrop: previous > 0 ? ((previous - current) / previous) * 100 : 0,
+      });
+    });
+    aumAlerts.sort((a, b) => {
+      if (a.level !== b.level) return a.level === "critical" ? -1 : 1;
+      return b.dollarDrop - a.dollarDrop;
+    });
+    for (const a of aumAlerts.slice(0, 2)) {
+      seenHouseholds.add(a.household.id);
+      out.push({
+        id: `s-aum-${a.household.id}`,
+        action: "household",
+        householdId: a.household.id,
+        text: `Review AUM drop at ${a.household.name}`,
+        context: `${formatCurrency(a.dollarDrop)} (-${a.percentDrop.toFixed(1)}%) — ${a.level}`,
+        icon: TrendingDown,
+        iconClass:
+          a.level === "critical"
+            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+            : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+        priority: a.level === "critical" ? 90 : 75,
+      });
+    }
+
+    // --- Overdue touchpoints (priority 70) ---
+    const tps = (overdueTouchpoints as any[]).filter(
+      (tp) => tp.households?.id && !seenHouseholds.has(tp.households.id)
+    );
+    for (const tp of tps.slice(0, 2)) {
+      const days = daysBetween(now, new Date(tp.scheduled_date));
+      seenHouseholds.add(tp.households.id);
+      out.push({
+        id: `s-touchpoint-${tp.id}`,
+        action: "household",
+        householdId: tp.households.id,
+        text: `Overdue touchpoint: ${tp.households.name}`,
+        context: `${tp.name} — ${days}d overdue`,
+        icon: Clock,
+        iconClass: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+        priority: 70,
+      });
+    }
+
+    // --- Most urgent annual review (priority 60) ---
+    const withReview = households.filter(
+      (h) => !!h.annual_review_date && !seenHouseholds.has(h.id)
+    );
     if (withReview.length > 0) {
-      // Sort by absolute distance from today (overdue + soonest upcoming both bubble up)
       const sorted = [...withReview].sort((a, b) => {
         const da = Math.abs(new Date(a.annual_review_date!).getTime() - now.getTime());
         const db = Math.abs(new Date(b.annual_review_date!).getTime() - now.getTime());
         return da - db;
       });
       const top = sorted[0];
+      seenHouseholds.add(top.id);
       out.push({
         id: "s-schedule",
         action: "schedule",
@@ -86,10 +245,40 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
         context: `Review due ${formatDate(top.annual_review_date!)}`,
         icon: CalendarCheck,
         iconClass: "bg-amber-muted text-amber",
+        priority: 60,
       });
     }
 
-    // --- Suggestion 2: Reviews due in next 60 days ---
+    // --- Stalled prospects (priority 50) ---
+    const stalled = (prospects as any[]).filter((p) => {
+      if (!p?.id) return false;
+      if (p.pipeline_stage === "converted" || p.pipeline_stage === "lost") return false;
+      const days = Math.floor(
+        (Date.now() - new Date(p.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return days >= 14;
+    });
+    if (stalled.length > 0) {
+      const top = [...stalled].sort(
+        (a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
+      )[0];
+      const days = Math.floor(
+        (Date.now() - new Date(top.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const name = `${top.first_name ?? ""} ${top.last_name ?? ""}`.trim() || "Prospect";
+      out.push({
+        id: `s-prospect-${top.id}`,
+        action: "prospect",
+        prospectId: top.id,
+        text: `Re-engage stalled prospect ${name}`,
+        context: `${days}d in ${String(top.pipeline_stage || "pipeline").replace(/_/g, " ")}`,
+        icon: AlertCircle,
+        iconClass: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+        priority: 50,
+      });
+    }
+
+    // --- Reviews due in next 60 days (priority 40) ---
     const upcoming = households.filter((h) => {
       if (!h.annual_review_date) return false;
       const diff = daysBetween(new Date(h.annual_review_date), now);
@@ -104,42 +293,43 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
         context: sample,
         icon: FileText,
         iconClass: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+        priority: 40,
       });
     }
 
-    // --- Suggestion 3: Least recently contacted ---
+    // --- Least recently contacted (priority 30) ---
     if (households.length > 0) {
-      // Build map of household_id -> most recent note date
       const lastNoteByHh = new Map<string, Date>();
       for (const n of notes) {
         const d = new Date(n.date);
         const existing = lastNoteByHh.get(n.household_id);
         if (!existing || d > existing) lastNoteByHh.set(n.household_id, d);
       }
-
-      // Find a household with no notes first; otherwise the one with the oldest most-recent note
-      const noNote = households.find((h) => !lastNoteByHh.has(h.id));
+      const candidates = households.filter((h) => !seenHouseholds.has(h.id));
+      const noNote = candidates.find((h) => !lastNoteByHh.has(h.id));
       let target: HouseholdRow | null = null;
       let contextText = "";
-
       if (noNote) {
         target = noNote;
         contextText = "No notes found";
-      } else {
-        const sorted = [...households].sort((a, b) => {
-          const da = lastNoteByHh.get(a.id)!.getTime();
-          const db = lastNoteByHh.get(b.id)!.getTime();
-          return da - db; // oldest first
+      } else if (candidates.length > 0) {
+        const sorted = [...candidates].sort((a, b) => {
+          const da = lastNoteByHh.get(a.id)?.getTime() ?? 0;
+          const db = lastNoteByHh.get(b.id)?.getTime() ?? 0;
+          return da - db;
         });
         const oldest = sorted[0];
-        const daysSince = daysBetween(now, lastNoteByHh.get(oldest.id)!);
-        if (daysSince > 30) {
-          target = oldest;
-          contextText = `Last contact was ${daysSince} days ago`;
+        const lastDate = lastNoteByHh.get(oldest.id);
+        if (lastDate) {
+          const daysSince = daysBetween(now, lastDate);
+          if (daysSince > 30) {
+            target = oldest;
+            contextText = `Last contact was ${daysSince} days ago`;
+          }
         }
       }
-
       if (target) {
+        seenHouseholds.add(target.id);
         out.push({
           id: "s-lognote",
           action: "logNote",
@@ -148,14 +338,15 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
           context: contextText,
           icon: MessageCircle,
           iconClass: "bg-emerald-muted text-emerald",
+          priority: 30,
         });
       }
     }
 
-    return out;
-  }, [households, notes]);
+    return out.sort((a, b) => b.priority - a.priority);
+  }, [households, notes, householdSnapshots, overdueTouchpoints, prospects]);
 
-  const visible = suggestions.filter((s) => !dismissed.has(s.id));
+  const visible = suggestions.filter((s) => !dismissed.has(s.id)).slice(0, MAX_VISIBLE);
 
   const handleAction = (s: Suggestion) => {
     if (s.action === "schedule") {
@@ -170,6 +361,10 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
     } else if (s.action === "logNote") {
       setLogNoteCtx({ id: s.household.id, name: s.household.name });
       setLogNoteOpen(true);
+    } else if (s.action === "household") {
+      navigate(`/household/${s.householdId}`);
+    } else if (s.action === "prospect") {
+      navigate(`/prospects/${s.prospectId}`);
     }
   };
 
