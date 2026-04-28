@@ -8,6 +8,7 @@ import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useTaskNotificationCount } from "@/hooks/useTasks";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { useIsDemoUser } from "@/lib/demoMode";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -61,6 +62,7 @@ export default function AppSidebar() {
   const { currentFirm, allFirms, membershipRole } = useFirmContext();
   const { selectedFirmId, setSelectedFirmId, clearSelectedFirm } = useSelectedFirm();
   const { impersonatedUser, vpmAdvisor, startVpmSession, stopVpmSession, isVpmSession } = useImpersonation();
+  const isDemo = useIsDemoUser();
 
   // ── Expanded role model ──
   const platformRole = glProfile?.platform_role || "user";
@@ -538,9 +540,10 @@ export default function AppSidebar() {
       <div className="px-3 pt-6 border-t border-sidebar-border">
         <button
           type="button"
-          onClick={() => navigate("/settings")}
-          className="w-full flex items-center gap-3 min-w-0 rounded-md px-1 py-1 -mx-1 hover:bg-sidebar-accent focus:outline-none focus:ring-2 focus:ring-sidebar-foreground/20 transition-colors text-left"
-          title="Account settings"
+          onClick={isDemo ? undefined : () => navigate("/settings")}
+          disabled={isDemo}
+          className="w-full flex items-center gap-3 min-w-0 rounded-md px-1 py-1 -mx-1 enabled:hover:bg-sidebar-accent focus:outline-none focus:ring-2 focus:ring-sidebar-foreground/20 transition-colors text-left disabled:cursor-not-allowed"
+          title={isDemo ? "Settings disabled in demo mode" : "Account settings"}
         >
           <div className="shrink-0 w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-foreground">{initials}</div>
           <div className="min-w-0 flex-1">

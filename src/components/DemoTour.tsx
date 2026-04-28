@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useIsDemoUser } from "@/lib/demoMode";
+import { useIsDemoUser, TOUR_STORAGE_KEYS } from "@/lib/demoMode";
 
 interface TourStep {
   id: string;
@@ -27,6 +27,9 @@ const TOUR_STEPS: TourStep[] = [
         <p>
           The amber dashed-border annotations throughout the app explain individual components.
           This tour walks you through the highlights — click <strong>Next</strong> to start.
+        </p>
+        <p>
+          <strong>Heads up:</strong> this demo is designed for desktop. Mobile support is coming soon.
         </p>
       </>
     ),
@@ -101,6 +104,27 @@ const TOUR_STEPS: TourStep[] = [
     ),
   },
   {
+    id: "reports",
+    path: "/reports",
+    title: "Reports — Book Analytics",
+    body: (
+      <>
+        <p>
+          Aggregate analytics across the entire book, organized into four tabs:
+        </p>
+        <ul>
+          <li><strong>Book of Business</strong> — AUM by tier, risk-tolerance and household-status breakdowns, full table</li>
+          <li><strong>Review Status</strong> — who's overdue for an annual review and recent review history</li>
+          <li><strong>Activity & Tasks</strong> — note volume by type, task completion trends</li>
+          <li><strong>Referrals</strong> — referral graph showing which clients send business; tier-weighted scoring feeds back into prospect ranking</li>
+        </ul>
+        <p>
+          Charts via <code>recharts</code>, queries cached with <code>@tanstack/react-query</code>.
+        </p>
+      </>
+    ),
+  },
+  {
     id: "pipeline",
     path: "/pipeline",
     title: "Pipeline + Referral Graph",
@@ -135,10 +159,7 @@ const TOUR_STEPS: TourStep[] = [
   },
 ];
 
-const STORAGE_KEYS = {
-  seen: "nexus_demo_tour_seen",
-  dismissed: "nexus_demo_tour_dismissed",
-} as const;
+const STORAGE_KEYS = TOUR_STORAGE_KEYS;
 
 export function DemoTour() {
   const isDemo = useIsDemoUser();
