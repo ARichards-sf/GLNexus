@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import TierBadge from "@/components/TierBadge";
 import PageLoader from "@/components/PageLoader";
+import { DemoAnnotation } from "@/components/DemoAnnotation";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -134,13 +135,13 @@ export default function Scorecard() {
   const { data: householdSnapshots = [] } = useQuery({
     queryKey: ["scorecard_snapshots", advisorId],
     queryFn: async () => {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const { data } = await supabase
         .from("household_snapshots")
         .select("*")
         .eq("advisor_id", advisorId!)
-        .gte("snapshot_date", sevenDaysAgo.toISOString().split("T")[0])
+        .gte("snapshot_date", thirtyDaysAgo.toISOString().split("T")[0])
         .order("snapshot_date", { ascending: true });
       return (data || []) as HouseholdSnapshotRow[];
     },
@@ -458,6 +459,19 @@ Do not mention that you are an AI.`;
         </div>
       </section>
 
+      <DemoAnnotation title="Goodie's Assessment — Executive AI Summary">
+        <p>
+          A streaming <strong>3-4 sentence executive summary</strong> of book health written by
+          Claude. The prompt assembles structured signals — total AUM, household count, alert
+          mix (critical / warning / info), pending tier reviews, overdue annual reviews, and
+          contact-gap households — and asks for a high-level assessment in advisor voice.
+        </p>
+        <p>
+          Cached daily in <code>localStorage</code> so it doesn't regenerate on every page load.
+          The Refresh button re-runs the prompt against the latest snapshot data.
+        </p>
+      </DemoAnnotation>
+
       <Card>
         <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between">
           <div className="flex gap-4">
@@ -513,7 +527,7 @@ Do not mention that you are an AI.`;
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="rounded-lg border border-border bg-background p-4">
-              <h2 className="mb-3 text-sm font-semibold text-foreground">AUM Changes (7 days)</h2>
+              <h2 className="mb-3 text-sm font-semibold text-foreground">AUM Changes (30 days)</h2>
               {aumAlerts.length === 0 ? (
                 <div className="rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
                   No significant changes

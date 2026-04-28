@@ -32,69 +32,83 @@ function buildContentText(
 
     case "household_members":
       return [
+        record.household_name ?
+          `Household: ${record.household_name}` : null,
         `Member: ${record.first_name} ${record.last_name}`,
-        record.relationship ? 
+        record.relationship ?
           `Relationship: ${record.relationship}` : null,
-        record.email ? 
+        record.email ?
           `Email: ${record.email}` : null,
-        record.phone ? 
+        record.phone ?
           `Phone: ${record.phone}` : null,
-        record.date_of_birth ? 
+        record.date_of_birth ?
           `Date of Birth: ${record.date_of_birth}` : null,
-        record.job_title ? 
+        record.job_title ?
           `Job Title: ${record.job_title}` : null,
-        record.company ? 
+        record.company ?
           `Company: ${record.company}` : null,
       ].filter(Boolean).join("\n");
 
     case "compliance_notes":
       return [
+        record.household_name ?
+          `Household: ${record.household_name}` : null,
+        record.tagged_contact_names?.length ?
+          `Contacts: ${record.tagged_contact_names.join(", ")}` : null,
         `Compliance Note Type: ${record.type}`,
         `Date: ${record.date}`,
-        record.summary ? 
+        record.summary ?
           `Summary: ${record.summary}` : null,
-        record.pillars_covered?.length ? 
+        record.pillars_covered?.length ?
           `Topics Covered: ${record.pillars_covered.join(", ")}` : null,
       ].filter(Boolean).join("\n");
 
     case "calendar_events":
       return [
+        record.household_name ?
+          `Household: ${record.household_name}` : null,
         `Meeting: ${record.title}`,
         `Type: ${record.event_type}`,
         `Start: ${record.start_time}`,
         `End: ${record.end_time}`,
-        record.description ? 
+        record.description ?
           `Description: ${record.description}` : null,
-        record.location ? 
+        record.location ?
           `Location: ${record.location}` : null,
       ].filter(Boolean).join("\n");
 
     case "tasks":
       return [
+        record.household_name ?
+          `Household: ${record.household_name}` : null,
         `Task: ${record.title}`,
-        record.description ? 
+        record.description ?
           `Description: ${record.description}` : null,
         `Status: ${record.status}`,
         `Priority: ${record.priority}`,
-        record.due_date ? 
+        record.due_date ?
           `Due Date: ${record.due_date}` : null,
-        record.task_type ? 
+        record.task_type ?
           `Type: ${record.task_type}` : null,
-        record.completed_at ? 
+        record.completed_at ?
           `Completed: ${record.completed_at}` : null,
       ].filter(Boolean).join("\n");
 
     case "contact_accounts":
       return [
+        record.household_name ?
+          `Household: ${record.household_name}` : null,
+        record.member_name ?
+          `Owner: ${record.member_name}` : null,
         `Account: ${record.account_name}`,
         `Type: ${record.account_type}`,
-        record.balance ? 
+        record.balance ?
           `Balance: $${Number(record.balance).toLocaleString()}` : null,
-        record.institution ? 
+        record.institution ?
           `Institution: ${record.institution}` : null,
-        record.account_number ? 
+        record.account_number ?
           `Account Number: ${record.account_number}` : null,
-        record.status ? 
+        record.status ?
           `Status: ${record.status}` : null,
       ].filter(Boolean).join("\n");
 
@@ -142,21 +156,62 @@ serve(async (req) => {
 
     if (!table_name || !record || !advisor_id) {
       return new Response(
-        JSON.stringify({ 
-          error: "table_name, record, and advisor_id required" 
+        JSON.stringify({
+          error: "table_name, record, and advisor_id required"
         }),
-        { 
-          status: 400, 
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json" 
-          } 
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json"
+          }
         }
       );
     }
 
+    // Enrich the record with related entity names so semantic search can
+    // match queries like "Whitfield foundation plans" against notes whose
+    // summaries only mention first names.
+    const enriched: Record<string, any> = { ...record };
+
+    if (table_name === "compliance_notes" && record.household_id) {
+      const [hhRes, linksRes] = await Promise.all([
+        supabase.from("households").select("name").eq("id", record.household_id).maybeSingle(),
+        supabase
+          .from("compliance_note_contacts")
+          .select("household_members(first_name, last_name)")
+          .eq("compliance_note_id", record.id),
+      ]);
+      enriched.household_name = (hhRes.data as any)?.name || null;
+      enriched.tagged_contact_names = (linksRes.data || [])
+        .map((l: any) =>
+          l.household_members
+            ? `${l.household_members.first_name} ${l.household_members.last_name}`
+            : null,
+        )
+        .filter(Boolean);
+    } else if (table_name === "household_members" && record.household_id) {
+      const { data: hh } = await supabase
+        .from("households").select("name").eq("id", record.household_id).maybeSingle();
+      enriched.household_name = (hh as any)?.name || null;
+    } else if (table_name === "contact_accounts" && record.member_id) {
+      const { data: m } = await supabase
+        .from("household_members")
+        .select("first_name, last_name, household_id, households(name)")
+        .eq("id", record.member_id)
+        .maybeSingle();
+      if (m) {
+        enriched.member_name = `${(m as any).first_name} ${(m as any).last_name}`;
+        enriched.household_name = (m as any)?.households?.name || null;
+      }
+    } else if ((table_name === "tasks" || table_name === "calendar_events") && record.household_id) {
+      const { data: hh } = await supabase
+        .from("households").select("name").eq("id", record.household_id).maybeSingle();
+      enriched.household_name = (hh as any)?.name || null;
+    }
+
     const content = buildContentText(
-      table_name, record
+      table_name, enriched
     );
 
     const embeddingResponse = await fetch(

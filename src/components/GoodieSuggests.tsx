@@ -237,7 +237,7 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
           </div>
           <div className="flex items-center gap-1.5 pt-2.5 mt-1.5 border-t border-border">
             <Sparkles className="w-3 h-3 text-muted-foreground" />
-            <span className="text-[10px] text-muted-foreground">Powered by Goodie · GL Nexus AI</span>
+            <span className="text-[10px] text-muted-foreground">Powered by Goodie · Nexus AI</span>
           </div>
         </CardContent>
       </Card>

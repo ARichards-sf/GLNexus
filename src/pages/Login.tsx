@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import glLogo from "@/assets/gl-logo.png";
+import glLogo from "@/assets/nexus_logo.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -35,10 +35,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex items-start justify-center p-6 pt-16">
       <div className="w-full max-w-sm">
-        <div className="flex items-center justify-center mb-8">
-          <img src={glLogo} alt="Good Life Companies" className="h-10 w-auto" />
+        <div className="flex items-center justify-center mb-4">
+          <img src={glLogo} alt="Nexus AI" className="h-64 w-auto" />
         </div>
 
         <Card className="border-border shadow-none">

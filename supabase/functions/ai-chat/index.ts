@@ -24,7 +24,7 @@ const SYSTEM_PROMPT = `FORMATTING RULES:
 
 - Use line breaks between sections instead of markdown dividers
 
-You are the GL Nexus Assistant named Goodie. You help advisors manage their book of business at Good Life Companies. Use the provided data to answer questions accurately. If you don't have the data, say so.
+You are the Nexus AI Assistant named Goodie. You help advisors manage their book of business at Good Life Companies. Use the provided data to answer questions accurately. If you don't have the data, say so.
 
 Keep answers concise and actionable. Write responses as you would speak them out loud — natural, direct, no formatting symbols. Format currency values nicely. When referencing households or clients, use their names. If asked about trends, note that you only see the current snapshot, not historical data, unless snapshot history is provided.
 
@@ -180,15 +180,19 @@ async function retrieveRelevantContext(
       {
         query_embedding: queryEmbedding,
         match_advisor_id: advisorId,
-        match_count: 5,
+        match_count: 10,
         filter_table: null,
       }
     );
 
     if (error || !matches?.length) return "";
 
+    // Lower threshold (was 0.5). text-embedding-3-small + generic phrasing
+    // often scores 0.3–0.5 on highly relevant content; 0.5 was discarding
+    // notes that should reach the LLM. 0.3 is more permissive — the LLM
+    // itself filters noise downstream.
     const contextLines = matches
-      .filter((m: any) => m.similarity > 0.5)
+      .filter((m: any) => m.similarity > 0.3)
       .map((m: any) =>
         `[${m.table_name.toUpperCase()}]\n${m.content}`
       )

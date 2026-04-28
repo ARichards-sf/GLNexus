@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import MorningBriefing from "@/components/MorningBriefing";
 import GoodieSuggests from "@/components/GoodieSuggests";
 import TierBadge from "@/components/TierBadge";
+import { DemoAnnotation } from "@/components/DemoAnnotation";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
 import { supabase } from "@/integrations/supabase/client";
@@ -205,6 +206,23 @@ export function WidgetRenderer({
     case "morning_briefing":
       return (
         <div className="[&>*]:mb-0">
+          <DemoAnnotation title="Morning Briefing — Time-Adaptive AI Summary">
+            <p>
+              Streams a daily briefing from <strong>Claude</strong> via a Supabase Edge Function. The prompt
+              auto-shifts copy and structure across <strong>three periods</strong> — morning kickoff,
+              midday check-in, end-of-day wrap-up — and re-runs as the period rolls over.
+            </p>
+            <p>
+              Live context wired into the prompt: today's meetings, overdue tasks, due-today tasks,
+              annual reviews past due, total AUM, active vs onboarding household counts, recent
+              compliance notes, and the prospect pipeline (active count, hot prospects, pipeline value).
+            </p>
+            <p>
+              Cached per-day per-period in <code>localStorage</code> so the brief doesn't regenerate on
+              every page load. Detects when task data has changed since generation and offers a
+              one-click refresh.
+            </p>
+          </DemoAnnotation>
           <MorningBriefing
             households={households}
             recentNotes={recentNotes as any}

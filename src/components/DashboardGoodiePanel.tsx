@@ -43,7 +43,7 @@ export default function DashboardGoodiePanel() {
   const [messages, setMessages] = useState<AiMsg[]>([
     {
       role: "assistant",
-      content: `Hi ${firstName}! 👋 I'm Goodie, your GL Nexus AI. Ask me anything about your book, or tell me to take action — schedule a meeting, log a note, create a task, and more. What can I help you with?`,
+      content: `Hi ${firstName}! 👋 I'm Goodie, your Nexus AI. Ask me anything about your book, or tell me to take action — schedule a meeting, log a note, create a task, and more. What can I help you with?`,
     },
   ]);
   const [input, setInput] = useState("");

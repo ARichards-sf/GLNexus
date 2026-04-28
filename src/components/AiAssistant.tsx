@@ -45,7 +45,7 @@ export default function AiAssistant() {
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: `Hi ${firstName}! 👋 I'm Goodie, your GL Nexus AI. Ask me anything about your book, or tell me to take action — schedule a meeting, log a note, create a task, and more. What can I help you with?` },
+    { role: "assistant", content: `Hi ${firstName}! 👋 I'm Goodie, your Nexus AI. Ask me anything about your book, or tell me to take action — schedule a meeting, log a note, create a task, and more. What can I help you with?` },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -166,7 +166,7 @@ export default function AiAssistant() {
         <SheetHeader className="px-4 py-3 border-b">
           <SheetTitle className="flex items-center gap-2 text-base">
             <Bot className="h-4 w-4 text-primary" />
-            Goodie — GL Nexus Assistant
+            Goodie — Nexus AI Assistant
           </SheetTitle>
           <SheetDescription className="sr-only">AI assistant for managing your book of business</SheetDescription>
         </SheetHeader>
