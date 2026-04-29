@@ -1,0 +1,38 @@
+#!/bin/sh
+# Pre-push guard: protect production (`origin` = GLNexus) from demo cruft.
+#
+# Rules:
+#   - Pushes to `origin` must come from the local `main` branch only. Any
+#     other branch (especially `demo`) trying to push to origin gets blocked.
+#   - Pushes to any other remote (including `demo`) are unrestricted, so
+#     you can freely sync product code from main into the demo repo via
+#     `git push demo main`.
+#
+# Bypass for emergencies: `git push --no-verify`. Use sparingly.
+
+remote_name="$1"
+
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_name" = "origin" ]; then
+    # Block anything that isn't pushing local main to origin.
+    if [ "$local_ref" != "refs/heads/main" ]; then
+      echo ""
+      echo "❌  Refusing to push '$local_ref' to origin (production)."
+      echo "    Only the local 'main' branch is allowed to push to origin."
+      echo "    If you meant to push to the demo repo, use:  git push demo $local_ref"
+      echo ""
+      exit 1
+    fi
+    # Also block any push that would land on origin's main but came from
+    # somewhere other than local main (e.g. `git push origin demo:main`).
+    if [ "$remote_ref" = "refs/heads/main" ] && [ "$local_ref" != "refs/heads/main" ]; then
+      echo ""
+      echo "❌  Refusing to overwrite origin/main from '$local_ref'."
+      echo "    Only the local 'main' branch may push to origin/main."
+      echo ""
+      exit 1
+    fi
+  fi
+done
+
+exit 0
