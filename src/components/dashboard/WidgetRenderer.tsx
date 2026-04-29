@@ -5,7 +5,6 @@ import {
   ArrowRight,
   BarChart3,
   CalendarCheck,
-  CalendarDays,
   CheckCircle2,
   CheckSquare,
   FileText,
@@ -18,7 +17,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import MorningBriefing from "@/components/MorningBriefing";
-import GoodieSuggests from "@/components/GoodieSuggests";
 import TierBadge from "@/components/TierBadge";
 import { DemoAnnotation } from "@/components/DemoAnnotation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -345,62 +343,6 @@ export function WidgetRenderer({
         </Card>
       );
     }
-
-    case "upcoming_meetings": {
-      const visibleEvents = upcomingEvents.slice(0, size === "large" ? 8 : 5);
-      return (
-        <Card className="border-border shadow-none h-full">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <CalendarDays className="w-4 h-4" />
-                Upcoming Meetings
-              </CardTitle>
-              <Link to="/calendar">
-                <Button variant="ghost" size="sm" className="text-xs h-7">
-                  View Calendar <ArrowRight className="w-3 h-3 ml-1" />
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {visibleEvents.map((ev) => (
-              <Link
-                key={ev.id}
-                to="/calendar"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/60 transition-colors group"
-              >
-                <div className="w-2 h-8 rounded-full shrink-0 bg-primary/50" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{ev.households?.name || "No household linked"}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-xs font-medium text-foreground">
-                    {new Date(ev.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {new Date(ev.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                  </p>
-                </div>
-              </Link>
-            ))}
-            {visibleEvents.length === 0 && (
-              <div className="text-center py-6">
-                <CalendarDays className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">No upcoming meetings</p>
-                <Link to="/calendar">
-                  <Button variant="outline" size="sm" className="mt-2 text-xs">Schedule a meeting</Button>
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      );
-    }
-
-    case "goodie_suggests":
-      return <GoodieSuggests households={households as any} recentNotes={recentNotes as any} />;
 
     case "pipeline_summary": {
       const activeProspects = prospects.filter(

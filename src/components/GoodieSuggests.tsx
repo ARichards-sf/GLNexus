@@ -1,7 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Bot,
   CalendarCheck,
@@ -12,6 +19,10 @@ import {
   Clock,
   AlertCircle,
   X,
+  Mail,
+  MessageSquare,
+  Phone,
+  ExternalLink,
   type LucideIcon,
 } from "lucide-react";
 import ScheduleEventDialog from "@/components/ScheduleEventDialog";
@@ -19,6 +30,7 @@ import QuickLogNoteDialog from "@/components/QuickLogNoteDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useTargetAdvisorId } from "@/hooks/useHouseholds";
 import { useProspects } from "@/hooks/useProspects";
+import { useDraftPanel, type DraftKind } from "@/contexts/DraftPanelContext";
 import { formatCurrency } from "@/data/sampleData";
 import type { HouseholdRow } from "@/hooks/useHouseholds";
 
@@ -77,6 +89,12 @@ type Suggestion =
 interface Props {
   households: HouseholdRow[];
   recentNotes?: NoteLite[] | null;
+  /**
+   * When `true`, drops the outer Card chrome and the built-in title row so
+   * this can stack inside a parent (e.g. CopilotSidebar) that provides its
+   * own section header.
+   */
+  embedded?: boolean;
 }
 
 const formatDate = (iso: string) =>
@@ -107,16 +125,66 @@ function getAumAlertLevel(currentAum: number, previousAum: number): "critical" |
 
 const MAX_VISIBLE = 5;
 
-export default function GoodieSuggests({ households, recentNotes }: Props) {
+// Dismissals are persisted in sessionStorage so they survive the navigate
+// away → back round trip that happens when an AUM-drop tile opens the draft
+// panel (the dashboard unmounts mid-flow, which would otherwise wipe the
+// in-memory dismissed Set before `onSent` could update it).
+const DISMISSED_STORAGE_KEY = "goodie_suggests_dismissed_v1";
+
+const loadDismissed = (): Set<string> => {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = sessionStorage.getItem(DISMISSED_STORAGE_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? new Set(arr) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+const saveDismissed = (s: Set<string>) => {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify([...s]));
+  } catch {
+    // sessionStorage can throw in private browsing modes — silently ignore.
+  }
+};
+
+export default function GoodieSuggests({ households, recentNotes, embedded = false }: Props) {
   const notes = recentNotes ?? [];
   const navigate = useNavigate();
   const { advisorId } = useTargetAdvisorId();
   const { data: prospects = [] } = useProspects();
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const { openDraftPanel } = useDraftPanel();
+  const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed());
+
+  useEffect(() => {
+    saveDismissed(dismissed);
+  }, [dismissed]);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [logNoteOpen, setLogNoteOpen] = useState(false);
-  const [scheduleCtx, setScheduleCtx] = useState<{ id?: string; name?: string; title?: string }>({});
+  const [scheduleCtx, setScheduleCtx] = useState<{ id?: string; name?: string; title?: string; eventType?: string }>({});
   const [logNoteCtx, setLogNoteCtx] = useState<{ id?: string; name?: string }>({});
+
+  // Tracks the suggestion that triggered the currently-open dialog so that
+  // when the dialog completes successfully we can dismiss the right tile.
+  // (An action completing means the advisor took the suggested step, so the
+  // tile shouldn't keep nagging them. Dismissing makes room for the next
+  // priority-ordered suggestion to slide in.)
+  const [pendingSuggestionId, setPendingSuggestionId] = useState<string | null>(null);
+
+  const completePendingSuggestion = () => {
+    if (pendingSuggestionId) {
+      setDismissed((prev) => {
+        const next = new Set(prev);
+        next.add(pendingSuggestionId);
+        return next;
+      });
+      setPendingSuggestionId(null);
+    }
+  };
 
   // Scorecard-style data — reuses Scorecard's query keys so the cache is shared.
   const { data: householdSnapshots = [] } = useQuery({
@@ -189,7 +257,10 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
       if (a.level !== b.level) return a.level === "critical" ? -1 : 1;
       return b.dollarDrop - a.dollarDrop;
     });
-    for (const a of aumAlerts.slice(0, 2)) {
+    // Pool more than the visible cap so dismissing a tile slides in the next
+    // priority-ordered alert. Without this the pool tops out below
+    // MAX_VISIBLE and dismissals leave permanent empty slots.
+    for (const a of aumAlerts.slice(0, 10)) {
       seenHouseholds.add(a.household.id);
       out.push({
         id: `s-aum-${a.household.id}`,
@@ -210,7 +281,7 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
     const tps = (overdueTouchpoints as any[]).filter(
       (tp) => tp.households?.id && !seenHouseholds.has(tp.households.id)
     );
-    for (const tp of tps.slice(0, 2)) {
+    for (const tp of tps.slice(0, 10)) {
       const days = daysBetween(now, new Date(tp.scheduled_date));
       seenHouseholds.add(tp.households.id);
       out.push({
@@ -225,7 +296,8 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
       });
     }
 
-    // --- Most urgent annual review (priority 60) ---
+    // --- Most urgent annual reviews (priority 60) ---
+    // Pool the top few so dismissals reveal the next-most-urgent review.
     const withReview = households.filter(
       (h) => !!h.annual_review_date && !seenHouseholds.has(h.id)
     );
@@ -235,18 +307,19 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
         const db = Math.abs(new Date(b.annual_review_date!).getTime() - now.getTime());
         return da - db;
       });
-      const top = sorted[0];
-      seenHouseholds.add(top.id);
-      out.push({
-        id: "s-schedule",
-        action: "schedule",
-        household: top,
-        text: `Schedule annual review for ${top.name}`,
-        context: `Review due ${formatDate(top.annual_review_date!)}`,
-        icon: CalendarCheck,
-        iconClass: "bg-amber-muted text-amber",
-        priority: 60,
-      });
+      for (const top of sorted.slice(0, 5)) {
+        seenHouseholds.add(top.id);
+        out.push({
+          id: `s-schedule-${top.id}`,
+          action: "schedule",
+          household: top,
+          text: `Schedule annual review for ${top.name}`,
+          context: `Review due ${formatDate(top.annual_review_date!)}`,
+          icon: CalendarCheck,
+          iconClass: "bg-amber-muted text-amber",
+          priority: 60,
+        });
+      }
     }
 
     // --- Stalled prospects (priority 50) ---
@@ -259,23 +332,25 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
       return days >= 14;
     });
     if (stalled.length > 0) {
-      const top = [...stalled].sort(
+      const sortedStalled = [...stalled].sort(
         (a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
-      )[0];
-      const days = Math.floor(
-        (Date.now() - new Date(top.updated_at).getTime()) / (1000 * 60 * 60 * 24)
       );
-      const name = `${top.first_name ?? ""} ${top.last_name ?? ""}`.trim() || "Prospect";
-      out.push({
-        id: `s-prospect-${top.id}`,
-        action: "prospect",
-        prospectId: top.id,
-        text: `Re-engage stalled prospect ${name}`,
-        context: `${days}d in ${String(top.pipeline_stage || "pipeline").replace(/_/g, " ")}`,
-        icon: AlertCircle,
-        iconClass: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-        priority: 50,
-      });
+      for (const top of sortedStalled.slice(0, 5)) {
+        const days = Math.floor(
+          (Date.now() - new Date(top.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const name = `${top.first_name ?? ""} ${top.last_name ?? ""}`.trim() || "Prospect";
+        out.push({
+          id: `s-prospect-${top.id}`,
+          action: "prospect",
+          prospectId: top.id,
+          text: `Re-engage stalled prospect ${name}`,
+          context: `${days}d in ${String(top.pipeline_stage || "pipeline").replace(/_/g, " ")}`,
+          icon: AlertCircle,
+          iconClass: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+          priority: 50,
+        });
+      }
     }
 
     // --- Reviews due in next 60 days (priority 40) ---
@@ -350,6 +425,7 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
 
   const handleAction = (s: Suggestion) => {
     if (s.action === "schedule") {
+      setPendingSuggestionId(s.id);
       setScheduleCtx({
         id: s.household.id,
         name: s.household.name,
@@ -359,6 +435,7 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
     } else if (s.action === "households") {
       navigate("/households");
     } else if (s.action === "logNote") {
+      setPendingSuggestionId(s.id);
       setLogNoteCtx({ id: s.household.id, name: s.household.name });
       setLogNoteOpen(true);
     } else if (s.action === "household") {
@@ -368,6 +445,45 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
     }
   };
 
+  // AUM-drop tiles render as a dropdown of options instead of a single click.
+  // Other tile types keep their existing primary-action behavior.
+  const isAumDrop = (s: Suggestion) => s.id.startsWith("s-aum-");
+
+  const openDraft = (
+    kind: DraftKind,
+    household: HouseholdRow,
+    reason: string,
+    suggestionId: string,
+  ) => {
+    // Capture the suggestion id for the success closure. This callback fires
+    // from MessageDraftPanel *after* navigation has unmounted the dashboard,
+    // so setDismissed alone would be a no-op — write straight to
+    // sessionStorage so the next mount of GoodieSuggests honors the dismissal.
+    // We also still call setDismissed for the (rare) case where this component
+    // is still mounted at fire time.
+    const dismissThis = () => {
+      const stored = loadDismissed();
+      stored.add(suggestionId);
+      saveDismissed(stored);
+      setDismissed((prev) => {
+        const next = new Set(prev);
+        next.add(suggestionId);
+        return next;
+      });
+    };
+    // Navigate to the household so the advisor can review the underlying
+    // data alongside the AI-generated draft in the right sidebar.
+    navigate(`/household/${household.id}`);
+    openDraftPanel({
+      kind,
+      recipientName: household.name,
+      reason,
+      callToAction: "schedule a brief call",
+      householdId: household.id,
+      onSent: dismissThis,
+    });
+  };
+
   const dismiss = (id: string) =>
     setDismissed((prev) => {
       const next = new Set(prev);
@@ -375,31 +491,24 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
       return next;
     });
 
-  if (visible.length === 0) return null;
+  // Embedded mode (sidebar) shows an empty state so the section doesn't
+  // disappear; standalone mode returns null to keep the dashboard clean.
+  if (visible.length === 0 && !embedded) return null;
 
-  return (
+  const tilesList = (
     <>
-      <Card className="border-border shadow-none">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <span className="relative flex items-center justify-center w-6 h-6 rounded-full bg-primary/10">
-              <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-60" />
-              <Bot className="w-3.5 h-3.5 text-primary relative" />
-            </span>
-            Goodie Suggests
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="space-y-0.5">
+      {visible.length === 0 ? (
+        <div className="px-2 py-6 text-center">
+          <Sparkles className="w-5 h-5 mx-auto mb-1.5 text-muted-foreground/40" />
+          <p className="text-xs text-muted-foreground">All caught up — no new suggestions right now.</p>
+        </div>
+      ) : (
+        <div className="space-y-0.5">
             {visible.map((s) => {
               const Icon = s.icon;
-              return (
-                <button
-                  type="button"
-                  key={s.id}
-                  onClick={() => handleAction(s)}
-                  className="group w-full text-left flex items-start gap-2.5 p-2 rounded-md hover:bg-secondary/60 transition-colors"
-                >
+
+              const tileInner = (
+                <>
                   <div className={`shrink-0 w-7 h-7 rounded-md flex items-center justify-center ${s.iconClass}`}>
                     <Icon className="w-3.5 h-3.5" />
                   </div>
@@ -426,28 +535,126 @@ export default function GoodieSuggests({ households, recentNotes }: Props) {
                   >
                     <X className="w-3 h-3" />
                   </span>
+                </>
+              );
+
+              const tileClass =
+                "group w-full text-left flex items-start gap-2.5 p-2 rounded-md hover:bg-secondary/60 transition-colors";
+
+              // AUM-drop tile → dropdown of outreach actions.
+              if (isAumDrop(s) && s.action === "household") {
+                const household = households.find((h) => h.id === s.householdId);
+                if (!household) {
+                  return null;
+                }
+                return (
+                  <DropdownMenu key={s.id}>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" className={tileClass}>{tileInner}</button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuItem
+                        onClick={() => openDraft("email", household, s.context, s.id)}
+                      >
+                        <Mail className="w-4 h-4 mr-2" />
+                        Draft email
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => openDraft("text", household, s.context, s.id)}
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Draft text
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setPendingSuggestionId(s.id);
+                          setScheduleCtx({
+                            id: household.id,
+                            name: household.name,
+                            title: `Check-in — ${household.name}`,
+                            eventType: "Check-in",
+                          });
+                          setScheduleOpen(true);
+                        }}
+                      >
+                        <Phone className="w-4 h-4 mr-2" />
+                        Schedule call
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => navigate(`/household/${household.id}`)}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Open household
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              }
+
+              // All other tiles keep the single-click behavior.
+              return (
+                <button
+                  type="button"
+                  key={s.id}
+                  onClick={() => handleAction(s)}
+                  className={tileClass}
+                >
+                  {tileInner}
                 </button>
               );
             })}
-          </div>
-          <div className="flex items-center gap-1.5 pt-2.5 mt-1.5 border-t border-border">
-            <Sparkles className="w-3 h-3 text-muted-foreground" />
-            <span className="text-[10px] text-muted-foreground">Powered by Goodie · Nexus AI</span>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <>
+      {embedded ? (
+        <div className="px-3 py-2">{tilesList}</div>
+      ) : (
+        <Card className="border-border shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <span className="relative flex items-center justify-center w-6 h-6 rounded-full bg-primary/10">
+                <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-60" />
+                <Bot className="w-3.5 h-3.5 text-primary relative" />
+              </span>
+              Goodie Suggests
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {tilesList}
+            <div className="flex items-center gap-1.5 pt-2.5 mt-1.5 border-t border-border">
+              <Sparkles className="w-3 h-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">Powered by Goodie · Nexus AI</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <ScheduleEventDialog
         open={scheduleOpen}
-        onOpenChange={setScheduleOpen}
+        onOpenChange={(open) => {
+          setScheduleOpen(open);
+          // If the dialog was closed without success, drop the pending id
+          // so the next action doesn't accidentally dismiss something.
+          if (!open) setPendingSuggestionId(null);
+        }}
         defaultHouseholdId={scheduleCtx.id}
         defaultHouseholdName={scheduleCtx.name}
-        defaultEventType="Annual Review"
+        defaultEventType={scheduleCtx.eventType ?? "Annual Review"}
         defaultTitle={scheduleCtx.title}
+        onSuccess={completePendingSuggestion}
       />
       <QuickLogNoteDialog
         open={logNoteOpen}
-        onOpenChange={setLogNoteOpen}
+        onOpenChange={(open) => {
+          setLogNoteOpen(open);
+          if (!open) setPendingSuggestionId(null);
+        }}
+        onSuccess={completePendingSuggestion}
       />
     </>
   );

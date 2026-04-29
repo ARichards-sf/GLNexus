@@ -61,6 +61,37 @@ export function useCalendarEvents(month?: Date) {
   });
 }
 
+/**
+ * Today's meetings — anything scheduled for the local calendar day that
+ * hasn't been marked completed yet. Includes meetings that started earlier
+ * today (in case the advisor hasn't completed them) so the dashboard widget
+ * keeps showing them until they're explicitly closed out.
+ */
+export function useTodaysMeetings() {
+  const { userId, advisorId } = useTargetAdvisorId();
+  return useQuery({
+    queryKey: ["todays_meetings", advisorId],
+    queryFn: async () => {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const { data, error } = await supabase
+        .from("calendar_events")
+        .select("*, households(name), prospects(id, first_name, last_name, company, pipeline_stage, estimated_aum)")
+        .eq("advisor_id", advisorId!)
+        .neq("status", "completed")
+        .gte("start_time", startOfDay.toISOString())
+        .lte("start_time", endOfDay.toISOString())
+        .order("start_time", { ascending: true });
+      if (error) throw error;
+      return data as CalendarEvent[];
+    },
+    enabled: !!userId && !!advisorId,
+  });
+}
+
 export function useUpcomingEvents(limit = 5) {
   const { userId, advisorId } = useTargetAdvisorId();
   return useQuery({
@@ -153,6 +184,7 @@ export function useCompleteEvent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["calendar_events"] });
       queryClient.invalidateQueries({ queryKey: ["upcoming_events"] });
+      queryClient.invalidateQueries({ queryKey: ["todays_meetings"] });
       queryClient.invalidateQueries({ queryKey: ["households"] });
       queryClient.invalidateQueries({ queryKey: ["household"] });
     },
@@ -172,6 +204,7 @@ export function useDeleteCalendarEvent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["calendar_events"] });
       queryClient.invalidateQueries({ queryKey: ["upcoming_events"] });
+      queryClient.invalidateQueries({ queryKey: ["todays_meetings"] });
     },
   });
 }

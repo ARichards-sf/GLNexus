@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { FirmProvider } from "@/contexts/FirmContext";
+import { DraftPanelProvider } from "@/contexts/DraftPanelContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import ContactProfile from "./pages/ContactProfile";
@@ -56,6 +57,7 @@ const App = () => (
         <BrowserRouter>
         <ImpersonationProvider>
         <FirmProvider>
+        <DraftPanelProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -93,6 +95,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+        </DraftPanelProvider>
         </FirmProvider>
         </ImpersonationProvider>
         </BrowserRouter>

@@ -23,6 +23,8 @@ interface Props {
   /** @deprecated use defaultEventType */
   defaultType?: string;
   defaultTitle?: string;
+  /** Fires after the meeting is successfully created. */
+  onSuccess?: () => void;
 }
 
 type MeetingType = "client" | "prospect";
@@ -36,6 +38,7 @@ export default function ScheduleEventDialog({
   defaultEventType,
   defaultType,
   defaultTitle,
+  onSuccess,
 }: Props) {
   const resolvedDefaultType = defaultEventType ?? defaultType ?? "";
   const [meetingType, setMeetingType] = useState<MeetingType>("client");
@@ -165,6 +168,9 @@ export default function ScheduleEventDialog({
       {
         onSuccess: () => {
           toast.success("Meeting scheduled successfully.");
+          // Fire parent callback BEFORE close — close path may reset
+          // state the parent's onSuccess relies on.
+          onSuccess?.();
           handleOpenChange(false);
         },
         onError: () => toast.error("Failed to schedule meeting."),

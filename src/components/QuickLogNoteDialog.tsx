@@ -28,6 +28,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   defaultContactId?: string;
   defaultContactName?: string;
+  /** Fires after the note is successfully saved. */
+  onSuccess?: () => void;
 }
 
 interface ContactRowSelectorProps {
@@ -147,7 +149,7 @@ function ContactRowSelector({
   );
 }
 
-export default function QuickLogNoteDialog({ open, onOpenChange, defaultContactId, defaultContactName }: Props) {
+export default function QuickLogNoteDialog({ open, onOpenChange, defaultContactId, defaultContactName, onSuccess }: Props) {
   const { userId, advisorId } = useTargetAdvisorId();
 
   const { data: contacts = [] } = useQuery({
@@ -208,6 +210,9 @@ export default function QuickLogNoteDialog({ open, onOpenChange, defaultContactI
       {
         onSuccess: () => {
           toast.success(`Note logged for ${selectedIds.length} contact${selectedIds.length > 1 ? "s" : ""}.`);
+          // Fire parent callback BEFORE close — close path may reset
+          // state the parent's onSuccess relies on.
+          onSuccess?.();
           onOpenChange(false);
         },
         onError: () => toast.error("Failed to save note."),
