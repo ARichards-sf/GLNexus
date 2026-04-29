@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import TierBadge from "@/components/TierBadge";
 import PageLoader from "@/components/PageLoader";
-import { DemoAnnotation } from "@/components/DemoAnnotation";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -460,19 +459,6 @@ Do not mention that you are an AI.`;
           Updated daily at 6:00 AM
         </div>
       </section>
-
-      <DemoAnnotation title="Goodie's Assessment — Executive AI Summary">
-        <p>
-          A streaming <strong>3-4 sentence executive summary</strong> of book health written by
-          Claude. The prompt assembles structured signals — total AUM, household count, alert
-          mix (critical / warning / info), pending tier reviews, overdue annual reviews, and
-          contact-gap households — and asks for a high-level assessment in advisor voice.
-        </p>
-        <p>
-          Cached daily in <code>localStorage</code> so it doesn't regenerate on every page load.
-          The Refresh button re-runs the prompt against the latest snapshot data.
-        </p>
-      </DemoAnnotation>
 
       <Card>
         <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between">

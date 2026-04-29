@@ -1,6 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bot, PhoneOff, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { Bot, PhoneOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import IdleWarningDialog from "@/components/IdleWarningDialog";
 import { useQueryClient } from "@tanstack/react-query";
@@ -8,7 +8,6 @@ import AppSidebar from "./AppSidebar";
 import ImpersonationBar from "./ImpersonationBar";
 import AiAssistant from "./AiAssistant";
 import MessageDraftPanel from "./MessageDraftPanel";
-import { DemoTour } from "./DemoTour";
 import { useDraftPanel } from "@/contexts/DraftPanelContext";
 import InSessionPanel from "./InSessionPanel";
 import CopilotSidebar from "./CopilotSidebar";
@@ -27,7 +26,6 @@ import { cn } from "@/lib/utils";
 import { useFirmContext } from "@/hooks/useFirmContext";
 import { useSelectedFirm } from "@/contexts/FirmContext";
 import { useFirms } from "@/hooks/useFirms";
-import { TEST_DATA_USER_ID } from "@/lib/demoMode";
 
 function LayoutInner() {
   const { sessionEvent, isInSession, endSession, isProspectSession } = useInSession();
@@ -245,14 +243,6 @@ function LayoutInner() {
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
-      {user?.id === TEST_DATA_USER_ID && (
-        <div className="flex items-center justify-center gap-2 bg-amber-100 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900/40 px-4 py-2 text-xs font-medium text-amber-900 dark:text-amber-200">
-          <AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden />
-          <span>
-            Demonstration environment — all client data shown is fictional and for testing purposes only.
-          </span>
-        </div>
-      )}
       <ImpersonationBar />
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
@@ -381,7 +371,6 @@ function LayoutInner() {
         )}
       </div>
       <AiAssistant />
-      <DemoTour />
 
       <IdleWarningDialog
         open={showIdleWarning}

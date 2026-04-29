@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,24 +7,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Lock, LogOut, Calendar as CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useIsDemoUser } from "@/lib/demoMode";
 import { toast } from "sonner";
 import BookingSettings from "@/components/settings/BookingSettings";
 
 export default function Settings() {
   const { user, signOut } = useAuth();
-  const isDemo = useIsDemoUser();
-
-  // Demo account: settings are disabled. Direct URL access bounces home.
-  useEffect(() => {
-    if (isDemo) {
-      toast.info("Settings are disabled in demo mode.");
-    }
-  }, [isDemo]);
-
-  if (isDemo) {
-    return <Navigate to="/" replace />;
-  }
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
