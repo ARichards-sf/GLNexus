@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCreateCalendarEvent, EVENT_TYPES } from "@/hooks/useCalendarEvents";
 import { useHouseholds, type HouseholdRow } from "@/hooks/useHouseholds";
 import { useProspects, PIPELINE_STAGES, type Prospect } from "@/hooks/useProspects";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { X, Users, TrendingUp } from "lucide-react";
+import { X, Users, TrendingUp, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+interface MeetingTypeOption {
+  id: string;
+  slug: string;
+  name: string;
+  event_type: string;
+  duration_minutes: number;
+}
+
 
 interface Props {
   open: boolean;
@@ -41,15 +53,73 @@ export default function ScheduleEventDialog({
   onSuccess,
 }: Props) {
   const resolvedDefaultType = defaultEventType ?? defaultType ?? "";
+  const { user } = useAuth();
   const [meetingType, setMeetingType] = useState<MeetingType>("client");
   const [title, setTitle] = useState(defaultTitle || "");
   const [description, setDescription] = useState("");
   const [meetingContext, setMeetingContext] = useState("");
   const [eventType, setEventType] = useState(resolvedDefaultType);
+  /**
+   * Selected booking_meeting_types row id. The advisor's configured menu is
+   * the source of truth for "what kinds of meeting can I schedule" — same
+   * list a client sees on /book/:slug. We keep `eventType` (string) on top
+   * because the calendar_event row still stores the underlying event_type;
+   * multiple meeting types can map to the same event_type (e.g. Discovery
+   * Call + Quick Check-in both surface as event_type "Discovery Call").
+   */
+  const [selectedMeetingTypeId, setSelectedMeetingTypeId] = useState("");
   const [householdId, setHouseholdId] = useState(defaultHouseholdId || "");
   const [date, setDate] = useState(defaultDate || "");
   const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("10:00");
+
+  // The advisor's active booking meeting types. Empty list = fall back to
+  // the legacy static EVENT_TYPES enum so this dialog still works for any
+  // advisor who hasn't configured booking yet.
+  const { data: meetingTypeOptions = [] } = useQuery<MeetingTypeOption[]>({
+    queryKey: ["booking_meeting_types_for_dialog", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("booking_meeting_types")
+        .select("id, slug, name, event_type, duration_minutes")
+        .eq("advisor_id", user!.id)
+        .eq("active", true)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as MeetingTypeOption[];
+    },
+    enabled: !!user?.id,
+  });
+
+  // When defaultEventType is passed (e.g. AI draft → "Annual Review"),
+  // pre-select the first meeting type whose event_type matches so the
+  // dropdown reflects the caller's intent.
+  useEffect(() => {
+    if (selectedMeetingTypeId) return;
+    if (!resolvedDefaultType) return;
+    if (meetingTypeOptions.length === 0) return;
+    const match = meetingTypeOptions.find((m) => m.event_type === resolvedDefaultType);
+    if (match) {
+      setSelectedMeetingTypeId(match.id);
+      setEventType(match.event_type);
+    }
+  }, [resolvedDefaultType, meetingTypeOptions, selectedMeetingTypeId]);
+
+  // Resolve the duration for the chosen meeting context. Drives both the
+  // computed end_time at submit and the helper text shown on the form.
+  // Prospect meetings are always treated as Discovery Calls (30m default).
+  // For client meetings, prefer the selected booking_meeting_types row;
+  // fall back to 60m for the legacy "no booking config" path.
+  const selectedMeetingType = useMemo(
+    () => meetingTypeOptions.find((m) => m.id === selectedMeetingTypeId) ?? null,
+    [selectedMeetingTypeId, meetingTypeOptions],
+  );
+  const durationMinutes = useMemo(() => {
+    if (meetingType === "prospect") {
+      const discovery = meetingTypeOptions.find((m) => m.event_type === "Discovery Call");
+      return discovery?.duration_minutes ?? 30;
+    }
+    return selectedMeetingType?.duration_minutes ?? 60;
+  }, [meetingType, meetingTypeOptions, selectedMeetingType]);
 
   // Search-mode is only when no defaultHouseholdId is provided
   const searchMode = !defaultHouseholdId;
@@ -95,10 +165,10 @@ export default function ScheduleEventDialog({
       setDescription("");
       setMeetingContext("");
       setEventType(resolvedDefaultType);
+      setSelectedMeetingTypeId("");
       setHouseholdId(defaultHouseholdId || "");
       setDate(defaultDate || "");
       setStartTime("09:00");
-      setEndTime("10:00");
       setHouseholdSearch("");
       setSelectedHousehold(null);
       setShowDropdown(false);
@@ -143,6 +213,7 @@ export default function ScheduleEventDialog({
     setHouseholdId("");
     setHouseholdSearch("");
     setEventType("Discovery Call");
+    setSelectedMeetingTypeId("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -151,8 +222,12 @@ export default function ScheduleEventDialog({
     if (meetingType === "client" && searchMode && !selectedHousehold) return;
     if (meetingType === "prospect" && !selectedProspect) return;
 
-    const start_time = new Date(`${date}T${startTime}:00`).toISOString();
-    const end_time = new Date(`${date}T${endTime}:00`).toISOString();
+    // End time is derived from the selected meeting type's duration — the
+    // advisor doesn't pick it manually anymore. Keeps calendar events
+    // consistent with the booking-page contract for the same meeting type.
+    const start = new Date(`${date}T${startTime}:00`);
+    const start_time = start.toISOString();
+    const end_time = new Date(start.getTime() + durationMinutes * 60_000).toISOString();
 
     createEvent.mutate(
       {
@@ -372,7 +447,7 @@ export default function ScheduleEventDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Event Type</Label>
+              <Label>Meeting Type</Label>
               {meetingType === "prospect" ? (
                 <div className="space-y-1">
                   <div className="flex items-center h-10 px-3 rounded-md border border-border bg-muted/40">
@@ -384,7 +459,43 @@ export default function ScheduleEventDialog({
                     Prospect meetings are always Discovery Calls
                   </p>
                 </div>
+              ) : meetingTypeOptions.length > 0 ? (
+                <>
+                  <Select
+                    value={selectedMeetingTypeId}
+                    onValueChange={(id) => {
+                      setSelectedMeetingTypeId(id);
+                      const m = meetingTypeOptions.find((x) => x.id === id);
+                      if (m) setEventType(m.event_type);
+                    }}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select meeting type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {meetingTypeOptions.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{m.name}</span>
+                            <span className="text-[11px] text-muted-foreground inline-flex items-center gap-0.5">
+                              <Clock className="w-3 h-3" />
+                              {m.duration_minutes}m
+                            </span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    Same menu your clients see on /book/{user ? "" : "your-slug"} —
+                    edit it in Settings → Booking.
+                  </p>
+                </>
               ) : (
+                // Advisor hasn't set up booking meeting types yet — fall back
+                // to the legacy hardcoded EVENT_TYPES enum so the dialog still
+                // works.
                 <Select value={eventType} onValueChange={setEventType} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
@@ -401,18 +512,22 @@ export default function ScheduleEventDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Date</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label>Start</Label>
+              <Label>Start time</Label>
               <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label>End</Label>
-              <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+              <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {durationMinutes} min — ends at {(() => {
+                  const [h, m] = startTime.split(":").map(Number);
+                  const total = Math.min(h * 60 + m + durationMinutes, 23 * 60 + 59);
+                  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+                })()}
+              </p>
             </div>
           </div>
 

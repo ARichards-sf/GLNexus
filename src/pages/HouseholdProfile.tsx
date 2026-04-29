@@ -463,7 +463,7 @@ export default function HouseholdProfile() {
         queryKey: ["tasks"],
       });
 
-      toast.success("Service timeline cleared");
+      toast.success("Client experience cleared");
     } catch (error: any) {
       toast.error(error?.message ?? "Failed to clear timeline");
     }
@@ -653,13 +653,13 @@ export default function HouseholdProfile() {
 
       <Card className="mb-8 border-border shadow-none">
         <CardHeader className="pb-4">
-          <CardTitle className="text-base font-semibold">Service Timeline</CardTitle>
+          <CardTitle className="text-base font-semibold">Client Experience</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {touchpoints.length === 0 && household.wealth_tier && (
             <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-secondary/30 p-4">
-              <p className="text-sm text-muted-foreground">No service timeline yet.</p>
-              <Button onClick={() => setTouchpointGenOpen(true)}>Generate Service Timeline</Button>
+              <p className="text-sm text-muted-foreground">No client experience yet.</p>
+              <Button onClick={() => setTouchpointGenOpen(true)}>Generate Client Experience</Button>
             </div>
           )}
 
@@ -1387,10 +1387,10 @@ export default function HouseholdProfile() {
       <AlertDialog open={clearTimelineOpen} onOpenChange={setClearTimelineOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear Service Timeline</AlertDialogTitle>
+            <AlertDialogTitle>Clear Client Experience</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete all touchpoints and linked tasks for {household?.name}. This cannot be
-              undone. You can regenerate a fresh timeline afterwards.
+              undone. You can regenerate a fresh experience afterwards.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

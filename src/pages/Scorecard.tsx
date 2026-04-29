@@ -378,7 +378,7 @@ ${contactGaps.slice(0, 5).map((h) => `${h.name} (${h.tier})`).join(", ") || "Non
 
 OPPORTUNITIES:
 Tier upgrade candidates: ${tierUpgrades.length}
-Households missing service timeline: ${missingTimeline.length}
+Households missing client experience: ${missingTimeline.length}
 Stalled prospects (14+ days): ${stalledProspects.length}
 
 Write a concise 3-4 sentence executive summary of book health for ${firstName}.
@@ -708,7 +708,7 @@ Do not mention that you are an AI.`;
             </div>
 
             <div className="rounded-lg border border-border bg-background p-4">
-              <h2 className="mb-3 text-sm font-semibold text-foreground">Missing Service Timeline</h2>
+              <h2 className="mb-3 text-sm font-semibold text-foreground">Missing Client Experience</h2>
               {missingTimeline.length === 0 ? (
                 <div className="rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
                   All tiered households have a timeline

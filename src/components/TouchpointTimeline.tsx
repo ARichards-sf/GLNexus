@@ -268,7 +268,7 @@ export default function TouchpointTimeline({ householdId }: Props) {
             <Route className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Service Timeline</h2>
+            <h2 className="text-lg font-semibold text-foreground">Client Experience</h2>
           </div>
         </div>
 

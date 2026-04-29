@@ -45,7 +45,7 @@ const SUGGESTED_PROMPTS = [
   "Show me my top households by AUM",
   "What tasks are overdue?",
   "Summarize my pipeline",
-  "Which households are missing a service timeline?",
+  "Which households are missing a client experience?",
 ];
 
 // ─── Helpers ─────────────────────

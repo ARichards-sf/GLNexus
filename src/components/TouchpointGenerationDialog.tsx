@@ -414,7 +414,7 @@ export default function TouchpointGenerationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{`Service Timeline — ${household.name}`}</DialogTitle>
+          <DialogTitle>{`Client Experience — ${household.name}`}</DialogTitle>
           <DialogDescription>
             {`This is the ${tierLabel} service plan for the next 12 months. Review and confirm to generate all touchpoints.`}
           </DialogDescription>
