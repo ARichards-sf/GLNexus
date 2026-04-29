@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsDemoUser, TOUR_STORAGE_KEYS } from "@/lib/demoMode";
+import { useDraftPanel } from "@/contexts/DraftPanelContext";
 
 interface TourStep {
   id: string;
@@ -11,6 +12,13 @@ interface TourStep {
   path?: string;
   title: string;
   body: React.ReactNode;
+  /**
+   * Where to anchor the floating card. Default is bottom-left so most steps
+   * leave the right Copilot sidebar fully visible. "near-sidebar" docks the
+   * card to the bottom-right, just left of the sidebar — used when the step
+   * is *about* the sidebar so the reader can see what's described.
+   */
+  position?: "bottom-left" | "near-sidebar";
 }
 
 const TOUR_STEPS: TourStep[] = [
@@ -68,6 +76,72 @@ const TOUR_STEPS: TourStep[] = [
           <li>"Tell me about the Whitfield family's charitable giving plans."</li>
           <li>"Which clients have stock concentration concerns?"</li>
         </ul>
+      </>
+    ),
+  },
+  {
+    id: "copilot-sidebar",
+    path: "/",
+    position: "near-sidebar",
+    title: "Copilot Sidebar — Always-On Workspace",
+    body: (
+      <>
+        <p>
+          The right-hand console (over there →) stays with the advisor across every page. Four tabs, each capped at 5 items so it stays scannable on smaller monitors:
+        </p>
+        <ul>
+          <li><strong>AI Drafts</strong> — pre-drafted outreach emails awaiting review (we'll dig in next)</li>
+          <li><strong>Today's Meetings</strong> — schedule with on-demand AI brief + downloadable household 1-pager</li>
+          <li><strong>Tasks</strong> — top-priority open work with one-click complete</li>
+          <li><strong>Activity</strong> — auto-emitted events ("Goodie drafted...", "New booking from...")</li>
+        </ul>
+        <p>
+          Active tab persists in localStorage per user; count badges stay visible across switches.{" "}
+          <strong>Click the AI Drafts tab</strong> in the sidebar before continuing — the next step is about that panel.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "ai-drafts",
+    path: "/",
+    position: "near-sidebar",
+    title: "AI Drafts — Trigger-Driven Outreach",
+    body: (
+      <>
+        <p>
+          A scheduled edge function scans the book for trigger conditions and stages a Claude-drafted email for each match. Triggers covered today:
+        </p>
+        <ul>
+          <li><strong>Annual review due</strong> — clients with an upcoming review date</li>
+          <li><strong>AUM drop</strong> — households whose 30-day snapshot trend crosses critical/warning thresholds (same logic as the Scorecard alerts)</li>
+          <li><strong>Overdue touchpoint</strong> — Client Experience touchpoints past their scheduled date</li>
+          <li><strong>Stalled prospect</strong> — prospects with no pipeline movement in 14+ days</li>
+        </ul>
+        <p>
+          Each draft gets a deep-linked booking button matched to the trigger: AUM drop → <strong>30-min Quick Check-in</strong>, annual review → <strong>60-min Annual Review</strong>, etc. Recipient email is appended to the link so the booking page auto-identifies them and only shows time slots their wealth tier unlocks.
+        </p>
+        <p>
+          <strong>Click the top draft in the sidebar</strong> to open the editor — you'll see the streamed body, a Send button that logs a compliance note, and the embedded scheduling button.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "booking",
+    path: "/",
+    title: "Tier-Aware Public Booking",
+    body: (
+      <>
+        <p>
+          Calendly-style booking page each advisor gets at <code>/book/:slug</code>. Clients see the advisor's three default meeting types — <strong>Discovery Call</strong> (30m), <strong>Annual Review</strong> (60m), <strong>Quick Check-in</strong> (30m) — with descriptions and durations.
+        </p>
+        <p>
+          The differentiator: each weekly availability slot can require a minimum wealth tier. The booker enters their email up front; the backend resolves it to a household and filters time slots by tier — Silver+ / Gold+ / Platinum only. AI-Drafts emails pre-fill the email param, so recipients land already identified and only see slots their tier unlocks.
+        </p>
+        <p>
+          Try it: open <code>/book/joe-tester</code> in a new tab and walk through as a client.
+        </p>
       </>
     ),
   },
@@ -165,6 +239,10 @@ export function DemoTour() {
   const isDemo = useIsDemoUser();
   const navigate = useNavigate();
   const location = useLocation();
+  // The Copilot sidebar widens when a draft is open (360→480 at 2xl,
+  // 480→600 at 3xl). "near-sidebar" tour steps need to follow that change
+  // so the floating card doesn't get covered by the expanded draft panel.
+  const { draft } = useDraftPanel();
 
   const [stepIdx, setStepIdx] = useState(0);
   const [open, setOpen] = useState(false);
@@ -347,13 +425,27 @@ export function DemoTour() {
     );
   }
 
-  // Subsequent steps: floating card in the bottom-left. No backdrop, page
-  // is fully interactive so the user can poke around what each step describes.
+  // Subsequent steps: floating card. No backdrop, page is fully interactive
+  // so the user can poke around what each step describes.
+  // Default position is bottom-left. "near-sidebar" anchors the card to the
+  // bottom-right and offsets by the Copilot sidebar's width so the sidebar
+  // stays fully visible. The sidebar grows when a draft is open (360→480 /
+  // 480→600), so we follow that with a CSS transition for a smooth slide.
+  // Below 2xl the sidebar is hidden, so we revert to bottom-left.
+  const cardPositionClass =
+    step.position === "near-sidebar"
+      ? draft
+        ? "bottom-4 left-4 2xl:left-auto 2xl:right-[496px] 3xl:right-[616px]"
+        : "bottom-4 left-4 2xl:left-auto 2xl:right-[376px] 3xl:right-[496px]"
+      : "bottom-4 left-4";
   return (
     <div
       role="dialog"
       aria-label="Guided tour"
-      className="fixed bottom-4 left-4 z-50 w-[420px] max-w-[calc(100vw-2rem)] rounded-xl border-2 border-amber-400 dark:border-amber-500 bg-card shadow-2xl flex flex-col max-h-[calc(100vh-2rem)]"
+      className={cn(
+        "fixed z-50 w-[420px] max-w-[calc(100vw-2rem)] rounded-xl border-2 border-amber-400 dark:border-amber-500 bg-card shadow-2xl flex flex-col max-h-[calc(100vh-2rem)] transition-[right] duration-200",
+        cardPositionClass,
+      )}
     >
       <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-amber-200 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/30 rounded-t-md shrink-0">
         <div className="flex items-center gap-2 text-xs font-semibold text-amber-900 dark:text-amber-100">
