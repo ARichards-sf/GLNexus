@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -152,23 +152,6 @@ export default function MessageDraftPanel() {
     enabled: !!advisorIdForBooking,
     staleTime: 5 * 60 * 1000,
   });
-  // Resolve the booking URL with this priority:
-  //   1. draft.bookingUrlPath — when present (AI Inbox draft), the edge
-  //      function already chose the meeting type that fits the trigger
-  //      (e.g. annual review → /book/:slug/annual-review).
-  //   2. Generic /book/:slug — for ad-hoc drafts where no specific type
-  //      was selected.
-  // Either way we only emit a button when the advisor has booking enabled.
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  let bookingUrl: string | null = null;
-  if (bookingSettings?.enabled && bookingSettings.slug) {
-    if (draft?.bookingUrlPath) {
-      bookingUrl = `${origin}${draft.bookingUrlPath}`;
-    } else {
-      bookingUrl = `${origin}/book/${bookingSettings.slug}`;
-    }
-  }
-
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -205,6 +188,28 @@ export default function MessageDraftPanel() {
     : "";
   const primaryEmail = primary?.email ?? null;
   const primaryPhone = primary?.mobile_phone ?? primary?.phone ?? null;
+
+  // Resolve the booking URL with this priority:
+  //   1. draft.bookingUrlPath — when present (AI Inbox draft), the edge
+  //      function already chose the meeting type that fits the trigger
+  //      (e.g. annual review → /book/:slug/annual-review).
+  //   2. Generic /book/:slug — for ad-hoc drafts where no specific type
+  //      was selected.
+  // We append ?email=<primary> so the recipient lands on the booking page
+  // already identified — the booking page filters availability by their
+  // wealth tier without making them retype anything.
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const bookingUrl = useMemo<string | null>(() => {
+    if (!bookingSettings?.enabled || !bookingSettings.slug) return null;
+    const base = draft?.bookingUrlPath
+      ? `${origin}${draft.bookingUrlPath}`
+      : `${origin}/book/${bookingSettings.slug}`;
+    if (primaryEmail) {
+      const sep = base.includes("?") ? "&" : "?";
+      return `${base}${sep}email=${encodeURIComponent(primaryEmail)}`;
+    }
+    return base;
+  }, [bookingSettings?.enabled, bookingSettings?.slug, draft?.bookingUrlPath, origin, primaryEmail]);
 
   const generate = () => {
     if (!draft) return;

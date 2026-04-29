@@ -569,32 +569,49 @@ serve(async (req) => {
 
     // For each trigger, find the meeting type that fits the reason so the
     // booking link can deep-link straight to the right type instead of the
-    // full menu (e.g. annual_review_due → /book/:slug/annual-review). Falls
-    // back to the generic page if no type matches.
-    const PREFERRED_EVENT_TYPE: Record<TriggerReason, string | null> = {
-      annual_review_due: "Annual Review",
-      aum_drop: null,
-      overdue_touchpoint: null,
-      stalled_prospect: "Discovery Call",
+    // full menu (e.g. annual_review_due → /book/:slug/annual-review). Match
+    // priority is: meeting name → meeting slug → underlying event_type. The
+    // name-first priority lets the seed's "Quick Check-in" beat the generic
+    // "Discovery Call" type even though they share event_type.
+    const PREFERRED: Record<TriggerReason, { names: string[]; eventType: string | null }> = {
+      annual_review_due: { names: ["Annual Review"], eventType: "Annual Review" },
+      aum_drop: { names: ["Quick Check-in", "Check-in", "Portfolio Update"], eventType: null },
+      overdue_touchpoint: { names: ["Quick Check-in", "Check-in"], eventType: null },
+      stalled_prospect: { names: ["Discovery Call"], eventType: "Discovery Call" },
     };
     const meetingTypes = withBookingButton
       ? (
           await admin
             .from("booking_meeting_types")
-            .select("slug, event_type")
+            .select("slug, name, event_type")
             .eq("advisor_id", advisorId)
             .eq("active", true)
+            .order("sort_order", { ascending: true })
         ).data ?? []
       : [];
     const buildBookingUrlPath = (t: Trigger): string | null => {
       if (!withBookingButton || !bookingSettings) return null;
       const baseSlug = (bookingSettings as any).slug as string;
-      const preferred = PREFERRED_EVENT_TYPE[t.reason];
-      let path = `/book/${baseSlug}`;
-      if (preferred) {
-        const match = (meetingTypes as any[]).find((m) => m.event_type === preferred);
-        if (match) path = `/book/${baseSlug}/${match.slug}`;
+      const pref = PREFERRED[t.reason];
+      const types = meetingTypes as any[];
+      let chosenSlug: string | null = null;
+
+      // 1. Try name match (case-insensitive) in preferred order.
+      for (const wanted of pref.names) {
+        const m = types.find((x) => (x.name ?? "").toLowerCase() === wanted.toLowerCase());
+        if (m) {
+          chosenSlug = m.slug;
+          break;
+        }
       }
+      // 2. Fall back to event_type match.
+      if (!chosenSlug && pref.eventType) {
+        const m = types.find((x) => x.event_type === pref.eventType);
+        if (m) chosenSlug = m.slug;
+      }
+
+      const path = chosenSlug ? `/book/${baseSlug}/${chosenSlug}` : `/book/${baseSlug}`;
+
       // Append recipient prefill params so the confirm form lands populated.
       // The recipient already knows their own info — exposing it back to them
       // through the link is fine, and saves typing.

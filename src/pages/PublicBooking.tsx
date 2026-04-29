@@ -219,7 +219,7 @@ const formatLocalDateIso = (date: Date): string => {
 export function BookingPickTime() {
   const { slug, typeSlug } = useParams<{ slug: string; typeSlug: string }>();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const { data: page, isLoading: pageLoading, isError } = usePageData(slug);
   const meetingType = useMemo(
     () => page?.meeting_types.find((m) => m.slug === typeSlug),
@@ -227,18 +227,56 @@ export function BookingPickTime() {
   );
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
+  // Tier-aware booking: the email decides which availability windows apply.
+  // We accept both `?email=` (canonical) and `?e=` (legacy short form) and
+  // promote whichever is present into the page's working state.
+  const urlEmail = (params.get("email") ?? params.get("e") ?? "").trim().toLowerCase();
+  const [emailDraft, setEmailDraft] = useState("");
+  const email = urlEmail;
+
+  const tierQuery = useQuery({
+    queryKey: ["public_booking_resolve", slug, email],
+    queryFn: () =>
+      callPublicBooking<{ tier: string | null; display_name: string | null }>({
+        action: "resolve_email",
+        slug: slug!,
+        email,
+      }),
+    enabled: !!slug && !!email,
+    staleTime: 60_000,
+  });
+
   const dateIso = selectedDate ? formatLocalDateIso(selectedDate) : null;
   const slotsQuery = useQuery({
-    queryKey: ["public_booking_slots", slug, typeSlug, dateIso],
+    queryKey: ["public_booking_slots", slug, typeSlug, dateIso, email],
     queryFn: () =>
       callPublicBooking<{ slots: string[]; time_zone: string }>({
         action: "get_slots",
         slug: slug!,
         type_slug: typeSlug!,
         date: dateIso!,
+        ...(email ? { email } : {}),
       }),
-    enabled: !!slug && !!typeSlug && !!dateIso,
+    enabled: !!slug && !!typeSlug && !!dateIso && !!email,
   });
+
+  const handleEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = emailDraft.trim().toLowerCase();
+    if (!/\S+@\S+\.\S+/.test(trimmed)) return;
+    const next = new URLSearchParams(params);
+    next.set("email", trimmed);
+    next.delete("e"); // canonicalize
+    setParams(next, { replace: true });
+  };
+
+  const clearEmail = () => {
+    const next = new URLSearchParams(params);
+    next.delete("email");
+    next.delete("e");
+    setParams(next, { replace: true });
+    setEmailDraft("");
+  };
 
   if (pageLoading) {
     return (
@@ -275,7 +313,68 @@ export function BookingPickTime() {
         </CardHeader>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      {!email ? (
+        <Card className="border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Mail className="w-3.5 h-3.5" />
+              Your email
+            </CardTitle>
+            <CardDescription className="text-xs">
+              We use your email to show you the times that work for your account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-2">
+              <Input
+                type="email"
+                value={emailDraft}
+                onChange={(e) => setEmailDraft(e.target.value)}
+                placeholder="you@example.com"
+                autoFocus
+                required
+              />
+              <Button type="submit" size="sm" className="sm:w-auto">
+                Continue
+                <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {tierQuery.data?.display_name && (
+            <div className="mb-3 flex items-center justify-between rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs">
+              <span className="text-muted-foreground">
+                Booking as <span className="text-foreground font-medium">{tierQuery.data.display_name}</span>
+                {" · "}
+                <span className="text-muted-foreground">{email}</span>
+              </span>
+              <button
+                type="button"
+                onClick={clearEmail}
+                className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+              >
+                Not you?
+              </button>
+            </div>
+          )}
+          {!tierQuery.data?.display_name && tierQuery.isFetched && (
+            <div className="mb-3 flex items-center justify-between rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs">
+              <span className="text-muted-foreground truncate">
+                Booking as <span className="text-foreground font-medium">{email}</span>
+              </span>
+              <button
+                type="button"
+                onClick={clearEmail}
+                className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+              >
+                Change
+              </button>
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-4">
         <Card className="border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -349,7 +448,9 @@ export function BookingPickTime() {
             )}
           </CardContent>
         </Card>
-      </div>
+          </div>
+        </>
+      )}
     </PageShell>
   );
 }
@@ -370,11 +471,12 @@ export function BookingConfirm() {
     [page, typeSlug],
   );
 
-  // Seed the form from any prefill params (n, e, p) — set when the email
-  // link points the recipient at this booking flow. The recipient already
-  // knows their info; this just removes the retype.
+  // Seed the form from any prefill params (n, email|e, p) — set when the
+  // email link points the recipient at this booking flow. The `email` query
+  // arg is canonical (and how the time-pick step writes it); `e` is kept for
+  // backwards compatibility with older email links.
   const [name, setName] = useState(() => params.get("n") ?? "");
-  const [email, setEmail] = useState(() => params.get("e") ?? "");
+  const [email, setEmail] = useState(() => params.get("email") ?? params.get("e") ?? "");
   const [phone, setPhone] = useState(() => params.get("p") ?? "");
   const [answer, setAnswer] = useState("");
 

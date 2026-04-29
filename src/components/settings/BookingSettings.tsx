@@ -56,7 +56,16 @@ interface AvailabilityWindow {
   day_of_week: number;
   start_time: string;
   end_time: string;
+  /** Minimum wealth tier that may book this window. NULL = open to everyone. */
+  min_tier: "silver" | "gold" | "platinum" | null;
 }
+
+const TIER_OPTIONS: { value: string; label: string }[] = [
+  { value: "everyone", label: "Everyone" },
+  { value: "silver", label: "Silver+" },
+  { value: "gold", label: "Gold+" },
+  { value: "platinum", label: "Platinum only" },
+];
 
 interface MeetingType {
   id: string;
@@ -423,19 +432,27 @@ function AvailabilityCard({ advisorId }: { advisorId: string }) {
 
   // For v1, support a single window per day (covers 95% of cases). The
   // schema allows multiple — power users can split-schedule via DB later.
-  // Local form state mirrors per-day enabled + start/end.
-  const [form, setForm] = useState<Record<number, { enabled: boolean; start: string; end: string }>>({});
+  // Local form state mirrors per-day enabled + start/end + min_tier.
+  type DayForm = {
+    enabled: boolean;
+    start: string;
+    end: string;
+    /** Form-level value: "everyone" maps to NULL min_tier on save. */
+    tier: "everyone" | "silver" | "gold" | "platinum";
+  };
+  const [form, setForm] = useState<Record<number, DayForm>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!windowsQuery.data) return;
-    const next: Record<number, { enabled: boolean; start: string; end: string }> = {};
+    const next: Record<number, DayForm> = {};
     for (let i = 0; i < 7; i++) {
       const w = windowsQuery.data.find((x) => x.day_of_week === i);
       next[i] = {
         enabled: !!w,
         start: w?.start_time ?? "09:00",
         end: w?.end_time ?? "17:00",
+        tier: (w?.min_tier ?? "everyone") as DayForm["tier"],
       };
     }
     setForm(next);
@@ -457,6 +474,7 @@ function AvailabilityCard({ advisorId }: { advisorId: string }) {
           day_of_week: Number(dow),
           start_time: v.start,
           end_time: v.end,
+          min_tier: v.tier === "everyone" ? null : v.tier,
         }));
       if (inserts.length > 0) {
         const { error: insErr } = await supabase
@@ -489,12 +507,19 @@ function AvailabilityCard({ advisorId }: { advisorId: string }) {
           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
         ) : (
           <>
+            <p className="text-[11px] text-muted-foreground -mt-1">
+              "Who can book?" controls which clients see each day on the booking page.
+              Higher tiers always see lower-tier days too — set "Platinum only" on a day
+              if you want to reserve it for top-tier clients exclusively.
+            </p>
             {DAY_NAMES.map((name, idx) => {
-              const day = form[idx] ?? { enabled: false, start: "09:00", end: "17:00" };
+              const day =
+                form[idx] ??
+                ({ enabled: false, start: "09:00", end: "17:00", tier: "everyone" } as DayForm);
               return (
                 <div
                   key={idx}
-                  className="flex items-center gap-3 py-1.5 border-b border-border last:border-b-0"
+                  className="flex flex-wrap items-center gap-3 py-1.5 border-b border-border last:border-b-0"
                 >
                   <div className="w-12 shrink-0">
                     <p className="text-sm font-medium">{name}</p>
@@ -512,7 +537,7 @@ function AvailabilityCard({ advisorId }: { advisorId: string }) {
                     onChange={(e) =>
                       setForm({ ...form, [idx]: { ...day, start: e.target.value } })
                     }
-                    className="w-32"
+                    className="w-28"
                   />
                   <span className="text-xs text-muted-foreground">to</span>
                   <Input
@@ -522,8 +547,26 @@ function AvailabilityCard({ advisorId }: { advisorId: string }) {
                     onChange={(e) =>
                       setForm({ ...form, [idx]: { ...day, end: e.target.value } })
                     }
-                    className="w-32"
+                    className="w-28"
                   />
+                  <Select
+                    value={day.tier}
+                    disabled={!day.enabled}
+                    onValueChange={(v) =>
+                      setForm({ ...form, [idx]: { ...day, tier: v as DayForm["tier"] } })
+                    }
+                  >
+                    <SelectTrigger className="w-[140px] h-9 text-xs">
+                      <SelectValue placeholder="Who can book?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIER_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               );
             })}

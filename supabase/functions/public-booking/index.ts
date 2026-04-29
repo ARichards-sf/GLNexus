@@ -2,10 +2,14 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.103.0";
 
 // Public booking edge function. Called by the unauthenticated /book/:slug
-// pages with three actions:
-//   - "get_page"  → advisor + active meeting types
-//   - "get_slots" → bookable slots for a (slug, type_slug, date)
-//   - "book"      → creates calendar_event + emits activity event
+// pages with four actions:
+//   - "get_page"      → advisor + active meeting types
+//   - "resolve_email" → resolves an email to wealth_tier + display name so
+//                       the booking page can filter slots & greet by name
+//   - "get_slots"     → bookable slots for a (slug, type_slug, date), filtered
+//                       by the booker's resolved wealth tier
+//   - "book"          → creates calendar_event + emits activity event
+//                       (re-validates the slot against the email's tier)
 // Public read access is granted via RLS on the booking tables; writes use
 // the service-role client inside this function.
 
@@ -73,12 +77,90 @@ function dayOfWeekInTz(dateStr: string, tz: string): number {
   return ({ sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 } as Record<string, number>)[wk] ?? 0;
 }
 
+// --- Tier resolution -----------------------------------------------------
+
+type ResolvedTier = "platinum" | "gold" | "silver" | null;
+
+const TIER_LEVEL: Record<string, number> = {
+  platinum: 3,
+  gold: 2,
+  silver: 1,
+};
+
+/** Numeric rank for comparing booker tier vs window's min_tier. NULL = 0. */
+function tierLevel(t: string | null | undefined): number {
+  if (!t) return 0;
+  return TIER_LEVEL[t] ?? 0;
+}
+
+/**
+ * Resolve a normalized email to the booker's wealth tier on this advisor's
+ * book. Checks household_members → households first; falls back to prospects
+ * (always tier 0). Returns null tier if no match — caller treats null as
+ * "prospect / unknown" and only shows windows with min_tier IS NULL.
+ */
+async function resolveEmailToTier(
+  admin: ReturnType<typeof createClient>,
+  advisorId: string,
+  email: string,
+): Promise<{
+  tier: ResolvedTier;
+  display_name: string | null;
+  household_id: string | null;
+  prospect_id: string | null;
+}> {
+  if (!email) {
+    return { tier: null, display_name: null, household_id: null, prospect_id: null };
+  }
+
+  const { data: memberMatch } = await admin
+    .from("household_members")
+    .select("id, household_id, first_name, last_name, household:households(name, wealth_tier)")
+    .eq("advisor_id", advisorId)
+    .eq("email", email)
+    .is("archived_at", null)
+    .maybeSingle();
+
+  if (memberMatch) {
+    const m: any = memberMatch;
+    const tier = (m.household?.wealth_tier ?? null) as ResolvedTier;
+    const display =
+      m.household?.name ?? (`${m.first_name ?? ""} ${m.last_name ?? ""}`.trim() || null);
+    return {
+      tier,
+      display_name: display,
+      household_id: m.household_id ?? null,
+      prospect_id: null,
+    };
+  }
+
+  const { data: prospectMatch } = await admin
+    .from("prospects")
+    .select("id, first_name, last_name")
+    .eq("advisor_id", advisorId)
+    .eq("email", email)
+    .maybeSingle();
+
+  if (prospectMatch) {
+    const p: any = prospectMatch;
+    return {
+      tier: null,
+      display_name: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() || null,
+      household_id: null,
+      prospect_id: p.id,
+    };
+  }
+
+  return { tier: null, display_name: null, household_id: null, prospect_id: null };
+}
+
 // --- Slot calculation ---------------------------------------------------
 
 interface AvailabilityWindow {
   day_of_week: number;
   start_time: string;
   end_time: string;
+  min_tier: string | null;
 }
 
 interface BusyEvent {
@@ -173,11 +255,35 @@ async function handleGetPage(
   });
 }
 
+async function handleResolveEmail(
+  admin: ReturnType<typeof createClient>,
+  slug: string,
+  email: string,
+) {
+  const { data: settings } = await admin
+    .from("advisor_booking_settings")
+    .select("advisor_id")
+    .eq("slug", slug)
+    .eq("enabled", true)
+    .maybeSingle();
+  if (!settings) return json({ error: "not_found" }, 404);
+  const advisorId = (settings as any).advisor_id;
+
+  const resolved = await resolveEmailToTier(admin, advisorId, email.trim().toLowerCase());
+  // Don't leak whether the email matched a household vs. prospect — frontend
+  // only needs tier + greeting name.
+  return json({
+    tier: resolved.tier,
+    display_name: resolved.display_name,
+  });
+}
+
 async function handleGetSlots(
   admin: ReturnType<typeof createClient>,
   slug: string,
   typeSlug: string,
   date: string,
+  email: string | null,
 ) {
   const { data: settings } = await admin
     .from("advisor_booking_settings")
@@ -198,13 +304,24 @@ async function handleGetSlots(
     .maybeSingle();
   if (!type) return json({ error: "type_not_found" }, 404);
 
+  // Tier-aware filtering: resolve booker's email → tier, then drop windows
+  // whose min_tier outranks the booker. Unknown emails (level 0) only see
+  // windows with min_tier IS NULL.
+  const resolved = email
+    ? await resolveEmailToTier(admin, advisorId, email.trim().toLowerCase())
+    : { tier: null as ResolvedTier };
+  const bookerLevel = tierLevel(resolved.tier);
+
   const dow = dayOfWeekInTz(date, tz);
-  const { data: windows } = await admin
+  const { data: windowsRaw } = await admin
     .from("advisor_availability_windows")
-    .select("day_of_week, start_time, end_time")
+    .select("day_of_week, start_time, end_time, min_tier")
     .eq("advisor_id", advisorId)
     .eq("day_of_week", dow);
-  if (!windows || windows.length === 0) return json({ slots: [] });
+  const windows = (windowsRaw ?? []).filter(
+    (w: any) => tierLevel(w.min_tier) <= bookerLevel,
+  );
+  if (windows.length === 0) return json({ slots: [], time_zone: tz });
 
   // Pull busy events for the day in the advisor's tz
   const dayStart = localToUtc(date, "00:00", tz);
@@ -274,6 +391,10 @@ async function handleBook(
   const start = new Date(startTime);
   const end = new Date(start.getTime() + (type as any).duration_minutes * 60_000);
 
+  // Resolve email → tier for both linking + tier-aware slot validation.
+  const resolved = await resolveEmailToTier(admin, advisorId, email);
+  const bookerLevel = tierLevel(resolved.tier);
+
   // Re-validate the slot to defend against race conditions and tampering.
   const dateStr = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
@@ -282,11 +403,14 @@ async function handleBook(
     day: "2-digit",
   }).format(start);
   const dow = dayOfWeekInTz(dateStr, tz);
-  const { data: windows } = await admin
+  const { data: windowsRaw } = await admin
     .from("advisor_availability_windows")
-    .select("day_of_week, start_time, end_time")
+    .select("day_of_week, start_time, end_time, min_tier")
     .eq("advisor_id", advisorId)
     .eq("day_of_week", dow);
+  const windows = (windowsRaw ?? []).filter(
+    (w: any) => tierLevel(w.min_tier) <= bookerLevel,
+  );
 
   const dayStart = localToUtc(dateStr, "00:00", tz);
   const dayEnd = new Date(dayStart.getTime() + 24 * 3_600_000);
@@ -303,7 +427,7 @@ async function handleBook(
   }));
   const slots = generateSlots({
     date: dateStr,
-    windows: (windows ?? []) as AvailabilityWindow[],
+    windows: windows as AvailabilityWindow[],
     durationMin: (type as any).duration_minutes,
     bufferMin: (settings as any).buffer_minutes,
     tz,
@@ -316,34 +440,14 @@ async function handleBook(
     return json({ error: "slot_unavailable" }, 409);
   }
 
-  // Try to match the booking email to an existing contact on this advisor's
-  // book — if matched, we attach the calendar_event to that household /
-  // prospect so it shows up in their record without manual linking.
-  let householdId: string | null = null;
-  let prospectId: string | null = null;
-  let recipientLabel = name;
+  // Use the already-resolved match for linking. If no household and no
+  // prospect, fall through to the lightweight prospect creation below.
+  let householdId: string | null = resolved.household_id;
+  let prospectId: string | null = resolved.prospect_id;
+  let recipientLabel = resolved.display_name ?? name;
 
-  const { data: memberMatch } = await admin
-    .from("household_members")
-    .select("id, household_id, household:households(name)")
-    .eq("advisor_id", advisorId)
-    .eq("email", email)
-    .is("archived_at", null)
-    .maybeSingle();
-  if (memberMatch && (memberMatch as any).household_id) {
-    householdId = (memberMatch as any).household_id;
-    recipientLabel = (memberMatch as any).household?.name ?? recipientLabel;
-  } else {
-    const { data: prospectMatch } = await admin
-      .from("prospects")
-      .select("id, first_name, last_name")
-      .eq("advisor_id", advisorId)
-      .eq("email", email)
-      .maybeSingle();
-    if (prospectMatch) {
-      prospectId = (prospectMatch as any).id;
-      recipientLabel = `${(prospectMatch as any).first_name} ${(prospectMatch as any).last_name}`.trim() || recipientLabel;
-    } else {
+  if (!householdId && !prospectId) {
+    {
       // No existing contact — create a lightweight prospect so the advisor
       // can follow up. They can convert/merge later.
       const [firstName, ...rest] = name.split(/\s+/);
@@ -437,12 +541,19 @@ serve(async (req) => {
       if (!slug) return json({ error: "missing_slug" }, 400);
       return await handleGetPage(admin, slug);
     }
+    if (action === "resolve_email") {
+      const slug = url.searchParams.get("slug") ?? "";
+      const email = url.searchParams.get("email") ?? "";
+      if (!slug || !email) return json({ error: "missing_params" }, 400);
+      return await handleResolveEmail(admin, slug, email);
+    }
     if (action === "get_slots") {
       const slug = url.searchParams.get("slug") ?? "";
       const typeSlug = url.searchParams.get("type_slug") ?? "";
       const date = url.searchParams.get("date") ?? "";
+      const email = url.searchParams.get("email"); // optional
       if (!slug || !typeSlug || !date) return json({ error: "missing_params" }, 400);
-      return await handleGetSlots(admin, slug, typeSlug, date);
+      return await handleGetSlots(admin, slug, typeSlug, date, email);
     }
     if (action === "book") {
       const body = await req.json().catch(() => ({}));
