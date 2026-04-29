@@ -14,6 +14,25 @@ export interface DraftPanelState {
    * client record.
    */
   householdId?: string;
+  /**
+   * If this draft is opened from an AI Inbox row, the id of the
+   * `pending_drafts` row. MessageDraftPanel uses this to mark the draft
+   * sent/dismissed and skip AI regeneration in favor of `prefillBody`.
+   */
+  pendingDraftId?: string;
+  /**
+   * Pre-populated content from the AI Inbox. When present, MessageDraftPanel
+   * uses this verbatim instead of streaming a new draft from Claude.
+   */
+  prefillBody?: string;
+  prefillSubject?: string;
+  /**
+   * Deep-link path for the booking button when this draft was opened from
+   * the AI Inbox (e.g. `/book/joe-tester/annual-review`). MessageDraftPanel
+   * prefixes the origin and renders the button to this URL. If unset, the
+   * panel falls back to the advisor's general /book/:slug page.
+   */
+  bookingUrlPath?: string | null;
   /** Fires after the user clicks Send (mock send path). */
   onSent?: () => void;
 }

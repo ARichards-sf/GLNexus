@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { calculateTierScore, scoreToTier } from "@/lib/tierScoring";
 import { embedRecord } from "@/lib/embedRecord";
+import { emitActivityEvent } from "@/hooks/useActivityEvents";
 
 export interface Prospect {
   id: string;
@@ -161,9 +162,23 @@ export function useCreateProspect() {
 
 export function useUpdateProspect() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { targetAdvisorId } = useImpersonation();
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Prospect> }) => {
+      // Snapshot the previous stage so we can emit a "moved from X to Y"
+      // activity event when the stage actually changes.
+      let previousStage: string | undefined;
+      if ("pipeline_stage" in updates) {
+        const { data: prev } = await supabase
+          .from("prospects")
+          .select("pipeline_stage")
+          .eq("id", id)
+          .maybeSingle();
+        previousStage = (prev as any)?.pipeline_stage;
+      }
+
       const { data, error } = await supabase
         .from("prospects")
         .update(updates)
@@ -171,6 +186,28 @@ export function useUpdateProspect() {
         .select()
         .single();
       if (error) throw error;
+
+      // Emit pipeline_changed event when the stage actually moved.
+      if (
+        user &&
+        previousStage &&
+        updates.pipeline_stage &&
+        previousStage !== updates.pipeline_stage
+      ) {
+        const advisorId = targetAdvisorId(user.id);
+        const fullName = `${(data as any).first_name ?? ""} ${(data as any).last_name ?? ""}`.trim() || "Prospect";
+        const fmt = (s: string) => s.replace(/_/g, " ");
+        void emitActivityEvent({
+          advisorId,
+          kind: "pipeline_changed",
+          title: `${fullName} moved to ${fmt(updates.pipeline_stage)}`,
+          body: `From ${fmt(previousStage)}`,
+          prospect_id: id,
+          related_record_id: id,
+          related_record_type: "prospect",
+        });
+      }
+
       return data as Prospect;
     },
     onSuccess: (_, vars) => {

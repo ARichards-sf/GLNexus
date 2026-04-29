@@ -167,6 +167,27 @@ export function useUncompleteTask() {
   });
 }
 
+/**
+ * Bumps a task's `due_date` forward without touching anything else. Used by
+ * the Snooze actions in the Tasks page row menu — caller passes either
+ * a delta in days or an absolute YYYY-MM-DD date.
+ */
+export function useSnoozeTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ taskId, dueDate }: { taskId: string; dueDate: string }) => {
+      const { error } = await (supabase as any)
+        .from("tasks")
+        .update({ due_date: dueDate })
+        .eq("id", taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
 export function useDeleteTask() {
   const queryClient = useQueryClient();
   const { user } = useAuth();

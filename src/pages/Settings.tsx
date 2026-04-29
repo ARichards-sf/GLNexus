@@ -4,11 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Lock, LogOut } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Lock, LogOut, Calendar as CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsDemoUser } from "@/lib/demoMode";
 import { toast } from "sonner";
+import BookingSettings from "@/components/settings/BookingSettings";
 
 export default function Settings() {
   const { user, signOut } = useAuth();
@@ -49,7 +51,6 @@ export default function Settings() {
 
     setSubmitting(true);
     try {
-      // Verify current password by re-authenticating
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: currentPassword,
@@ -96,60 +97,79 @@ export default function Settings() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Lock className="w-4 h-4 text-muted-foreground" />
+      <Tabs defaultValue="security" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="security">
+            <Lock className="w-3.5 h-3.5 mr-1.5" />
             Security
-          </CardTitle>
-          <CardDescription>Update your password to keep your account secure.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-            <div className="space-y-1.5">
-              <Label htmlFor="current-password">Current Password</Label>
-              <Input
-                id="current-password"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-              />
-              {errors.current && <p className="text-xs text-destructive">{errors.current}</p>}
-            </div>
+          </TabsTrigger>
+          <TabsTrigger value="booking">
+            <CalendarIcon className="w-3.5 h-3.5 mr-1.5" />
+            Booking
+          </TabsTrigger>
+        </TabsList>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="new-password">New Password</Label>
-              <Input
-                id="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                autoComplete="new-password"
-              />
-              {errors.next && <p className="text-xs text-destructive">{errors.next}</p>}
-            </div>
+        <TabsContent value="security">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Lock className="w-4 h-4 text-muted-foreground" />
+                Security
+              </CardTitle>
+              <CardDescription>Update your password to keep your account secure.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
+                <div className="space-y-1.5">
+                  <Label htmlFor="current-password">Current Password</Label>
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    autoComplete="current-password"
+                  />
+                  {errors.current && <p className="text-xs text-destructive">{errors.current}</p>}
+                </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="confirm-password">Confirm New Password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-              />
-              {errors.confirm && <p className="text-xs text-destructive">{errors.confirm}</p>}
-            </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  {errors.next && <p className="text-xs text-destructive">{errors.next}</p>}
+                </div>
 
-            <div className="pt-2">
-              <Button type="submit" disabled={submitting}>
-                {submitting ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirm-password">Confirm New Password</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  {errors.confirm && <p className="text-xs text-destructive">{errors.confirm}</p>}
+                </div>
+
+                <div className="pt-2">
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="booking">
+          <BookingSettings />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

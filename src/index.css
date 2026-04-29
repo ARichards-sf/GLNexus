@@ -69,3 +69,22 @@
     font-family: 'DM Sans', sans-serif;
   }
 }
+
+/* Email scheduling button. Rendered inside TipTap (.ProseMirror) when the
+   AI inbox draft contains a booking link, and also when the email body is
+   rendered standalone (e.g. when we eventually email-send it). */
+.ProseMirror .email-button,
+.email-button {
+  display: inline-block !important;
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  padding: 10px 18px !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  margin: 0.25rem 0 !important;
+}
+.ProseMirror .email-button:hover,
+.email-button:hover {
+  filter: brightness(0.95);
+}

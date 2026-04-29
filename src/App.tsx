@@ -44,6 +44,12 @@ import ProspectDetail from "./pages/ProspectDetail";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import {
+  BookingProfile,
+  BookingPickTime,
+  BookingConfirm,
+  BookingConfirmed,
+} from "./pages/PublicBooking";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +66,11 @@ const App = () => (
         <DraftPanelProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            {/* Public booking pages — no auth required, no AppLayout chrome */}
+            <Route path="/book/:slug" element={<BookingProfile />} />
+            <Route path="/book/:slug/:typeSlug" element={<BookingPickTime />} />
+            <Route path="/book/:slug/:typeSlug/confirm" element={<BookingConfirm />} />
+            <Route path="/book/:slug/confirmed/:eventId" element={<BookingConfirmed />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/scorecard" element={<Scorecard />} />

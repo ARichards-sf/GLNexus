@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { embedRecord } from "@/lib/embedRecord";
+import { emitActivityEvent } from "@/hooks/useActivityEvents";
 
 export interface CalendarEvent {
   id: string;
@@ -161,9 +162,19 @@ export function useCreateCalendarEvent() {
 
 export function useCompleteEvent() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { targetAdvisorId } = useImpersonation();
 
   return useMutation({
     mutationFn: async ({ eventId, householdId }: { eventId: string; householdId: string | null }) => {
+      // Look up the event before updating so we can emit a meaningful
+      // activity title afterward (we lose context once status flips).
+      const { data: event } = await supabase
+        .from("calendar_events")
+        .select("title, event_type, households(name), prospects(first_name, last_name)")
+        .eq("id", eventId)
+        .maybeSingle();
+
       const { error } = await supabase
         .from("calendar_events")
         .update({ status: "completed" })
@@ -179,6 +190,27 @@ export function useCompleteEvent() {
             status: "Active",
           })
           .eq("id", householdId);
+      }
+
+      // Emit activity_event for the sidebar stream.
+      if (user) {
+        const advisorId = targetAdvisorId(user.id);
+        const recipient =
+          (event as any)?.households?.name ||
+          ((event as any)?.prospects
+            ? `${(event as any).prospects.first_name} ${(event as any).prospects.last_name}`
+            : null);
+        void emitActivityEvent({
+          advisorId,
+          kind: "meeting_completed",
+          title: recipient
+            ? `Meeting completed with ${recipient}`
+            : `Meeting completed: ${(event as any)?.title ?? "Session"}`,
+          body: (event as any)?.event_type ?? null,
+          household_id: householdId,
+          related_record_id: eventId,
+          related_record_type: "calendar_event",
+        });
       }
     },
     onSuccess: () => {

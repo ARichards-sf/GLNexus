@@ -17,6 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import MorningBriefing from "@/components/MorningBriefing";
+import GoodieSuggests from "@/components/GoodieSuggests";
 import TierBadge from "@/components/TierBadge";
 import { DemoAnnotation } from "@/components/DemoAnnotation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -343,6 +344,9 @@ export function WidgetRenderer({
         </Card>
       );
     }
+
+    case "goodie_suggests":
+      return <GoodieSuggests households={households as any} recentNotes={recentNotes as any} />;
 
     case "pipeline_summary": {
       const activeProspects = prospects.filter(

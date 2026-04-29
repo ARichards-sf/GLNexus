@@ -10,8 +10,14 @@ import { useQuery } from "@tanstack/react-query";
 import { streamChat } from "@/lib/aiChat";
 import { useDraftPanel } from "@/contexts/DraftPanelContext";
 import { useCreateComplianceNote } from "@/hooks/useHouseholds";
+import { useMarkDraftSent } from "@/hooks/usePendingDrafts";
+import { emitActivityEvent } from "@/hooks/useActivityEvents";
+import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { supabase } from "@/integrations/supabase/client";
 import RichTextEditor from "@/components/RichTextEditor";
+
+const SCHED_PLACEHOLDER = "[SCHEDULING_BUTTON]";
 
 const TEXT_MAX = 320;
 
@@ -29,8 +35,13 @@ function escapeHtml(s: string): string {
  * TipTap renders it with the spacing the writer intended. Blank lines
  * (`\n\n+`) separate paragraphs; single `\n` inside a paragraph becomes a
  * line break (which mostly only matters for the sign-off block).
+ *
+ * If the text contains the `[SCHEDULING_BUTTON]` placeholder, we swap it
+ * for a styled link to the advisor's booking page (when `bookingUrl` is
+ * provided) or strip the placeholder entirely (when not). The class
+ * `email-button` is styled in index.css to render as a button.
  */
-function plainTextToHtml(text: string): string {
+function plainTextToHtml(text: string, bookingUrl?: string | null): string {
   if (!text) return "";
   const paragraphs = text
     .split(/\n{2,}/)
@@ -38,7 +49,14 @@ function plainTextToHtml(text: string): string {
     .filter((p) => p.length > 0);
   if (paragraphs.length === 0) return "";
   return paragraphs
-    .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br />")}</p>`)
+    .map((p) => {
+      if (p === SCHED_PLACEHOLDER) {
+        if (!bookingUrl) return "";
+        return `<p><a href="${escapeHtml(bookingUrl)}" class="email-button" target="_blank" rel="noopener noreferrer">Schedule a meeting</a></p>`;
+      }
+      return `<p>${escapeHtml(p).replace(/\n/g, "<br />")}</p>`;
+    })
+    .filter(Boolean)
     .join("");
 }
 
@@ -48,8 +66,17 @@ function buildPrompt(opts: {
   recipientFirstName?: string;
   reason: string;
   callToAction?: string;
+  /** When true, instruct the AI to insert the scheduling-button placeholder. */
+  withBookingButton?: boolean;
 }): string {
-  const { kind, recipientName, recipientFirstName, reason, callToAction = "schedule a brief call" } = opts;
+  const {
+    kind,
+    recipientName,
+    recipientFirstName,
+    reason,
+    callToAction = "schedule a brief call",
+    withBookingButton = false,
+  } = opts;
 
   if (kind === "email") {
     return `You are drafting a short, empathetic, professional EMAIL from a financial advisor to a client.
@@ -63,13 +90,18 @@ WRITE THE EMAIL BODY ONLY — do NOT include the subject line, do NOT include th
 Formatting (CRITICAL):
 - Separate every paragraph with a BLANK LINE (one full empty line between paragraphs).
 - The sign-off MUST be on its own paragraph, separated from the body by a blank line.
-- Inside the sign-off paragraph, put "Best," on the first line, then a single newline, then "[Advisor Name]" on the next line. Leave the bracket placeholder exactly as written.
+- Inside the sign-off paragraph, put "Best," on the first line, then a single newline, then "[Advisor Name]" on the next line. Leave the bracket placeholder exactly as written.${
+      withBookingButton
+        ? `
+- IMMEDIATELY BEFORE the sign-off paragraph (and AFTER the body's final paragraph), output a single line containing only the literal text ${SCHED_PLACEHOLDER} on its own line, separated from the body and the sign-off by blank lines. The system replaces this placeholder with a clickable scheduling button.`
+        : ""
+    }
 
 Content:
 - Open with a warm but brief greeting using ${recipientFirstName || "the client's first name"} (no "Dear"). The greeting is its own paragraph.
 - Acknowledge the situation directly without being alarmist.
-- 2 to 4 short paragraphs total in the body, then the sign-off paragraph.
-- Close one of the body paragraphs by suggesting the next step (${callToAction}).
+- 2 to 4 short paragraphs total in the body${withBookingButton ? `, then the ${SCHED_PLACEHOLDER} placeholder line, then the sign-off paragraph` : ", then the sign-off paragraph"}.
+- Close the final body paragraph with a soft invitation${withBookingButton ? ` to grab a time on your calendar (the system will append a clickable button below this paragraph — do NOT write your own URL or "click here" link)` : ` (e.g., "${callToAction}")`}.
 - Plain prose, no markdown, no headers, no bullet lists.`;
   }
 
@@ -97,7 +129,45 @@ Output ONLY the message text.`;
  */
 export default function MessageDraftPanel() {
   const { draft, closeDraftPanel } = useDraftPanel();
+  const { user } = useAuth();
+  const { targetAdvisorId } = useImpersonation();
   const createNote = useCreateComplianceNote();
+  const markDraftSent = useMarkDraftSent();
+  const advisorIdForBooking = user ? targetAdvisorId(user.id) : undefined;
+
+  // Booking settings for the *current* advisor (or impersonation target).
+  // When enabled, we instruct the AI to drop the scheduling-button
+  // placeholder and swap it for a styled link on render.
+  const { data: bookingSettings } = useQuery({
+    queryKey: ["advisor_booking_settings", advisorIdForBooking],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("advisor_booking_settings" as any)
+        .select("slug, enabled")
+        .eq("advisor_id", advisorIdForBooking!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { slug: string; enabled: boolean } | null;
+    },
+    enabled: !!advisorIdForBooking,
+    staleTime: 5 * 60 * 1000,
+  });
+  // Resolve the booking URL with this priority:
+  //   1. draft.bookingUrlPath — when present (AI Inbox draft), the edge
+  //      function already chose the meeting type that fits the trigger
+  //      (e.g. annual review → /book/:slug/annual-review).
+  //   2. Generic /book/:slug — for ad-hoc drafts where no specific type
+  //      was selected.
+  // Either way we only emit a button when the advisor has booking enabled.
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  let bookingUrl: string | null = null;
+  if (bookingSettings?.enabled && bookingSettings.slug) {
+    if (draft?.bookingUrlPath) {
+      bookingUrl = `${origin}${draft.bookingUrlPath}`;
+    } else {
+      bookingUrl = `${origin}/book/${bookingSettings.slug}`;
+    }
+  }
 
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -158,6 +228,7 @@ export default function MessageDraftPanel() {
             recipientFirstName: firstName,
             reason: draft.reason,
             callToAction: draft.callToAction,
+            withBookingButton: kind === "email" && !!bookingUrl,
           }),
         },
       ],
@@ -166,7 +237,7 @@ export default function MessageDraftPanel() {
         if (myKey !== generationKey.current) return;
         rawStreamRef.current += chunk;
         if (kind === "email") {
-          setBody(plainTextToHtml(rawStreamRef.current));
+          setBody(plainTextToHtml(rawStreamRef.current, bookingUrl));
         } else {
           setBody(rawStreamRef.current);
         }
@@ -188,11 +259,20 @@ export default function MessageDraftPanel() {
   // Wait for the Primary contact query to settle (or be skipped, if there's
   // no household scope) so the AI prompt can use the correct first name on
   // its very first run instead of a generic "Hi there".
+  // When the panel is opened from the AI Inbox (`prefillBody` set), use the
+  // prebuilt copy verbatim instead of re-streaming a fresh draft.
   useEffect(() => {
     if (!draft) return;
     const primaryReady = !draft.householdId || primaryFetched;
     if (!primaryReady) return;
-    setSubject(isEmail ? DEFAULT_SUBJECT(draft.recipientName) : "");
+    setSubject(isEmail ? draft.prefillSubject ?? DEFAULT_SUBJECT(draft.recipientName) : "");
+    if (draft.prefillBody) {
+      // Prefill is plain text (the way the edge function stores it); convert
+      // to TipTap-friendly HTML for email mode, mirror as-is for SMS.
+      setBody(isEmail ? plainTextToHtml(draft.prefillBody, bookingUrl) : draft.prefillBody);
+      setGenerating(false);
+      return;
+    }
     setBody("");
     generate();
     return () => {
@@ -200,7 +280,7 @@ export default function MessageDraftPanel() {
       generationKey.current++;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft?.kind, draft?.recipientName, draft?.reason, primaryFetched]);
+  }, [draft?.kind, draft?.recipientName, draft?.reason, draft?.pendingDraftId, draft?.bookingUrlPath, primaryFetched, bookingUrl]);
 
   if (!draft) return null;
 
@@ -286,6 +366,31 @@ export default function MessageDraftPanel() {
           ? `Email queued for ${draft.recipientName} (mock — actual sending not yet wired).`
           : `Text queued for ${draft.recipientName} (mock — actual sending not yet wired).`,
       );
+    }
+
+    // If this draft came from the AI Inbox, mark the pending row as sent
+    // so it disappears from the inbox. Failures here shouldn't block the
+    // close — the compliance note is the system of record.
+    if (draft.pendingDraftId) {
+      try {
+        await markDraftSent.mutateAsync(draft.pendingDraftId);
+      } catch (e) {
+        console.error("Failed to mark pending draft sent:", e);
+      }
+    }
+
+    // Emit activity_event so the sidebar stream surfaces the send. Skipped
+    // when no user (shouldn't happen via current entry points but defensive).
+    if (user) {
+      void emitActivityEvent({
+        advisorId: user.id,
+        kind: "draft_sent",
+        title: `${isEmail ? "Email" : "Text"} sent to ${draft.recipientName}`,
+        body: isEmail ? subject.trim() : null,
+        household_id: draft.householdId ?? null,
+        related_record_id: draft.pendingDraftId ?? null,
+        related_record_type: draft.pendingDraftId ? "pending_draft" : null,
+      });
     }
 
     draft.onSent?.();

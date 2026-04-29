@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
 import {
   Bold,
   Italic,
@@ -70,7 +71,21 @@ export default function RichTextEditor({
   placeholder,
 }: Props) {
   const editor = useEditor({
-    extensions: [StarterKit, Underline],
+    extensions: [
+      StarterKit,
+      Underline,
+      Link.configure({
+        // Don't navigate inside the editor — clicking should let the user
+        // place the cursor for editing.
+        openOnClick: false,
+        // Recognized HTML attribute set when reading existing markup; we
+        // rely on this to preserve our scheduling button styling class.
+        HTMLAttributes: {
+          rel: "noopener noreferrer",
+          target: "_blank",
+        },
+      }),
+    ],
     content: value,
     editable: !disabled,
     onUpdate: ({ editor }) => {

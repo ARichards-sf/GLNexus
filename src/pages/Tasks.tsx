@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CheckSquare, Plus, AlertCircle, MoreHorizontal, ChevronDown, ChevronRight, Filter, X } from "lucide-react";
+import {
+  CheckSquare, Plus, MoreHorizontal, ChevronDown, ChevronRight, Filter, X,
+  Search, AlarmClock,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
@@ -20,7 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useIsLeadAdvisor } from "@/hooks/useIsLeadAdvisor";
 import {
-  useTasks, useCompleteTask, useUncompleteTask, useDeleteTask,
+  useTasks, useCompleteTask, useUncompleteTask, useDeleteTask, useSnoozeTask,
   useMarkNotificationsRead,
   type Task, type TaskFilter,
 } from "@/hooks/useTasks";
@@ -50,9 +55,38 @@ function isOverdue(dueDate: string | null, status: Task["status"]) {
   return d < today;
 }
 
-function initialsOf(name: string | null | undefined) {
-  if (!name) return "?";
-  return name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function endOfWeek(from: Date): Date {
+  // Treat "this week" as today + 6 days (rolling 7-day window). Calendar
+  // weeks wrap awkwardly on weekends; rolling is more useful for planning.
+  const d = new Date(from);
+  d.setDate(d.getDate() + 6);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+function nextMondayIso(): string {
+  const d = new Date();
+  const day = d.getDay(); // 0 Sun .. 6 Sat
+  // Days until next Monday — never 0, bumps at least to next week.
+  const add = ((1 - day + 7) % 7) || 7;
+  d.setDate(d.getDate() + add);
+  return d.toISOString().split("T")[0];
+}
+
+function plusDaysIso(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
+function formatTaskType(t: string): string {
+  return t.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 interface TaskRowProps {
@@ -68,6 +102,8 @@ function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelet
   const navigate = useNavigate();
   const completeTask = useCompleteTask();
   const uncompleteTask = useUncompleteTask();
+  const snoozeTask = useSnoozeTask();
+  const { toast } = useToast();
   const isDone = task.status === "done";
   const overdue = isOverdue(task.due_date, task.status);
   const isAssignedToSelf = task.assigned_to === currentUserId;
@@ -85,6 +121,15 @@ function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelet
       return;
     }
     navigate(`/tasks/${task.id}`);
+  };
+
+  const handleSnooze = async (dueDate: string, label: string) => {
+    try {
+      await snoozeTask.mutateAsync({ taskId: task.id, dueDate });
+      toast({ title: `Snoozed to ${label}` });
+    } catch (e: any) {
+      toast({ title: "Couldn't snooze task", description: e.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -174,6 +219,26 @@ function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelet
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onEdit(task)}>Edit</DropdownMenuItem>
               <DropdownMenuItem onClick={() => onReassign(task)}>Reassign</DropdownMenuItem>
+              {!isDone && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                    Snooze
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => handleSnooze(plusDaysIso(1), "tomorrow")}>
+                    <AlarmClock className="w-3.5 h-3.5 mr-2" />
+                    1 day
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSnooze(plusDaysIso(7), "next week")}>
+                    <AlarmClock className="w-3.5 h-3.5 mr-2" />
+                    1 week
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSnooze(nextMondayIso(), "next Monday")}>
+                    <AlarmClock className="w-3.5 h-3.5 mr-2" />
+                    Next Monday
+                  </DropdownMenuItem>
+                </>
+              )}
               {(isCreator || task.advisor_id === currentUserId) && (
                 <>
                   <DropdownMenuSeparator />
@@ -188,6 +253,35 @@ function TaskRow({ task, showAdvisor, currentUserId, onEdit, onReassign, onDelet
       </div>
     </div>
   );
+}
+
+type Bucket = "overdue" | "today" | "week" | "later";
+
+interface BucketConfig {
+  key: Bucket;
+  label: string;
+  emptyHint?: string;
+  tone?: string;
+}
+
+const BUCKETS: BucketConfig[] = [
+  { key: "overdue", label: "Overdue", tone: "text-red-600 dark:text-red-400" },
+  { key: "today",   label: "Today" },
+  { key: "week",    label: "This Week" },
+  { key: "later",   label: "Later" },
+];
+
+function bucketFor(task: Task): Bucket {
+  // Done tasks are never bucketed (rendered separately at the bottom).
+  if (task.status === "done") return "later";
+  const today = startOfToday();
+  const weekEnd = endOfWeek(today);
+  if (!task.due_date) return "later";
+  const due = new Date(task.due_date + "T00:00:00");
+  if (due < today) return "overdue";
+  if (due.getTime() === today.getTime()) return "today";
+  if (due <= weekEnd) return "week";
+  return "later";
 }
 
 interface TaskListProps {
@@ -207,6 +301,34 @@ function TaskList({ tasks, isLoading, showAdvisor, currentUserId, onEdit, onReas
 
   const todoTasks = useMemo(() => tasks.filter((t) => t.status === "todo"), [tasks]);
   const doneTasks = useMemo(() => tasks.filter((t) => t.status === "done"), [tasks]);
+
+  const grouped = useMemo(() => {
+    const map: Record<Bucket, Task[]> = {
+      overdue: [],
+      today: [],
+      week: [],
+      later: [],
+    };
+    for (const t of todoTasks) {
+      map[bucketFor(t)].push(t);
+    }
+    // Sort within each bucket: priority then due_date asc.
+    const PRIORITY_RANK: Record<Task["priority"], number> = {
+      urgent: 0, high: 1, medium: 2, low: 3,
+    };
+    for (const k of Object.keys(map) as Bucket[]) {
+      map[k].sort((a, b) => {
+        const ap = PRIORITY_RANK[a.priority] ?? 4;
+        const bp = PRIORITY_RANK[b.priority] ?? 4;
+        if (ap !== bp) return ap - bp;
+        if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+        if (a.due_date) return -1;
+        if (b.due_date) return 1;
+        return 0;
+      });
+    }
+    return map;
+  }, [todoTasks]);
 
   if (isLoading) {
     return <PageLoader />;
@@ -237,27 +359,41 @@ function TaskList({ tasks, isLoading, showAdvisor, currentUserId, onEdit, onReas
     );
   }
 
+  const visibleBuckets = BUCKETS.filter((b) => grouped[b.key].length > 0);
+
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-2 px-1">
-          To Do · {todoTasks.length}
-        </p>
-        {todoTasks.length === 0 ? (
-          <Card className="border-border shadow-none">
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Nothing to do here.
-            </CardContent>
-          </Card>
-        ) : (
+      {visibleBuckets.length === 0 && (
+        <Card className="border-border shadow-none">
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            Nothing open in your queue.
+          </CardContent>
+        </Card>
+      )}
+
+      {visibleBuckets.map((bucket) => (
+        <div key={bucket.key}>
+          <p className={cn(
+            "text-[11px] uppercase tracking-wider font-semibold mb-2 px-1",
+            bucket.tone ?? "text-muted-foreground",
+          )}>
+            {bucket.label} · {grouped[bucket.key].length}
+          </p>
           <Card className="border-border shadow-none overflow-hidden">
-            {todoTasks.map((t) => (
-              <TaskRow key={t.id} task={t} showAdvisor={showAdvisor} currentUserId={currentUserId}
-                onEdit={onEdit} onReassign={onReassign} onDelete={onDelete} />
+            {grouped[bucket.key].map((t) => (
+              <TaskRow
+                key={t.id}
+                task={t}
+                showAdvisor={showAdvisor}
+                currentUserId={currentUserId}
+                onEdit={onEdit}
+                onReassign={onReassign}
+                onDelete={onDelete}
+              />
             ))}
           </Card>
-        )}
-      </div>
+        </div>
+      ))}
 
       {doneTasks.length > 0 && (
         <div>
@@ -306,7 +442,11 @@ export default function Tasks() {
 
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [dueDateFilter, setDueDateFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [activeTypes, setActiveTypes] = useState<Set<string>>(new Set());
 
+  // Reset firm-only filters when leaving the firm view; search and type
+  // chips persist across tabs because they're useful everywhere.
   useEffect(() => {
     if (activeTab !== "all") {
       setAssigneeFilter("all");
@@ -319,58 +459,107 @@ export default function Tasks() {
     return Array.from(new Set(tasks.map((t) => t.assigned_to)));
   }, [tasks, activeTab]);
 
-  const activeFilterCount = [assigneeFilter !== "all", dueDateFilter !== "all"].filter(Boolean).length;
+  // Surface every task_type currently present in the loaded tasks. We
+  // dynamically render chips for whatever shows up so we don't need to
+  // maintain a hard-coded enum here.
+  const availableTypes = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tasks) {
+      if (t.task_type) set.add(t.task_type);
+    }
+    return Array.from(set).sort();
+  }, [tasks]);
 
-  const clearFirmFilters = () => {
+  // Drop type filters that no longer match any visible task (e.g. after
+  // switching tabs) — otherwise the chip stays "active" with no effect.
+  useEffect(() => {
+    setActiveTypes((prev) => {
+      const next = new Set<string>();
+      for (const v of prev) {
+        if (availableTypes.includes(v)) next.add(v);
+      }
+      return next.size === prev.size ? prev : next;
+    });
+  }, [availableTypes]);
+
+  const activeFilterCount =
+    [assigneeFilter !== "all", dueDateFilter !== "all"].filter(Boolean).length +
+    (search.trim() ? 1 : 0) +
+    activeTypes.size;
+
+  const clearAllFilters = () => {
     setAssigneeFilter("all");
     setDueDateFilter("all");
+    setSearch("");
+    setActiveTypes(new Set());
   };
 
   const filteredTasks = useMemo(() => {
-    if (activeTab !== "all") return tasks;
-
     let result = [...tasks];
 
-    if (assigneeFilter !== "all") {
-      result = result.filter((t) => t.assigned_to === assigneeFilter);
-    }
-
-    if (dueDateFilter !== "all") {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const endOfWeek = new Date(today);
-      endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
-      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
+    // Search across title + household name
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
       result = result.filter((t) => {
-        if (dueDateFilter === "overdue") {
-          if (!t.due_date || t.status === "done") return false;
-          return new Date(t.due_date + "T00:00:00") < today;
-        }
-        if (dueDateFilter === "today") {
-          if (!t.due_date) return false;
-          const d = new Date(t.due_date + "T00:00:00");
-          return d.getTime() === today.getTime();
-        }
-        if (dueDateFilter === "week") {
-          if (!t.due_date) return false;
-          const d = new Date(t.due_date + "T00:00:00");
-          return d >= today && d <= endOfWeek;
-        }
-        if (dueDateFilter === "month") {
-          if (!t.due_date) return false;
-          const d = new Date(t.due_date + "T00:00:00");
-          return d >= today && d <= endOfMonth;
-        }
-        if (dueDateFilter === "none") {
-          return !t.due_date;
-        }
-        return true;
+        if (t.title.toLowerCase().includes(q)) return true;
+        if (t.households?.name && t.households.name.toLowerCase().includes(q)) return true;
+        return false;
       });
     }
 
+    // Task-type chip filter
+    if (activeTypes.size > 0) {
+      result = result.filter((t) => t.task_type && activeTypes.has(t.task_type));
+    }
+
+    // Firm-view-only filters
+    if (activeTab === "all") {
+      if (assigneeFilter !== "all") {
+        result = result.filter((t) => t.assigned_to === assigneeFilter);
+      }
+      if (dueDateFilter !== "all") {
+        const today = startOfToday();
+        const weekEnd = endOfWeek(today);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        result = result.filter((t) => {
+          if (dueDateFilter === "overdue") {
+            if (!t.due_date || t.status === "done") return false;
+            return new Date(t.due_date + "T00:00:00") < today;
+          }
+          if (dueDateFilter === "today") {
+            if (!t.due_date) return false;
+            const d = new Date(t.due_date + "T00:00:00");
+            return d.getTime() === today.getTime();
+          }
+          if (dueDateFilter === "week") {
+            if (!t.due_date) return false;
+            const d = new Date(t.due_date + "T00:00:00");
+            return d >= today && d <= weekEnd;
+          }
+          if (dueDateFilter === "month") {
+            if (!t.due_date) return false;
+            const d = new Date(t.due_date + "T00:00:00");
+            return d >= today && d <= endOfMonth;
+          }
+          if (dueDateFilter === "none") {
+            return !t.due_date;
+          }
+          return true;
+        });
+      }
+    }
+
     return result;
-  }, [tasks, activeTab, assigneeFilter, dueDateFilter]);
+  }, [tasks, search, activeTypes, activeTab, assigneeFilter, dueDateFilter]);
+
+  const toggleType = (type: string) => {
+    setActiveTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  };
 
   const handleEditSubmit = async (values: EditableValues) => {
     if (!editTask) return;
@@ -392,7 +581,6 @@ export default function Tasks() {
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
     toast({ title: "Task updated" });
   };
-
 
   const handleConfirmDelete = async () => {
     if (!deleteCandidate) return;
@@ -423,24 +611,70 @@ export default function Tasks() {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TaskFilter)} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TaskFilter)} className="space-y-4">
         <TabsList>
           <TabsTrigger value="mine">Assigned to Me</TabsTrigger>
           <TabsTrigger value="created">Created by Me</TabsTrigger>
           {showFirmView && <TabsTrigger value="all">Firm View</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="mine">
-          <TaskList tasks={activeTab === "mine" ? tasks : []} isLoading={activeTab === "mine" && isLoading} currentUserId={user.id}
-            onEdit={setEditTask} onReassign={setReassignTask} onDelete={setDeleteCandidate} />
-        </TabsContent>
-        <TabsContent value="created">
-          <TaskList tasks={activeTab === "created" ? tasks : []} isLoading={activeTab === "created" && isLoading} currentUserId={user.id}
-            onEdit={setEditTask} onReassign={setReassignTask} onDelete={setDeleteCandidate} />
-        </TabsContent>
-        {showFirmView && (
-          <TabsContent value="all">
-            <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search tasks or households…"
+                className="pl-8 h-9 text-sm"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-9 text-xs">
+                <X className="w-3.5 h-3.5 mr-1" />
+                Clear {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
+              </Button>
+            )}
+          </div>
+
+          {availableTypes.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mr-1">
+                Type
+              </span>
+              {availableTypes.map((type) => {
+                const active = activeTypes.has(type);
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => toggleType(type)}
+                    className={cn(
+                      "px-2 py-1 rounded-full border text-[11px] transition-colors",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                    )}
+                  >
+                    {formatTaskType(type)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {activeTab === "all" && (
+            <div className="flex items-center gap-2 flex-wrap">
               <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
                 <SelectTrigger className="w-[180px] h-9">
                   <SelectValue placeholder="Assigned to" />
@@ -468,14 +702,36 @@ export default function Tasks() {
                   <SelectItem value="none">No Due Date</SelectItem>
                 </SelectContent>
               </Select>
-
-              {activeFilterCount > 0 && (
-                <Button variant="ghost" size="sm" onClick={clearFirmFilters} className="h-9">
-                  <X className="w-3.5 h-3.5 mr-1" />
-                  Clear {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
-                </Button>
-              )}
             </div>
+          )}
+        </div>
+
+        <TabsContent value="mine">
+          <TaskList
+            tasks={activeTab === "mine" ? filteredTasks : []}
+            isLoading={activeTab === "mine" && isLoading}
+            currentUserId={user.id}
+            onEdit={setEditTask}
+            onReassign={setReassignTask}
+            onDelete={setDeleteCandidate}
+            onClearFilters={clearAllFilters}
+            isFiltered={activeFilterCount > 0}
+          />
+        </TabsContent>
+        <TabsContent value="created">
+          <TaskList
+            tasks={activeTab === "created" ? filteredTasks : []}
+            isLoading={activeTab === "created" && isLoading}
+            currentUserId={user.id}
+            onEdit={setEditTask}
+            onReassign={setReassignTask}
+            onDelete={setDeleteCandidate}
+            onClearFilters={clearAllFilters}
+            isFiltered={activeFilterCount > 0}
+          />
+        </TabsContent>
+        {showFirmView && (
+          <TabsContent value="all">
             <TaskList
               tasks={activeTab === "all" ? filteredTasks : []}
               isLoading={activeTab === "all" && isLoading}
@@ -484,7 +740,7 @@ export default function Tasks() {
               onEdit={setEditTask}
               onReassign={setReassignTask}
               onDelete={setDeleteCandidate}
-              onClearFilters={clearFirmFilters}
+              onClearFilters={clearAllFilters}
               isFiltered={activeFilterCount > 0}
             />
           </TabsContent>

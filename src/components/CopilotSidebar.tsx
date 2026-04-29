@@ -1,11 +1,22 @@
 import { useState, type ReactNode } from "react";
-import { ChevronDown, ChevronUp, Sparkles, CalendarDays, Bot, type LucideIcon } from "lucide-react";
+import {
+  Activity,
+  CalendarDays,
+  CheckSquare,
+  ChevronDown,
+  ChevronUp,
+  Inbox,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
 import { useTodaysMeetings } from "@/hooks/useCalendarEvents";
-import GoodieSuggests from "./GoodieSuggests";
+import { usePendingDrafts } from "@/hooks/usePendingDrafts";
+import { useActivityEvents } from "@/hooks/useActivityEvents";
+import { useTasks } from "@/hooks/useTasks";
 import TodaysMeetingsWidget from "./dashboard/TodaysMeetingsWidget";
-import DashboardGoodiePanel from "./DashboardGoodiePanel";
+import AiInboxSection from "./AiInboxSection";
+import PendingTasksSection from "./PendingTasksSection";
+import ActivityStreamSection from "./ActivityStreamSection";
 
 const STORAGE_PREFIX = "copilot_sec_";
 
@@ -70,7 +81,7 @@ function Section({
   storageKey,
   count,
   defaultCollapsed = false,
-  /** Caps the height of the body so a long list doesn't crowd out the chat. */
+  /** Caps the height of the body so a long list doesn't crowd out other sections. */
   bodyMaxHeight,
   children,
 }: {
@@ -102,29 +113,34 @@ function Section({
 }
 
 /**
- * Right-sidebar copilot console. Stacks three sections vertically:
- *   1. Goodie Suggests — actionable AI recommendations (book-wide, page-agnostic)
+ * Right-sidebar copilot console. Stacks four sections vertically:
+ *   1. AI Inbox — pending pre-drafted outreach awaiting review
  *   2. Today's Meetings — schedule with on-demand AI briefs per row
- *   3. Goodie chat — conversational assistant, fills the remaining space
+ *   3. Pending Tasks — top priority open tasks with one-click complete
+ *   4. Activity — auto-emitted events ("Goodie drafted...", "Meeting completed...")
  *
- * Each of the top two sections is independently collapsible (state persisted
- * in localStorage) so the advisor can dial in the density. The chat always
- * takes whatever vertical space remains.
+ * Each section is independently collapsible (state persisted in localStorage)
+ * so the advisor can dial in the density. There's no fixed chat panel here —
+ * Goodie chat lives at /goodie via the left-sidebar nav.
  */
 export default function CopilotSidebar() {
-  const { data: households = [] } = useHouseholds();
-  const { data: recentNotes = [] } = useAllComplianceNotes();
   const { data: todaysMeetings = [] } = useTodaysMeetings();
+  const { data: pendingDrafts = [] } = usePendingDrafts();
+  const { data: events = [] } = useActivityEvents();
+  const { data: tasks = [] } = useTasks("mine");
+  const openTaskCount = tasks.filter((t) => t.status === "todo").length;
+  const unreadActivity = events.filter((e) => !e.read_at).length;
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-y-auto">
       <Section
-        icon={Sparkles}
-        label="Goodie Suggests"
-        storageKey="suggests"
+        icon={Inbox}
+        label="AI Inbox"
+        storageKey="inbox"
+        count={pendingDrafts.length}
         bodyMaxHeight="max-h-[40vh]"
       >
-        <GoodieSuggests households={households} recentNotes={recentNotes as any} embedded />
+        <AiInboxSection />
       </Section>
 
       <Section
@@ -137,18 +153,25 @@ export default function CopilotSidebar() {
         <TodaysMeetingsWidget embedded />
       </Section>
 
-      {/* Chat takes the remaining height. The DashboardGoodiePanel fragment
-          renders its own scrollable transcript + sticky input; we just give
-          it a flex column that fills. */}
-      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-        <div className="px-3 py-2 border-b border-border bg-card flex items-center gap-2 text-[11px] font-semibold text-foreground/80 uppercase tracking-wider">
-          <Bot className="w-3.5 h-3.5 text-muted-foreground" />
-          Ask Goodie
-        </div>
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <DashboardGoodiePanel />
-        </div>
-      </div>
+      <Section
+        icon={CheckSquare}
+        label="Pending Tasks"
+        storageKey="tasks"
+        count={openTaskCount}
+        bodyMaxHeight="max-h-[40vh]"
+      >
+        <PendingTasksSection />
+      </Section>
+
+      <Section
+        icon={Activity}
+        label="Activity"
+        storageKey="activity"
+        count={unreadActivity}
+        bodyMaxHeight="max-h-[50vh]"
+      >
+        <ActivityStreamSection />
+      </Section>
     </div>
   );
 }
