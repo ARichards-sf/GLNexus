@@ -19,6 +19,7 @@ import Scorecard from "./pages/Scorecard";
 import GoodieChat from "./pages/GoodieChat";
 import Households from "./pages/Households";
 import HouseholdProfile from "./pages/HouseholdProfile";
+import HouseholdOnePager from "./pages/HouseholdOnePager";
 import AdminAdvisors from "./pages/AdminAdvisors";
 import AdminFirms from "./pages/AdminFirms";
 import FirmDetail from "./pages/FirmDetail";
@@ -71,6 +72,15 @@ const App = () => (
             <Route path="/book/:slug/:typeSlug" element={<BookingPickTime />} />
             <Route path="/book/:slug/:typeSlug/confirm" element={<BookingConfirm />} />
             <Route path="/book/:slug/confirmed/:eventId" element={<BookingConfirmed />} />
+            {/* Printable 1-pager — auth-gated but no AppLayout chrome (clean print). */}
+            <Route
+              path="/household/:id/onepager"
+              element={
+                <ProtectedRoute>
+                  <HouseholdOnePager />
+                </ProtectedRoute>
+              }
+            />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/scorecard" element={<Scorecard />} />

@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  LayoutDashboard, Users, UserRound, CalendarDays, FileText, TrendingUp, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap, LayoutGrid, ClipboardList, Sparkles,
+  LayoutDashboard, Users, UserRound, CalendarDays, FileText, TrendingUp, ShieldCheck, TicketCheck, Building2, X, UsersRound, CheckSquare, BarChart3, Database, Terminal, Zap, LayoutGrid, ClipboardList, Sparkles, Settings,
 } from "lucide-react";
 import glLogo from "@/assets/nexus_logo.png";
 
@@ -541,7 +541,7 @@ export default function AppSidebar() {
           type="button"
           onClick={isDemo ? undefined : () => navigate("/settings")}
           disabled={isDemo}
-          className="w-full flex items-center gap-3 min-w-0 rounded-md px-1 py-1 -mx-1 enabled:hover:bg-sidebar-accent focus:outline-none focus:ring-2 focus:ring-sidebar-foreground/20 transition-colors text-left disabled:cursor-not-allowed"
+          className="group w-full flex items-center gap-3 min-w-0 rounded-md px-1 py-1 -mx-1 enabled:hover:bg-sidebar-accent focus:outline-none focus:ring-2 focus:ring-sidebar-foreground/20 transition-colors text-left disabled:cursor-not-allowed"
           title={isDemo ? "Settings disabled in demo mode" : "Account settings"}
         >
           <div className="shrink-0 w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-foreground">{initials}</div>
@@ -549,6 +549,9 @@ export default function AppSidebar() {
             <p className="text-sm font-medium text-sidebar-foreground truncate" title={displayName}>{displayName}</p>
             <p className="text-xs text-sidebar-foreground/80 truncate">{roleLabel}</p>
           </div>
+          {!isDemo && (
+            <Settings className="shrink-0 w-4 h-4 text-sidebar-foreground/60 group-hover:text-sidebar-foreground transition-colors" />
+          )}
         </button>
       </div>
     </aside>

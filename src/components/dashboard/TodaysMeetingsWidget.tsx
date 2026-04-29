@@ -11,6 +11,7 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronUp,
+  Download,
   Loader2,
   Sparkles,
 } from "lucide-react";
@@ -153,7 +154,19 @@ function MeetingRow({
       {expanded && (
         <div className="border-t border-border bg-amber-50/30 dark:bg-amber-950/10 px-3 py-3 space-y-2">
           <MeetingBriefBody event={event} recipientName={recipientName} />
-          <div className="flex items-center justify-end pt-1">
+          <div className="flex items-center justify-end gap-1 pt-1">
+            {event.household_id && (
+              <a
+                href={`/household/${event.household_id}/onepager`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="ghost" size="sm" className="text-[11px] h-7">
+                  <Download className="w-3 h-3 mr-1" />
+                  1-pager PDF
+                </Button>
+              </a>
+            )}
             <Link to={linkTo}>
               <Button variant="ghost" size="sm" className="text-[11px] h-7">
                 Open {event.household_id ? "household" : event.prospect_id ? "prospect" : "calendar"}

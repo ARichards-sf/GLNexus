@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   ArrowLeft, DollarSign, Shield, Target, Users, Mail, Phone,
-  FileText, Lightbulb, UserPlus, Briefcase, Plus, Lock, Search, HelpCircle,
+  FileText, Lightbulb, UserPlus, Briefcase, Plus, Lock, Search, HelpCircle, Download,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -541,6 +541,11 @@ export default function HouseholdProfile() {
             <p className="text-muted-foreground mt-1">{household.investment_objective}</p>
           </div>
           <div className="flex items-center gap-2">
+            <a href={`/household/${id}/onepager`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">
+                <Download className="w-3.5 h-3.5 mr-1.5" /> 1-Pager PDF
+              </Button>
+            </a>
             <Button variant="outline" size="sm" onClick={() => setAssistOpen(true)}>
               <HelpCircle className="w-3.5 h-3.5 mr-1.5" /> Request GL Assistance
             </Button>
