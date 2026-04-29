@@ -59,9 +59,13 @@ const REASON_META: Record<
  * which scans trigger conditions and writes new drafts. The function is
  * idempotent (source_key dedupe) so spamming the button is safe.
  */
+const MAX_VISIBLE = 5;
+
 export default function AiInboxSection() {
   const navigate = useNavigate();
   const { data: drafts = [], isLoading } = usePendingDrafts();
+  const visibleDrafts = drafts.slice(0, MAX_VISIBLE);
+  const overflow = drafts.length - visibleDrafts.length;
   const generate = useGeneratePendingDrafts();
   const dismiss = useDismissPendingDraft();
   const { openDraftPanel } = useDraftPanel();
@@ -136,7 +140,9 @@ export default function AiInboxSection() {
         <span className="text-[11px] text-muted-foreground">
           {drafts.length === 0
             ? "Nothing pending"
-            : `${drafts.length} draft${drafts.length === 1 ? "" : "s"} ready to review`}
+            : overflow > 0
+              ? `Showing ${visibleDrafts.length} of ${drafts.length} drafts`
+              : `${drafts.length} draft${drafts.length === 1 ? "" : "s"} ready to review`}
         </span>
         <Button
           type="button"
@@ -169,7 +175,7 @@ export default function AiInboxSection() {
         </div>
       ) : (
         <div className="space-y-1.5">
-          {drafts.map((d) => {
+          {visibleDrafts.map((d) => {
             const meta = REASON_META[d.trigger_reason];
             const Icon = meta.icon;
             const subjectPreview =

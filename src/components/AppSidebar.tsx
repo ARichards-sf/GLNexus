@@ -32,7 +32,6 @@ const activityItems = [
 
 const insightsItems = [
   { to: "/reports", label: "Reports", icon: BarChart3 },
-  { to: "/performance", label: "Performance", icon: TrendingUp },
 ];
 
 const bdItems = [

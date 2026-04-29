@@ -1,14 +1,13 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import {
   Activity,
   CalendarDays,
   CheckSquare,
-  ChevronDown,
-  ChevronUp,
   Inbox,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTodaysMeetings } from "@/hooks/useCalendarEvents";
 import { usePendingDrafts } from "@/hooks/usePendingDrafts";
 import { useActivityEvents } from "@/hooks/useActivityEvents";
@@ -18,110 +17,66 @@ import AiInboxSection from "./AiInboxSection";
 import PendingTasksSection from "./PendingTasksSection";
 import ActivityStreamSection from "./ActivityStreamSection";
 
-const STORAGE_PREFIX = "copilot_sec_";
+const STORAGE_KEY = "copilot_active_tab";
 
-const loadCollapsed = (key: string, def = false): boolean => {
-  if (typeof window === "undefined") return def;
+type TabId = "inbox" | "meetings" | "tasks" | "activity";
+
+const VALID_TABS: TabId[] = ["inbox", "meetings", "tasks", "activity"];
+
+const loadActiveTab = (): TabId => {
+  if (typeof window === "undefined") return "inbox";
   try {
-    const v = localStorage.getItem(STORAGE_PREFIX + key);
-    return v === null ? def : v === "true";
+    const v = localStorage.getItem(STORAGE_KEY);
+    return v && VALID_TABS.includes(v as TabId) ? (v as TabId) : "inbox";
   } catch {
-    return def;
+    return "inbox";
   }
 };
 
-const saveCollapsed = (key: string, v: boolean) => {
+const saveActiveTab = (id: TabId) => {
   try {
-    localStorage.setItem(STORAGE_PREFIX + key, String(v));
+    localStorage.setItem(STORAGE_KEY, id);
   } catch {
-    // localStorage can throw in private mode; section state is non-critical.
+    // localStorage can throw in private mode; tab state is non-critical.
   }
 };
 
-function SectionHeader({
+function TabPill({
   icon: Icon,
   label,
   count,
-  collapsed,
-  onToggle,
 }: {
   icon: LucideIcon;
   label: string;
-  count?: number;
-  collapsed: boolean;
-  onToggle: () => void;
+  count: number;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="w-full flex items-center justify-between px-3 py-2 hover:bg-secondary/40 transition-colors text-left"
-    >
-      <span className="flex items-center gap-2 text-[11px] font-semibold text-foreground/80 uppercase tracking-wider">
-        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-        {label}
-        {typeof count === "number" && count > 0 && (
-          <span className="ml-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] tracking-normal normal-case">
-            {count}
-          </span>
-        )}
-      </span>
-      {collapsed ? (
-        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-      ) : (
-        <ChevronUp className="w-4 h-4 text-muted-foreground" />
+    <span className="inline-flex items-center gap-1.5">
+      <Icon className="w-3.5 h-3.5" />
+      <span className="hidden 3xl:inline">{label}</span>
+      {count > 0 && (
+        <span
+          className={cn(
+            "inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[9px] font-semibold leading-none",
+            "bg-primary/15 text-primary",
+          )}
+        >
+          {count > 99 ? "99+" : count}
+        </span>
       )}
-    </button>
-  );
-}
-
-function Section({
-  icon,
-  label,
-  storageKey,
-  count,
-  defaultCollapsed = false,
-  /** Caps the height of the body so a long list doesn't crowd out other sections. */
-  bodyMaxHeight,
-  children,
-}: {
-  icon: LucideIcon;
-  label: string;
-  storageKey: string;
-  count?: number;
-  defaultCollapsed?: boolean;
-  bodyMaxHeight?: string;
-  children: ReactNode;
-}) {
-  const [collapsed, setCollapsed] = useState(() => loadCollapsed(storageKey, defaultCollapsed));
-  const toggle = () => {
-    setCollapsed((c) => {
-      const next = !c;
-      saveCollapsed(storageKey, next);
-      return next;
-    });
-  };
-
-  return (
-    <div className="shrink-0 border-b border-border bg-card">
-      <SectionHeader icon={icon} label={label} count={count} collapsed={collapsed} onToggle={toggle} />
-      {!collapsed && (
-        <div className={cn("overflow-y-auto", bodyMaxHeight)}>{children}</div>
-      )}
-    </div>
+    </span>
   );
 }
 
 /**
- * Right-sidebar copilot console. Stacks four sections vertically:
+ * Right-sidebar copilot console. Four tabs:
  *   1. AI Inbox — pending pre-drafted outreach awaiting review
  *   2. Today's Meetings — schedule with on-demand AI briefs per row
  *   3. Pending Tasks — top priority open tasks with one-click complete
  *   4. Activity — auto-emitted events ("Goodie drafted...", "Meeting completed...")
  *
- * Each section is independently collapsible (state persisted in localStorage)
- * so the advisor can dial in the density. There's no fixed chat panel here —
- * Goodie chat lives at /goodie via the left-sidebar nav.
+ * Active tab persists in localStorage. Counts in the tab strip stay visible
+ * across switches so the advisor doesn't lose track of unread items.
  */
 export default function CopilotSidebar() {
   const { data: todaysMeetings = [] } = useTodaysMeetings();
@@ -131,47 +86,66 @@ export default function CopilotSidebar() {
   const openTaskCount = tasks.filter((t) => t.status === "todo").length;
   const unreadActivity = events.filter((e) => !e.read_at).length;
 
+  const [active, setActive] = useState<TabId>(() => loadActiveTab());
+  const handleChange = (val: string) => {
+    const next = (VALID_TABS.includes(val as TabId) ? val : "inbox") as TabId;
+    setActive(next);
+    saveActiveTab(next);
+  };
+
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto">
-      <Section
-        icon={Inbox}
-        label="AI Inbox"
-        storageKey="inbox"
-        count={pendingDrafts.length}
-        bodyMaxHeight="max-h-[40vh]"
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <Tabs
+        value={active}
+        onValueChange={handleChange}
+        className="flex-1 flex flex-col overflow-hidden"
       >
-        <AiInboxSection />
-      </Section>
+        <div className="border-b border-border bg-card px-2 pt-2">
+          <TabsList className="w-full grid grid-cols-4 h-9 bg-secondary/40 p-0.5">
+            <TabsTrigger value="inbox" className="text-[11px] px-1.5">
+              <TabPill icon={Inbox} label="AI Drafts" count={pendingDrafts.length} />
+            </TabsTrigger>
+            <TabsTrigger value="meetings" className="text-[11px] px-1.5">
+              <TabPill icon={CalendarDays} label="Meets" count={todaysMeetings.length} />
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="text-[11px] px-1.5">
+              <TabPill icon={CheckSquare} label="Tasks" count={openTaskCount} />
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="text-[11px] px-1.5">
+              <TabPill icon={Activity} label="Activity" count={unreadActivity} />
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-      <Section
-        icon={CalendarDays}
-        label="Today's Meetings"
-        storageKey="meetings"
-        count={todaysMeetings.length}
-        bodyMaxHeight="max-h-[40vh]"
-      >
-        <TodaysMeetingsWidget embedded />
-      </Section>
-
-      <Section
-        icon={CheckSquare}
-        label="Pending Tasks"
-        storageKey="tasks"
-        count={openTaskCount}
-        bodyMaxHeight="max-h-[40vh]"
-      >
-        <PendingTasksSection />
-      </Section>
-
-      <Section
-        icon={Activity}
-        label="Activity"
-        storageKey="activity"
-        count={unreadActivity}
-        bodyMaxHeight="max-h-[50vh]"
-      >
-        <ActivityStreamSection />
-      </Section>
+        <TabsContent
+          value="inbox"
+          className="mt-0 flex-1 overflow-y-auto data-[state=inactive]:hidden"
+          forceMount
+        >
+          <AiInboxSection />
+        </TabsContent>
+        <TabsContent
+          value="meetings"
+          className="mt-0 flex-1 overflow-y-auto data-[state=inactive]:hidden"
+          forceMount
+        >
+          <TodaysMeetingsWidget embedded />
+        </TabsContent>
+        <TabsContent
+          value="tasks"
+          className="mt-0 flex-1 overflow-y-auto data-[state=inactive]:hidden"
+          forceMount
+        >
+          <PendingTasksSection />
+        </TabsContent>
+        <TabsContent
+          value="activity"
+          className="mt-0 flex-1 overflow-y-auto data-[state=inactive]:hidden"
+          forceMount
+        >
+          <ActivityStreamSection />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

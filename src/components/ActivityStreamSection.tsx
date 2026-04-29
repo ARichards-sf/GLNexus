@@ -65,7 +65,7 @@ const KIND_META: Record<ActivityEventKind, { icon: LucideIcon; tone: string }> =
   },
 };
 
-const SECTION_LIMIT = 10;
+const SECTION_LIMIT = 5;
 
 function relativeTime(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
