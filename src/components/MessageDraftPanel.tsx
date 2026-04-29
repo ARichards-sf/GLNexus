@@ -265,14 +265,30 @@ export default function MessageDraftPanel() {
     if (!draft) return;
     const primaryReady = !draft.householdId || primaryFetched;
     if (!primaryReady) return;
-    setSubject(isEmail ? draft.prefillSubject ?? DEFAULT_SUBJECT(draft.recipientName) : "");
     if (draft.prefillBody) {
+      // Older AI drafts can carry `Subject: <line>` baked into the body
+      // (early prompts didn't separate the two). If we see that pattern,
+      // hoist it to the subject and strip it from the body so it renders
+      // correctly even for already-saved rows.
+      const subjMatch = isEmail
+        ? draft.prefillBody.match(/^\s*Subject:\s*(.+?)(?:\r?\n|$)/i)
+        : null;
+      const extractedSubject = subjMatch?.[1]?.trim();
+      const cleanedBody = subjMatch
+        ? draft.prefillBody.slice(subjMatch[0].length).replace(/^\s*\n+/, "")
+        : draft.prefillBody;
+      setSubject(
+        isEmail
+          ? extractedSubject ?? draft.prefillSubject ?? DEFAULT_SUBJECT(draft.recipientName)
+          : "",
+      );
       // Prefill is plain text (the way the edge function stores it); convert
       // to TipTap-friendly HTML for email mode, mirror as-is for SMS.
-      setBody(isEmail ? plainTextToHtml(draft.prefillBody, bookingUrl) : draft.prefillBody);
+      setBody(isEmail ? plainTextToHtml(cleanedBody, bookingUrl) : cleanedBody);
       setGenerating(false);
       return;
     }
+    setSubject(isEmail ? draft.prefillSubject ?? DEFAULT_SUBJECT(draft.recipientName) : "");
     setBody("");
     generate();
     return () => {

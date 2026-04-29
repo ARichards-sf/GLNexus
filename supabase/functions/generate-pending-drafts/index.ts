@@ -63,10 +63,24 @@ function bodyEndingInstructions(withButton: boolean, fallback: string): string {
     : fallback;
 }
 
+/**
+ * Every prompt below shares the same output contract: first line is the
+ * Subject, then a blank line, then the body. `generateBodyAndSubject` parses
+ * the response back into separate fields so the subject column gets a
+ * contextual line and the body never carries a "Subject:" header.
+ */
+const OUTPUT_CONTRACT = `Output format (REQUIRED):
+- First line MUST be exactly \`Subject: <a short, contextual subject line, 4-7 words>\`.
+- Then a single blank line.
+- Then the email body (greeting through sign-off).
+- Do NOT include any other "Subject:" line anywhere in the body.`;
+
 function makePrompt(t: Trigger, withButton: boolean): string {
   switch (t.reason) {
     case "annual_review_due":
       return `Draft a short professional email from a financial advisor to ${t.recipient_first_name} (${t.recipient_name}) suggesting their upcoming annual review. Context: ${t.context}.
+
+${OUTPUT_CONTRACT}
 
 Formatting (CRITICAL):
 - Separate every paragraph with a BLANK LINE.
@@ -84,6 +98,8 @@ Content:
 
     case "aum_drop":
       return `Draft a short, reassuring professional email from a financial advisor to ${t.recipient_first_name} (${t.recipient_name}). Context: ${t.context}.
+
+${OUTPUT_CONTRACT}
 
 Formatting (CRITICAL):
 - Separate every paragraph with a BLANK LINE.
@@ -103,6 +119,8 @@ Content:
     case "overdue_touchpoint":
       return `Draft a short, friendly check-in email from a financial advisor to ${t.recipient_first_name} (${t.recipient_name}). Context: ${t.context}.
 
+${OUTPUT_CONTRACT}
+
 Formatting (CRITICAL):
 - Separate every paragraph with a BLANK LINE.
 - Sign-off paragraph is "Best,\\n[Advisor Name]".${buttonInstructions(withButton)}
@@ -120,6 +138,8 @@ Content:
 
     case "stalled_prospect":
       return `Draft a short, low-pressure re-engagement email from a financial advisor to ${t.recipient_first_name} (${t.recipient_name}), a prospect who has gone quiet. Context: ${t.context}.
+
+${OUTPUT_CONTRACT}
 
 Formatting (CRITICAL):
 - Separate every paragraph with a BLANK LINE.
@@ -164,10 +184,22 @@ async function generateBodyAndSubject(
     throw new Error(`Anthropic ${response.status}: ${errText.slice(0, 200)}`);
   }
   const json = await response.json();
-  const body: string = (json.content?.[0]?.text ?? "").trim();
-  if (!body) throw new Error("Empty completion");
+  const raw: string = (json.content?.[0]?.text ?? "").trim();
+  if (!raw) throw new Error("Empty completion");
 
-  const subject = t.subject_hint ?? deriveSubject(t.reason, t.recipient_name);
+  // Pull `Subject: ...` off the first line (per OUTPUT_CONTRACT). If the
+  // model deviates and skips it, fall back to the explicit hint or the
+  // hardcoded stub so the row still has a usable subject.
+  const subjMatch = raw.match(/^Subject:\s*(.+?)(?:\r?\n|$)/i);
+  let subject: string;
+  let body: string;
+  if (subjMatch) {
+    subject = subjMatch[1].trim();
+    body = raw.slice(subjMatch[0].length).replace(/^\s*\n+/, "");
+  } else {
+    subject = t.subject_hint ?? deriveSubject(t.reason, t.recipient_name);
+    body = raw;
+  }
   return { subject, body };
 }
 
