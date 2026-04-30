@@ -389,8 +389,15 @@ export default function TouchpointGenerationDialog({
         }
       }
 
+      // refetchQueries (vs invalidateQueries) awaits the fresh data before
+      // resolving — so when we close the dialog the timeline cache already
+      // holds the new touchpoints. invalidate alone fires the refetch but
+      // returns immediately, which let the timeline render mid-flight on
+      // partial state.
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["touchpoints", household.id] }),
+        queryClient.refetchQueries({ queryKey: ["touchpoints", household.id] }),
+        queryClient.refetchQueries({ queryKey: ["touchpoints_presence", household.id] }),
+        queryClient.refetchQueries({ queryKey: ["touchpoint_stats", household.id] }),
         queryClient.invalidateQueries({ queryKey: ["tasks"] }),
       ]);
 

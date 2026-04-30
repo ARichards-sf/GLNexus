@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -23,63 +23,85 @@ import {
 import { ChevronDown, Download, Trash2, Upload, FileText, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export const DOCUMENT_CATEGORIES: Record<string, string[]> = {
+/**
+ * Scope tells the upload UI where each document type can land. The dialog
+ * filters the dropdown to types whose scope is "both" or matches the
+ * advisor's currently-selected scope, so e.g. a Trust Document can never
+ * be uploaded against a single contact.
+ */
+type DocScope = "contact" | "household" | "both";
+
+interface DocType {
+  name: string;
+  scope: DocScope;
+}
+
+export const DOCUMENT_CATEGORIES: Record<string, DocType[]> = {
   "Financial & Tax": [
-    "Tax Returns (1040, W-2)",
-    "Bank Statements",
-    "Pay Stubs",
-    "Investment / Brokerage Statements",
-    "Retirement Account Statements (401k, IRA)",
-    "Social Security Benefit Statement (SSA-1099)",
-    "RMD Notices",
+    // 1040 is joint, W-2 is individual — leave on both, advisor decides per upload
+    { name: "Tax Returns (1040, W-2)", scope: "both" },
+    { name: "Bank Statements", scope: "both" },
+    { name: "Pay Stubs", scope: "contact" },
+    { name: "Investment / Brokerage Statements", scope: "both" },
+    { name: "Retirement Account Statements (401k, IRA)", scope: "both" },
+    { name: "Social Security Benefit Statement (SSA-1099)", scope: "contact" },
+    { name: "RMD Notices", scope: "contact" },
   ],
   "Estate & Legal": [
-    "Will / Testament",
-    "Trust Documents",
-    "Power of Attorney (POA)",
-    "Healthcare Directive / Living Will",
-    "Beneficiary Designations",
+    { name: "Will / Testament", scope: "both" },
+    { name: "Trust Documents", scope: "household" },
+    { name: "Power of Attorney (POA)", scope: "both" },
+    { name: "Healthcare Directive / Living Will", scope: "both" },
+    { name: "Beneficiary Designations", scope: "both" },
   ],
   "Insurance": [
-    "Life Insurance Policy",
-    "Long-Term Care Insurance",
-    "Annuity Contracts",
+    { name: "Life Insurance Policy", scope: "both" },
+    { name: "Long-Term Care Insurance", scope: "both" },
+    { name: "Annuity Contracts", scope: "both" },
   ],
   "Account Opening & Compliance": [
-    "New Account Forms",
-    "Transfer / ACAT Forms",
-    "Signed Agreements / Contracts",
-    "KYC / AML Documents",
-    "Suitability Questionnaire",
+    { name: "New Account Forms", scope: "both" },
+    { name: "Transfer / ACAT Forms", scope: "both" },
+    { name: "Signed Agreements / Contracts", scope: "both" },
+    { name: "KYC / AML Documents", scope: "contact" },
+    { name: "Suitability Questionnaire", scope: "contact" },
   ],
   "Planning Documents": [
-    "Financial Plan",
-    "Investment Policy Statement (IPS)",
-    "Proposal Documents",
-    "Risk Tolerance Questionnaire",
-    "Retirement Income Plan",
-    "Social Security Optimization Report",
-    "Meeting Summaries / Reports",
+    { name: "Financial Plan", scope: "household" },
+    { name: "Investment Policy Statement (IPS)", scope: "household" },
+    { name: "Proposal Documents", scope: "household" },
+    { name: "Risk Tolerance Questionnaire", scope: "contact" },
+    { name: "Retirement Income Plan", scope: "household" },
+    { name: "Social Security Optimization Report", scope: "household" },
+    { name: "Meeting Summaries / Reports", scope: "household" },
   ],
   "Employer Benefits": [
-    "401k Plan Documents",
-    "Pension Statements",
-    "Stock Option Agreements",
-    "ESOP Documents",
-    "Employee Benefits Summary",
+    { name: "401k Plan Documents", scope: "contact" },
+    { name: "Pension Statements", scope: "contact" },
+    { name: "Stock Option Agreements", scope: "contact" },
+    { name: "ESOP Documents", scope: "contact" },
+    { name: "Employee Benefits Summary", scope: "contact" },
   ],
   "Real Estate": [
-    "Mortgage Statements",
-    "Property Deeds",
-    "HELOC Agreements",
+    { name: "Mortgage Statements", scope: "household" },
+    { name: "Property Deeds", scope: "household" },
+    { name: "HELOC Agreements", scope: "household" },
   ],
 };
+
+/** Returns the document types in `category` valid for the given scope. */
+function typesForScope(category: string, scope: "contact" | "household"): DocType[] {
+  return (DOCUMENT_CATEGORIES[category] ?? []).filter(
+    (t) => t.scope === "both" || t.scope === scope,
+  );
+}
 
 const ACCEPTED_TYPES = ".pdf,.jpg,.jpeg,.png,.docx";
 
 interface ContactDocument {
   id: string;
-  contact_id: string;
+  /** Null when the doc is household-scope (will, joint trust, family POA). */
+  contact_id: string | null;
   household_id: string;
   category: string;
   document_type: string;
@@ -102,7 +124,15 @@ function formatBytes(bytes: number): string {
 }
 
 interface Props {
-  contactId: string;
+  /**
+   * When set, the tab runs in **contact** scope: contact-owned docs are the
+   * primary list, plus a read-only "From the household" subsection at the
+   * bottom that surfaces any household-scope docs without duplicating them.
+   * When unset, the tab runs in **household** scope: only household-level
+   * docs (contact_id IS NULL) are shown.
+   */
+  contactId?: string;
+  /** Always required — every doc belongs to a household. */
   householdId: string;
 }
 
@@ -111,17 +141,47 @@ export default function DocumentsTab({ contactId, householdId }: Props) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  const isHouseholdScope = !contactId;
+
+  // Primary list — contact-scope docs OR household-scope docs depending on mode.
   const { data: documents = [], isLoading } = useQuery<ContactDocument[]>({
-    queryKey: ["contact_documents", contactId],
+    queryKey: isHouseholdScope
+      ? ["household_documents", householdId]
+      : ["contact_documents", contactId],
+    queryFn: async () => {
+      let query = supabase
+        .from("contact_documents" as any)
+        .select("*")
+        .eq("household_id", householdId)
+        .order("uploaded_at", { ascending: false });
+      if (isHouseholdScope) {
+        query = query.is("contact_id", null);
+      } else {
+        query = query.eq("contact_id", contactId!);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data ?? []) as any;
+    },
+  });
+
+  // Sibling household-scope docs surfaced read-only on the contact tab so
+  // the advisor sees the family will/trust without leaving the contact.
+  const { data: householdDocs = [] } = useQuery<ContactDocument[]>({
+    queryKey: ["household_documents", householdId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contact_documents" as any)
         .select("*")
-        .eq("contact_id", contactId)
+        .eq("household_id", householdId)
+        .is("contact_id", null)
         .order("uploaded_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as any;
     },
+    // Only needed in contact mode — household mode already shows these as
+    // its primary list above.
+    enabled: !isHouseholdScope,
   });
 
   const grouped = useMemo(() => {
@@ -161,7 +221,10 @@ export default function DocumentsTab({ contactId, householdId }: Props) {
     },
     onSuccess: () => {
       toast.success("Document deleted");
+      // Refresh both caches — a delete on either scope can affect the
+      // other view's "From the household" subsection.
       qc.invalidateQueries({ queryKey: ["contact_documents", contactId] });
+      qc.invalidateQueries({ queryKey: ["household_documents", householdId] });
       setDeleteId(null);
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to delete"),
@@ -173,8 +236,17 @@ export default function DocumentsTab({ contactId, householdId }: Props) {
         <div>
           <p className="text-sm font-medium text-foreground">
             {documents.length} {documents.length === 1 ? "document" : "documents"}
+            {isHouseholdScope && (
+              <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                · household-scope
+              </span>
+            )}
           </p>
-          <p className="text-xs text-muted-foreground">Organized by category</p>
+          <p className="text-xs text-muted-foreground">
+            {isHouseholdScope
+              ? "Wills, trusts, joint POAs, and other family-level files."
+              : "Organized by category"}
+          </p>
         </div>
         <Button size="sm" onClick={() => setUploadOpen(true)}>
           <Upload className="w-3.5 h-3.5 mr-1.5" /> Upload Document
@@ -201,6 +273,50 @@ export default function DocumentsTab({ contactId, householdId }: Props) {
               />
             );
           })}
+        </div>
+      )}
+
+      {/* Read-only roll-up of household-scope docs on contact tabs only.
+          Lets the advisor see the family will/trust without leaving the
+          contact, but edits/deletes route through the Household tab. */}
+      {!isHouseholdScope && householdDocs.length > 0 && (
+        <div className="pt-4 mt-2 border-t border-border space-y-2">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              From the household
+            </p>
+            <Badge variant="secondary" className="text-[10px] h-5">
+              {householdDocs.length}
+            </Badge>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            These documents apply to the whole household. Manage them on the household's Documents tab.
+          </p>
+          <ul className="rounded-lg border border-border divide-y divide-border bg-card">
+            {householdDocs.map((d) => (
+              <li key={d.id} className="flex items-center gap-3 px-4 py-3">
+                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-foreground truncate">{d.file_name}</p>
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+                    <span>{d.document_type}</span>
+                    <span>•</span>
+                    <span>{new Date(d.uploaded_at).toLocaleDateString()}</span>
+                    <span>•</span>
+                    <span>{formatBytes(d.file_size)}</span>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDownload(d)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -322,24 +438,76 @@ function UploadDialog({
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  contactId: string;
+  /** Undefined when launched from a household tab. The dialog still lets
+   *  the advisor upload an individual contact's doc by picking a member
+   *  from the household. */
+  contactId?: string;
   householdId: string;
 }) {
   const qc = useQueryClient();
+  const [scope, setScope] = useState<"contact" | "household">(
+    contactId ? "contact" : "household",
+  );
+  // Which contact the doc gets attached to when scope === "contact".
+  // - On the contact tab: locked to the prop contactId.
+  // - On the household tab: chosen via the member-picker dropdown.
+  const [targetContactId, setTargetContactId] = useState<string | null>(
+    contactId ?? null,
+  );
   const [category, setCategory] = useState<string>("");
   const [docType, setDocType] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // Re-sync defaults when the dialog re-opens after a contact-id change.
+  useEffect(() => {
+    setScope(contactId ? "contact" : "household");
+    setTargetContactId(contactId ?? null);
+  }, [contactId, open]);
+
+  // Members for the household-tab "Individual contact" path. Skipped when
+  // the dialog is on a contact tab (we already know the target).
+  const { data: members = [] } = useQuery({
+    queryKey: ["household_members_for_upload", householdId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("household_members")
+        .select("id, first_name, last_name, relationship")
+        .eq("household_id", householdId)
+        .is("archived_at", null)
+        .order("relationship", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string;
+        first_name: string;
+        last_name: string;
+        relationship: string | null;
+      }>;
+    },
+    enabled: open && !contactId,
+  });
+
   const reset = () => {
+    setScope(contactId ? "contact" : "household");
+    setTargetContactId(contactId ?? null);
     setCategory("");
     setDocType("");
     setFile(null);
   };
 
+  // Filter the type dropdown by the currently-selected scope.
+  const availableTypes = useMemo<DocType[]>(() => {
+    if (!category) return [];
+    return typesForScope(category, scope);
+  }, [category, scope]);
+
   const handleSubmit = async () => {
     if (!category || !docType || !file) {
       toast.error("Please complete all fields");
+      return;
+    }
+    if (scope === "contact" && !targetContactId) {
+      toast.error("Pick a contact for this document");
       return;
     }
     setUploading(true);
@@ -348,7 +516,11 @@ function UploadDialog({
       if (!userData.user) throw new Error("Not authenticated");
 
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `${householdId}/${contactId}/${category}/${Date.now()}_${safeName}`;
+      // _household/ is a fixed bucket prefix for household-scope files so
+      // the storage layout still groups by household at the top level.
+      const ownerSegment =
+        scope === "contact" && targetContactId ? targetContactId : "_household";
+      const path = `${householdId}/${ownerSegment}/${category}/${Date.now()}_${safeName}`;
 
       const { error: upErr } = await supabase.storage
         .from("contact-documents")
@@ -358,7 +530,7 @@ function UploadDialog({
       const { error: insErr } = await supabase
         .from("contact_documents" as any)
         .insert({
-          contact_id: contactId,
+          contact_id: scope === "contact" ? targetContactId : null,
           household_id: householdId,
           category,
           document_type: docType,
@@ -369,8 +541,17 @@ function UploadDialog({
         });
       if (insErr) throw insErr;
 
-      toast.success("Document uploaded");
+      toast.success(
+        scope === "household"
+          ? "Document uploaded to household"
+          : "Document uploaded",
+      );
+      // Invalidate both caches and the specific target so all surfaces refresh.
       qc.invalidateQueries({ queryKey: ["contact_documents", contactId] });
+      if (targetContactId && targetContactId !== contactId) {
+        qc.invalidateQueries({ queryKey: ["contact_documents", targetContactId] });
+      }
+      qc.invalidateQueries({ queryKey: ["household_documents", householdId] });
       reset();
       onOpenChange(false);
     } catch (e: any) {
@@ -398,6 +579,91 @@ function UploadDialog({
 
         <div className="space-y-4">
           <div className="space-y-2">
+            <Label>Save to</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setScope("contact");
+                  // Reset target if we're on the household tab and the
+                  // user is flipping back to "Individual contact" — they
+                  // need to pick someone from the dropdown.
+                  if (!contactId) setTargetContactId(null);
+                  // Drop type if it's not valid in the new scope.
+                  if (docType && category) {
+                    const allowed = typesForScope(category, "contact").map((t) => t.name);
+                    if (!allowed.includes(docType)) setDocType("");
+                  }
+                }}
+                className={cn(
+                  "rounded-md border p-3 text-left transition-colors",
+                  scope === "contact"
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                    : "border-border bg-background hover:border-primary/30",
+                )}
+              >
+                <p className="text-sm font-medium text-foreground">
+                  {contactId ? "This contact" : "Individual contact"}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Personal IDs, employer benefits, signed forms.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setScope("household");
+                  if (docType && category) {
+                    const allowed = typesForScope(category, "household").map((t) => t.name);
+                    if (!allowed.includes(docType)) setDocType("");
+                  }
+                }}
+                className={cn(
+                  "rounded-md border p-3 text-left transition-colors",
+                  scope === "household"
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                    : "border-border bg-background hover:border-primary/30",
+                )}
+              >
+                <p className="text-sm font-medium text-foreground">Household</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Wills, trusts, joint POAs.
+                </p>
+              </button>
+            </div>
+          </div>
+
+          {/* When uploading from the household tab and scope=contact, the
+              advisor still has to pick which contact the doc belongs to. */}
+          {!contactId && scope === "contact" && (
+            <div className="space-y-2">
+              <Label>Contact</Label>
+              <Select
+                value={targetContactId ?? ""}
+                onValueChange={(v) => setTargetContactId(v || null)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pick a household member" />
+                </SelectTrigger>
+                <SelectContent>
+                  {members.length === 0 ? (
+                    <SelectItem value="__no_members__" disabled>
+                      No active members
+                    </SelectItem>
+                  ) : (
+                    members.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.first_name} {m.last_name}
+                        {m.relationship ? ` · ${m.relationship}` : ""}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="space-y-2">
             <Label>Category</Label>
             <Select
               value={category}
@@ -424,9 +690,15 @@ function UploadDialog({
                 <SelectValue placeholder={category ? "Select type" : "Select a category first"} />
               </SelectTrigger>
               <SelectContent>
-                {(DOCUMENT_CATEGORIES[category] ?? []).map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
-                ))}
+                {availableTypes.length === 0 && category ? (
+                  <SelectItem value="__none__" disabled>
+                    No types available for this scope
+                  </SelectItem>
+                ) : (
+                  availableTypes.map((t) => (
+                    <SelectItem key={t.name} value={t.name}>{t.name}</SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -450,7 +722,16 @@ function UploadDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={uploading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={uploading || !category || !docType || !file}>
+          <Button
+            onClick={handleSubmit}
+            disabled={
+              uploading ||
+              !category ||
+              !docType ||
+              !file ||
+              (scope === "contact" && !targetContactId)
+            }
+          >
             {uploading && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
             Upload
           </Button>

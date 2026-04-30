@@ -53,6 +53,8 @@ import { Zap } from "lucide-react";
 import ReparentContactDialog from "@/components/ReparentContactDialog";
 import TouchpointTimeline from "@/components/TouchpointTimeline";
 import TouchpointGenerationDialog from "@/components/TouchpointGenerationDialog";
+import ClientExperienceStats from "@/components/ClientExperienceStats";
+import DocumentsTab from "@/components/contact/DocumentsTab";
 import AnnualReviewOutreach from "@/components/AnnualReviewOutreach";
 import TierBadge from "@/components/TierBadge";
 import PageLoader from "@/components/PageLoader";
@@ -252,8 +254,13 @@ export default function HouseholdProfile() {
     },
     enabled: !!id,
   });
+  // Only used for the "any touchpoints?" empty-state check below. Uses a
+  // distinct key from TouchpointTimeline (which fetches `*` under
+  // ["touchpoints", id]) so this thin `.select("id")` payload doesn't
+  // overwrite the timeline's full rows in the shared cache — that's what
+  // produced the "Invalid Date" + blank names regression.
   const { data: touchpoints = [] } = useQuery({
-    queryKey: ["touchpoints", id],
+    queryKey: ["touchpoints_presence", id],
     queryFn: async () => {
       const { data } = await supabase.from("touchpoints").select("id").eq("household_id", id!);
       return data || [];
@@ -460,6 +467,12 @@ export default function HouseholdProfile() {
         queryKey: ["touchpoints", id],
       });
       queryClient.invalidateQueries({
+        queryKey: ["touchpoints_presence", id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["touchpoint_stats", id],
+      });
+      queryClient.invalidateQueries({
         queryKey: ["tasks"],
       });
 
@@ -560,228 +573,202 @@ export default function HouseholdProfile() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="border-border shadow-none">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground font-medium">Total Assets</span>
-            </div>
-            <p className="text-2xl font-semibold tracking-tight text-emerald-600">{formatFullCurrency(totalAccountsAUM)}</p>
-          </CardContent>
-        </Card>
-        <Popover open={editRiskOpen} onOpenChange={setEditRiskOpen}>
-          <PopoverTrigger asChild>
-            <Card className="border-border shadow-none cursor-pointer transition-all hover:border-primary/40 hover:shadow-md group">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground font-medium">Risk Tolerance</span>
-                  </div>
-                  <Pencil className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <p className={`text-2xl font-semibold tracking-tight ${riskColors[household.risk_tolerance] || "text-foreground"}`}>
-                  {household.risk_tolerance || "Not set"}
-                </p>
-              </CardContent>
-            </Card>
-          </PopoverTrigger>
-          <PopoverContent className="w-56 p-2" align="start">
-            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-              Risk Tolerance
-            </div>
-            <div className="space-y-0.5">
-              {["Conservative", "Moderate", "Aggressive", "Very Aggressive"].map((option) => (
-                <button
-                  key={option}
-                  onClick={() => handleUpdateRiskDirect(option)}
-                  className={cn(
-                    "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
-                    household.risk_tolerance === option
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "hover:bg-secondary text-foreground"
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-        <Card
-          className={cn(
-            "border-border shadow-none cursor-pointer transition-all hover:border-primary/40 hover:shadow-md",
-            hh.tier_pending_review && "ring-2 ring-amber-400/60"
-          )}
-          onClick={() => setTierDialogOpen(true)}
-        >
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground font-medium">Client Tier</span>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <TierBadge tier={household.wealth_tier} size="lg" showUnassigned pending={!!hh.tier_pending_review} />
-              {hh.tier_score && (
-                <span className="text-xs text-muted-foreground">
-                  Score: {hh.tier_score}/100
-                </span>
-              )}
-            </div>
-            {hh.tier_last_assessed && (
-              <p className="text-[11px] text-muted-foreground mt-2">
-                Assessed {new Date(hh.tier_last_assessed).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
-              </p>
-            )}
-            {hh.tier_pending_review && (
-              <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                <TrendingUp className="w-3 h-3" />
-                Upgrade to {hh.tier_pending_review.charAt(0).toUpperCase() + hh.tier_pending_review.slice(1)} suggested
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <AnnualReviewWidget
-          annualReviewDate={household.annual_review_date}
-          lastReviewDate={household.last_review_date}
-          onSchedule={() => setScheduleOpen(true)}
-          hasBookedMeeting={hasBookedAnnualReview}
-        />
-      </div>
-
-      <Card className="mb-8 border-border shadow-none">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base font-semibold">Client Experience</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {touchpoints.length === 0 && household.wealth_tier && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-secondary/30 p-4">
-              <p className="text-sm text-muted-foreground">No client experience yet.</p>
-              <Button onClick={() => setTouchpointGenOpen(true)}>Generate Client Experience</Button>
-            </div>
-          )}
-
-          {touchpoints.length > 0 && id && (
-            <>
-              <div className="flex items-center justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setClearTimelineOpen(true)}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Clear Timeline
-                </Button>
-              </div>
-
-              <TouchpointTimeline householdId={id} advisorId={household.advisor_id} />
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Charts Row: AUM Trend + Asset Allocation */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-8">
-        <Card className="lg:col-span-3 border-border shadow-none">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">AUM Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {aumChartData.length >= 2 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={aumChartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                  <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 11 }} className="fill-muted-foreground" width={70} />
-                  <Tooltip
-                    formatter={(value: number) => [formatFullCurrency(value), "AUM"]}
-                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
-                  />
-                  <Line type="monotone" dataKey="aum" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[220px] text-sm text-muted-foreground">
-                Not enough snapshot data yet. Generate snapshots to see trends.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2 border-border shadow-none">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">Asset Allocation</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {allocationData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={allocationData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
-                  >
-                    {allocationData.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: number) => formatFullCurrency(value)}
-                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
-                  />
-                  <Legend
-                    formatter={(value: string) => <span className="text-xs text-muted-foreground">{value}</span>}
-                    wrapperStyle={{ fontSize: "11px" }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[220px] text-sm text-muted-foreground">
-                No accounts to display.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Next Action */}
-      {household.next_action && (
-        <Card className="border-emerald/30 bg-emerald-muted/50 shadow-none mb-8">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald/10 flex items-center justify-center shrink-0">
-                <Lightbulb className="w-4.5 h-4.5 text-emerald" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-sm font-semibold text-foreground">Next Best Action</h3>
-                  {household.next_action_date && (
-                    <span className="text-xs text-muted-foreground">
-                      Due {new Date(household.next_action_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">{household.next_action}</p>
-              </div>
-              <Button size="sm" variant="outline" className="shrink-0 text-xs">Mark Complete</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Tabbed Layout */}
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="accounts">Accounts</TabsTrigger>
           <TabsTrigger value="notes">Notes & Compliance</TabsTrigger>
+          <TabsTrigger value="client-experience">Client Experience</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
-        <TabsContent value="overview">
+        <TabsContent value="overview" className="space-y-6">
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-border shadow-none">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground font-medium">Total Assets</span>
+                </div>
+                <p className="text-2xl font-semibold tracking-tight text-emerald-600">{formatFullCurrency(totalAccountsAUM)}</p>
+              </CardContent>
+            </Card>
+            <Popover open={editRiskOpen} onOpenChange={setEditRiskOpen}>
+              <PopoverTrigger asChild>
+                <Card className="border-border shadow-none cursor-pointer transition-all hover:border-primary/40 hover:shadow-md group">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground font-medium">Risk Tolerance</span>
+                      </div>
+                      <Pencil className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    <p className={`text-2xl font-semibold tracking-tight ${riskColors[household.risk_tolerance] || "text-foreground"}`}>
+                      {household.risk_tolerance || "Not set"}
+                    </p>
+                  </CardContent>
+                </Card>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="start">
+                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                  Risk Tolerance
+                </div>
+                <div className="space-y-0.5">
+                  {["Conservative", "Moderate", "Aggressive", "Very Aggressive"].map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => handleUpdateRiskDirect(option)}
+                      className={cn(
+                        "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
+                        household.risk_tolerance === option
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "hover:bg-secondary text-foreground"
+                      )}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Card
+              className={cn(
+                "border-border shadow-none cursor-pointer transition-all hover:border-primary/40 hover:shadow-md",
+                hh.tier_pending_review && "ring-2 ring-amber-400/60"
+              )}
+              onClick={() => setTierDialogOpen(true)}
+            >
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Star className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground font-medium">Client Tier</span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <TierBadge tier={household.wealth_tier} size="lg" showUnassigned pending={!!hh.tier_pending_review} />
+                  {hh.tier_score && (
+                    <span className="text-xs text-muted-foreground">
+                      Score: {hh.tier_score}/100
+                    </span>
+                  )}
+                </div>
+                {hh.tier_last_assessed && (
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    Assessed {new Date(hh.tier_last_assessed).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                  </p>
+                )}
+                {hh.tier_pending_review && (
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                    <TrendingUp className="w-3 h-3" />
+                    Upgrade to {hh.tier_pending_review.charAt(0).toUpperCase() + hh.tier_pending_review.slice(1)} suggested
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <AnnualReviewWidget
+              annualReviewDate={household.annual_review_date}
+              lastReviewDate={household.last_review_date}
+              onSchedule={() => setScheduleOpen(true)}
+              hasBookedMeeting={hasBookedAnnualReview}
+            />
+          </div>
+
+          {/* Charts Row: AUM Trend + Asset Allocation */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            <Card className="lg:col-span-3 border-border shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold">AUM Trend</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {aumChartData.length >= 2 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={aumChartData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                      <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 11 }} className="fill-muted-foreground" width={70} />
+                      <Tooltip
+                        formatter={(value: number) => [formatFullCurrency(value), "AUM"]}
+                        contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
+                      />
+                      <Line type="monotone" dataKey="aum" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[220px] text-sm text-muted-foreground">
+                    Not enough snapshot data yet. Generate snapshots to see trends.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2 border-border shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold">Asset Allocation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {allocationData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie
+                        data={allocationData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={2}
+                      >
+                        {allocationData.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => formatFullCurrency(value)}
+                        contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
+                      />
+                      <Legend
+                        formatter={(value: string) => <span className="text-xs text-muted-foreground">{value}</span>}
+                        wrapperStyle={{ fontSize: "11px" }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[220px] text-sm text-muted-foreground">
+                    No accounts to display.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Next Action */}
+          {household.next_action && (
+            <Card className="border-emerald/30 bg-emerald-muted/50 shadow-none">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-emerald/10 flex items-center justify-center shrink-0">
+                    <Lightbulb className="w-4.5 h-4.5 text-emerald" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-sm font-semibold text-foreground">Next Best Action</h3>
+                      {household.next_action_date && (
+                        <span className="text-xs text-muted-foreground">
+                          Due {new Date(household.next_action_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{household.next_action}</p>
+                  </div>
+                  <Button size="sm" variant="outline" className="shrink-0 text-xs">Mark Complete</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="border-border shadow-none">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
@@ -901,10 +888,8 @@ export default function HouseholdProfile() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
 
-        {/* Accounts Tab */}
-        <TabsContent value="accounts">
+          {/* Household Accounts (lives on Overview, not its own tab) */}
           <Card className="border-border shadow-none">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
@@ -990,6 +975,43 @@ export default function HouseholdProfile() {
           </Card>
         </TabsContent>
 
+        {/* Client Experience Tab */}
+        <TabsContent value="client-experience">
+          {id && <ClientExperienceStats householdId={id} />}
+
+          <Card className="border-border shadow-none">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-base font-semibold">Service Plan</CardTitle>
+                {touchpoints.length > 0 && (
+                  <Button variant="outline" size="sm" onClick={() => setClearTimelineOpen(true)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Clear Timeline
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {touchpoints.length === 0 && (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-secondary/30 p-4">
+                  <div className="text-sm text-muted-foreground">
+                    {household.wealth_tier
+                      ? "No client experience yet. Generate a service plan tailored to this household's tier."
+                      : "Set a wealth tier on this household before generating a client experience."}
+                  </div>
+                  {household.wealth_tier && (
+                    <Button onClick={() => setTouchpointGenOpen(true)}>Generate Client Experience</Button>
+                  )}
+                </div>
+              )}
+
+              {touchpoints.length > 0 && id && (
+                <TouchpointTimeline householdId={id} advisorId={household.advisor_id} />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Notes Tab */}
         <TabsContent value="notes">
           <Card className="border-border shadow-none">
@@ -1057,6 +1079,16 @@ export default function HouseholdProfile() {
               {notes.length > 0 && filteredNotes.length === 0 && (
                 <p className="text-sm text-muted-foreground py-4 text-center">No notes match your search.</p>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Documents Tab — household-scope only (wills, trusts, joint POAs).
+            Personal/contact docs live on each contact's Documents tab. */}
+        <TabsContent value="documents">
+          <Card className="border-border shadow-none">
+            <CardContent className="pt-6">
+              {id && <DocumentsTab householdId={id} />}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1381,6 +1413,8 @@ export default function HouseholdProfile() {
         }}
         onConfirm={() => {
           queryClient.invalidateQueries({ queryKey: ["touchpoints", id] });
+          queryClient.invalidateQueries({ queryKey: ["touchpoints_presence", id] });
+          queryClient.invalidateQueries({ queryKey: ["touchpoint_stats", id] });
         }}
       />
 

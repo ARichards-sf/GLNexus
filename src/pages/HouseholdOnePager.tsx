@@ -181,18 +181,11 @@ export default function HouseholdOnePager() {
   };
 
   // Generate a PDF of the rendered 1-pager, upload to storage, insert a
-  // contact_documents row tied to the primary member (or first member as
-  // fallback), and trigger a browser download. The document then shows up
-  // on the contact's Documents tab and is queryable by household_id.
+  // contact_documents row at household scope (contact_id=null), and trigger
+  // a browser download. The doc shows up on the household's Documents tab
+  // and via the "From the household" subsection on each contact's Documents tab.
   const handleSaveToHousehold = async () => {
     if (!data?.household || !contentRef.current || !user || !id) return;
-    const primary =
-      data.members.find((m) => m.relationship?.toLowerCase() === "primary") ??
-      data.members[0];
-    if (!primary) {
-      toast.error("Add a household member before saving — documents are tied to a contact.");
-      return;
-    }
 
     setSaving(true);
     try {
@@ -238,7 +231,7 @@ export default function HouseholdOnePager() {
         /[^a-zA-Z0-9._\- ]/g,
         "_",
       );
-      const path = `${id}/${primary.id}/Planning Documents/${Date.now()}_${safeName.replace(/\s+/g, "_")}`;
+      const path = `${id}/_household/Planning Documents/${Date.now()}_${safeName.replace(/\s+/g, "_")}`;
 
       const { error: upErr } = await supabase.storage
         .from("contact-documents")
@@ -249,7 +242,7 @@ export default function HouseholdOnePager() {
       if (upErr) throw upErr;
 
       const { error: insErr } = await supabase.from("contact_documents" as any).insert({
-        contact_id: primary.id,
+        contact_id: null,
         household_id: id,
         category: "Planning Documents",
         document_type: "Meeting Summaries / Reports",

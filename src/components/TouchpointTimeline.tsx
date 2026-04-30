@@ -14,13 +14,17 @@ import {
   Newspaper,
   Check,
   Route,
+  FileText,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useCreateComplianceNote } from "@/hooks/useHouseholds";
 
 interface Props {
   householdId: string;
@@ -35,6 +39,8 @@ type TouchpointRow = Tables<"touchpoints"> & {
 
 interface TouchpointDetailProps {
   touchpoint: TouchpointRow;
+  householdId: string;
+  primaryContactId: string | null;
   onClose: () => void;
   onComplete: (touchpointId: string) => Promise<void>;
   onSkip: (touchpointId: string) => Promise<void>;
@@ -67,6 +73,24 @@ const TOUCHPOINT_TYPE_LABELS: Record<string, string> = {
   task: "Task",
 };
 
+/**
+ * Maps a touchpoint_type to the compliance_notes.type value we'll write
+ * when "Log Note" is clicked. Restricted to the canonical set the rest of
+ * the app uses (Phone Call / Email / Annual Review / Meeting / Service).
+ */
+const NOTE_TYPE_FROM_TOUCHPOINT: Record<string, string> = {
+  meeting: "Meeting",
+  call: "Phone Call",
+  letter: "Email",
+  annual_review: "Annual Review",
+  market_assessment: "Phone Call",
+  newsletter: "Email",
+  birthday: "Email",
+  holiday: "Email",
+  appreciation_event: "Meeting",
+  task: "Service",
+};
+
 const TOUCHPOINT_ICON_STYLES: Record<string, string> = {
   meeting: "border-primary/20 bg-primary/10 text-primary",
   call: "border-emerald/20 bg-emerald-muted text-emerald",
@@ -80,13 +104,68 @@ const TOUCHPOINT_ICON_STYLES: Record<string, string> = {
   task: "border-border bg-secondary text-muted-foreground",
 };
 
-function TouchpointDetail({ touchpoint, onClose, onComplete, onSkip, onNotesSave }: TouchpointDetailProps) {
+function TouchpointDetail({
+  touchpoint,
+  householdId,
+  primaryContactId,
+  onClose,
+  onComplete,
+  onSkip,
+  onNotesSave,
+}: TouchpointDetailProps) {
   const [notes, setNotes] = useState(touchpoint.notes ?? "");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [loggingNote, setLoggingNote] = useState(false);
+  const createNote = useCreateComplianceNote();
 
   useEffect(() => {
     setNotes(touchpoint.notes ?? "");
   }, [touchpoint]);
+
+  // Logs a real compliance_notes row tied to the household + Primary
+  // contact, derived from this touchpoint. Auto-marks the touchpoint
+  // complete in the same flow since "I'm logging a note about it" almost
+  // always means "this happened."
+  const handleLogNote = async () => {
+    setLoggingNote(true);
+    try {
+      const noteType =
+        NOTE_TYPE_FROM_TOUCHPOINT[touchpoint.touchpoint_type] ?? "Service";
+      const dateLabel = new Date(touchpoint.scheduled_date).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+      const advisorNotes = (notes ?? "").trim();
+      const summary = advisorNotes
+        ? `${touchpoint.name} (${dateLabel})\n\n${advisorNotes}`
+        : `${touchpoint.name} (${dateLabel}) — completed.`;
+
+      await createNote.mutateAsync({
+        householdId,
+        type: noteType,
+        summary,
+        contactIds: primaryContactId ? [primaryContactId] : [],
+      });
+
+      if (touchpoint.status !== "completed") {
+        await onComplete(touchpoint.id);
+      }
+
+      // Persist any unsaved touchpoint notes too so the timeline detail
+      // matches what got logged.
+      if ((touchpoint.notes ?? "") !== notes) {
+        await onNotesSave(touchpoint.id, notes);
+      }
+
+      toast.success("Logged compliance note and marked touchpoint complete.");
+      onClose();
+    } catch (e: any) {
+      toast.error(`Couldn't log note: ${e.message}`);
+    } finally {
+      setLoggingNote(false);
+    }
+  };
 
   const statusLabel = touchpoint.status === "completed"
     ? "Completed"
@@ -166,6 +245,19 @@ function TouchpointDetail({ touchpoint, onClose, onComplete, onSkip, onNotesSave
           <Button onClick={() => onComplete(touchpoint.id)} disabled={touchpoint.status === "completed"}>
             Mark Complete
           </Button>
+          <Button
+            variant="secondary"
+            onClick={handleLogNote}
+            disabled={loggingNote || createNote.isPending}
+            title="Create a compliance note from this touchpoint and tag the Primary contact."
+          >
+            {loggingNote ? (
+              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <FileText className="w-3.5 h-3.5 mr-1.5" />
+            )}
+            Log Note
+          </Button>
           <Button variant="outline" onClick={() => onSkip(touchpoint.id)} disabled={touchpoint.status === "skipped"}>
             Skip
           </Button>
@@ -180,28 +272,188 @@ function TouchpointDetail({ touchpoint, onClose, onComplete, onSkip, onNotesSave
   );
 }
 
+/**
+ * Vertical, month-grouped timeline of touchpoints. Replaces the previous
+ * horizontal scrolling strip — easier to scan when there are 8–13 touches
+ * per year, and matches the layout the generator preview shows.
+ *
+ * Color comes from `TOUCHPOINT_ICON_STYLES`, applied to a small icon tile
+ * on the left of each row so type is visible at a glance.
+ */
+function VerticalTouchpointList({
+  touchpoints,
+  selectedId,
+  onSelect,
+}: {
+  touchpoints: TouchpointRow[];
+  selectedId: string | null;
+  onSelect: (tp: TouchpointRow) => void;
+}) {
+  // Group by year-month bucket while preserving the parent's date ordering.
+  const groups = useMemo(() => {
+    const map = new Map<string, { label: string; rows: TouchpointRow[] }>();
+    for (const tp of touchpoints) {
+      const d = new Date(tp.scheduled_date + "T00:00:00");
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      if (!map.has(key)) {
+        map.set(key, { label, rows: [] });
+      }
+      map.get(key)!.rows.push(tp);
+    }
+    return Array.from(map.entries()).map(([key, value]) => ({ key, ...value }));
+  }, [touchpoints]);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return (
+    <div className="space-y-5">
+      {groups.map((group) => (
+        <div key={group.key}>
+          <div className="flex items-center gap-3 mb-2">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+              {group.label}
+            </p>
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {group.rows.length} {group.rows.length === 1 ? "touch" : "touches"}
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            {group.rows.map((tp) => {
+              const isCompleted = tp.status === "completed";
+              const isSkipped = tp.status === "skipped";
+              const due = new Date(tp.scheduled_date + "T00:00:00");
+              const isOverdue = !isCompleted && !isSkipped && due < today;
+              const Icon = TOUCHPOINT_ICONS[tp.touchpoint_type] ?? CheckSquare;
+              const iconStyle =
+                TOUCHPOINT_ICON_STYLES[tp.touchpoint_type] ??
+                "border-border bg-secondary text-muted-foreground";
+              const isSelected = selectedId === tp.id;
+
+              return (
+                <button
+                  key={tp.id}
+                  type="button"
+                  onClick={() => onSelect(tp)}
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors",
+                    "hover:border-primary/30 hover:bg-secondary/30",
+                    isSelected ? "border-primary/50 bg-secondary/30" : "border-border",
+                    isSkipped && "opacity-60",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-md border",
+                      isCompleted
+                        ? "border-emerald/20 bg-emerald-muted text-emerald"
+                        : iconStyle,
+                    )}
+                  >
+                    {isCompleted ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={cn(
+                        "text-sm font-medium text-foreground line-clamp-1",
+                        isCompleted && "line-through text-muted-foreground",
+                      )}
+                    >
+                      {tp.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {TOUCHPOINT_TYPE_LABELS[tp.touchpoint_type] ?? tp.touchpoint_type}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isOverdue && (
+                      <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">
+                        Overdue
+                      </span>
+                    )}
+                    {isSkipped && (
+                      <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        Skipped
+                      </span>
+                    )}
+                    <span
+                      className={cn(
+                        "text-xs tabular-nums",
+                        isOverdue ? "text-destructive font-medium" : "text-muted-foreground",
+                      )}
+                    >
+                      {due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function TouchpointTimeline({ householdId }: Props) {
   const queryClient = useQueryClient();
   const [selectedTp, setSelectedTp] = useState<TouchpointRow | null>(null);
 
+  // Primary contact for the household — used by the Log Note action so the
+  // resulting compliance_note rolls up onto the right contact's activity.
+  const { data: primaryContactId = null } = useQuery({
+    queryKey: ["touchpoints_primary_contact", householdId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("household_members")
+        .select("id")
+        .eq("household_id", householdId)
+        .eq("relationship", "Primary")
+        .is("archived_at", null)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.id ?? null) as string | null;
+    },
+    enabled: !!householdId,
+  });
+
   const { data: touchpoints = [] } = useQuery({
     queryKey: ["touchpoints", householdId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Two queries instead of an embedded join. The touchpoints table
+      // doesn't have a declared FK on linked_task_id, so postgrest can't
+      // resolve the embedded `tasks:linked_task_id(...)` syntax — it
+      // returned rows with most columns dropped, surfacing as "Invalid
+      // Date" + blank names. We hand-stitch the join client-side instead.
+      const { data: tps, error } = await supabase
         .from("touchpoints")
-        .select(
-          `
-            *,
-            tasks:linked_task_id(
-              id, status, completed_at
-            )
-          `,
-        )
+        .select("*")
         .eq("household_id", householdId)
         .order("scheduled_date");
-
       if (error) throw error;
-      return (data || []) as TouchpointRow[];
+      const rows = (tps || []) as Array<Tables<"touchpoints">>;
+
+      const taskIds = rows
+        .map((r) => r.linked_task_id)
+        .filter((id): id is string => !!id);
+      let tasksById = new Map<string, Pick<Tables<"tasks">, "id" | "status" | "completed_at">>();
+      if (taskIds.length > 0) {
+        const { data: tasks } = await supabase
+          .from("tasks")
+          .select("id, status, completed_at")
+          .in("id", taskIds);
+        tasksById = new Map((tasks ?? []).map((t: any) => [t.id, t]));
+      }
+
+      return rows.map((r) => ({
+        ...r,
+        tasks: r.linked_task_id ? tasksById.get(r.linked_task_id) ?? null : null,
+      })) as TouchpointRow[];
     },
   });
 
@@ -225,7 +477,10 @@ export default function TouchpointTimeline({ householdId }: Props) {
         ),
       );
 
-      queryClient.invalidateQueries({ queryKey: ["touchpoints", householdId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["touchpoints", householdId] }),
+        queryClient.invalidateQueries({ queryKey: ["touchpoint_stats", householdId] }),
+      ]);
     };
 
     void autoAdvanceTouchpoints();
@@ -247,17 +502,26 @@ export default function TouchpointTimeline({ householdId }: Props) {
       })
       .eq("id", touchpointId);
 
-    await queryClient.invalidateQueries({ queryKey: ["touchpoints", householdId] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["touchpoints", householdId] }),
+      queryClient.invalidateQueries({ queryKey: ["touchpoint_stats", householdId] }),
+    ]);
   };
 
   const handleSkipTouchpoint = async (touchpointId: string) => {
     await supabase.from("touchpoints").update({ status: "skipped" }).eq("id", touchpointId);
-    await queryClient.invalidateQueries({ queryKey: ["touchpoints", householdId] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["touchpoints", householdId] }),
+      queryClient.invalidateQueries({ queryKey: ["touchpoint_stats", householdId] }),
+    ]);
   };
 
   const handleSaveNotes = async (touchpointId: string, notes: string) => {
     await supabase.from("touchpoints").update({ notes }).eq("id", touchpointId);
-    await queryClient.invalidateQueries({ queryKey: ["touchpoints", householdId] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["touchpoints", householdId] }),
+      queryClient.invalidateQueries({ queryKey: ["touchpoint_stats", householdId] }),
+    ]);
   };
 
   return (
@@ -281,67 +545,23 @@ export default function TouchpointTimeline({ householdId }: Props) {
         <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
       </div>
 
-      <div className="overflow-x-auto pb-2">
-        <div className="flex min-w-max items-start py-2">
-          {touchpoints.map((tp, index) => {
-            const isCompleted = tp.status === "completed";
-            const isActive = !isCompleted && new Date(tp.scheduled_date) <= new Date() && tp.status !== "skipped";
-            const isUpcoming = !isCompleted && !isActive;
-            const Icon = TOUCHPOINT_ICONS[tp.touchpoint_type] ?? CheckSquare;
-
-            return (
-              <div key={tp.id} className="flex items-start">
-                <button
-                  type="button"
-                  className="group flex w-32 shrink-0 flex-col items-center gap-2 text-center"
-                  onClick={() => setSelectedTp(tp)}
-                >
-                  <div
-                    className={cn(
-                      "flex h-12 w-12 items-center justify-center rounded-full border text-sm transition-colors",
-                      isCompleted && "border-emerald/20 bg-emerald-muted text-emerald",
-                      isActive && "border-primary/20 bg-primary/10 text-primary",
-                      isUpcoming && "border-border bg-secondary text-muted-foreground",
-                      tp.status === "skipped" && "border-border bg-background text-muted-foreground/70",
-                    )}
-                  >
-                    {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="line-clamp-2 text-sm font-medium text-foreground">{tp.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(tp.scheduled_date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                </button>
-
-                {index < touchpoints.length - 1 && (
-                  <div className="mt-6 h-0.5 w-20 shrink-0 bg-border">
-                    <div
-                      className={cn("h-full bg-primary/20", isCompleted && "bg-primary")}
-                      style={{ width: isCompleted ? "100%" : "40%" }}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {touchpoints.length === 0 && (
-            <div className="rounded-lg border border-dashed border-border bg-secondary/40 px-6 py-8 text-sm text-muted-foreground">
-              No touchpoints scheduled yet.
-            </div>
-          )}
+      {touchpoints.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border bg-secondary/40 px-6 py-8 text-sm text-muted-foreground text-center">
+          No touchpoints scheduled yet.
         </div>
-      </div>
+      ) : (
+        <VerticalTouchpointList
+          touchpoints={touchpoints}
+          selectedId={selectedTp?.id ?? null}
+          onSelect={setSelectedTp}
+        />
+      )}
 
       {selectedTp && (
         <TouchpointDetail
           touchpoint={selectedTp}
+          householdId={householdId}
+          primaryContactId={primaryContactId}
           onClose={() => setSelectedTp(null)}
           onComplete={handleCompleteTouchpoint}
           onSkip={handleSkipTouchpoint}
