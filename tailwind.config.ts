@@ -97,11 +97,26 @@ export default {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        // Sliding gradient bar for AI streaming/thinking states. The bar
+        // is rendered absolutely positioned with width:33% and travels
+        // from -50% to 150% so it enters and exits cleanly.
+        "ai-shimmer": {
+          "0%": { transform: "translateX(-50%)" },
+          "100%": { transform: "translateX(350%)" },
+        },
+        // Slow gradient drift on AiSurface backgrounds so the surface
+        // feels alive without being distracting.
+        "ai-drift": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.4s ease-out forwards",
+        "ai-shimmer": "ai-shimmer 1.6s linear infinite",
+        "ai-drift": "ai-drift 12s ease-in-out infinite",
       },
     },
   },

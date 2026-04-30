@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Bot, X, Calendar, TrendingUp, FileText, Users, ChevronRight, ArrowRight, CheckSquare, Check, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AiSurface } from "@/components/ui/ai-surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -351,7 +352,7 @@ function HouseholdSessionPanel({ event, householdId, onClose }: { event: Calenda
       </Card>
 
       {/* SECTION 2 — Goodie's Take */}
-      <Card className="border-amber-200/70 dark:border-amber-700/40 bg-amber-50/30 dark:bg-amber-950/10">
+      <AiSurface loading={goodie.loading}>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium">
             <Bot className="h-4 w-4" />
@@ -374,7 +375,7 @@ function HouseholdSessionPanel({ event, householdId, onClose }: { event: Calenda
             </p>
           )}
         </CardContent>
-      </Card>
+      </AiSurface>
 
       {/* SECTION 3 — Accounts */}
       <Card>
@@ -828,7 +829,7 @@ function ProspectSessionPanel({ event, onClose }: { event: CalendarEvent; onClos
       </Card>
 
       {/* SECTION 2 — Goodie's Take */}
-      <Card className="border-amber-200/70 dark:border-amber-700/40 bg-amber-50/30 dark:bg-amber-950/10">
+      <AiSurface loading={goodie.loading}>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium">
             <Bot className="h-4 w-4" />
@@ -851,7 +852,7 @@ function ProspectSessionPanel({ event, onClose }: { event: CalendarEvent; onClos
             </p>
           )}
         </CardContent>
-      </Card>
+      </AiSurface>
     </div>
   );
 }

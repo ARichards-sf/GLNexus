@@ -339,8 +339,8 @@ function VerticalTouchpointList({
                   type="button"
                   onClick={() => onSelect(tp)}
                   className={cn(
-                    "w-full flex items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors",
-                    "hover:border-primary/30 hover:bg-secondary/30",
+                    "w-full flex items-center gap-3 rounded-lg border bg-card p-3 text-left transition-all duration-200",
+                    "hover:border-primary/30 hover:bg-secondary/30 hover:-translate-y-0.5 hover:shadow-sm",
                     isSelected ? "border-primary/50 bg-secondary/30" : "border-border",
                     isSkipped && "opacity-60",
                   )}

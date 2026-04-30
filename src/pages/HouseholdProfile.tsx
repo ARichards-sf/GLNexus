@@ -55,6 +55,9 @@ import TouchpointTimeline from "@/components/TouchpointTimeline";
 import TouchpointGenerationDialog from "@/components/TouchpointGenerationDialog";
 import ClientExperienceStats from "@/components/ClientExperienceStats";
 import DocumentsTab from "@/components/contact/DocumentsTab";
+import { CountUp } from "@/components/ui/count-up";
+import { StickyTabsBar } from "@/components/ui/sticky-tabs-bar";
+import { StickyPageHeader } from "@/components/ui/sticky-page-header";
 import AnnualReviewOutreach from "@/components/AnnualReviewOutreach";
 import TierBadge from "@/components/TierBadge";
 import PageLoader from "@/components/PageLoader";
@@ -540,9 +543,9 @@ export default function HouseholdProfile() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="mb-8">
-        <Link to="/households" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
+      {/* Header — sticky chrome that pins to the top while content scrolls. */}
+      <StickyPageHeader>
+        <Link to="/households" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3">
           <ArrowLeft className="w-4 h-4" /> Households
         </Link>
         <div className="flex items-center justify-between">
@@ -571,16 +574,18 @@ export default function HouseholdProfile() {
             <Badge variant="secondary" className="text-xs font-medium">{household.status}</Badge>
           </div>
         </div>
-      </div>
+      </StickyPageHeader>
 
       {/* Tabbed Layout */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="notes">Notes & Compliance</TabsTrigger>
-          <TabsTrigger value="client-experience">Client Experience</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-        </TabsList>
+        <StickyTabsBar>
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="notes">Notes & Compliance</TabsTrigger>
+            <TabsTrigger value="client-experience">Client Experience</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
+          </TabsList>
+        </StickyTabsBar>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
@@ -592,7 +597,9 @@ export default function HouseholdProfile() {
                   <DollarSign className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground font-medium">Total Assets</span>
                 </div>
-                <p className="text-2xl font-semibold tracking-tight text-emerald-600">{formatFullCurrency(totalAccountsAUM)}</p>
+                <p className="text-2xl font-semibold tracking-tight text-emerald-600">
+                  <CountUp value={totalAccountsAUM} format={formatFullCurrency} />
+                </p>
               </CardContent>
             </Card>
             <Popover open={editRiskOpen} onOpenChange={setEditRiskOpen}>

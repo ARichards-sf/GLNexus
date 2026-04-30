@@ -142,9 +142,9 @@ export default function ActivityStreamSection() {
               onClick={() => handleClick(event)}
               disabled={!clickable}
               className={cn(
-                "group w-full text-left flex items-start gap-2 p-2 rounded-md transition-colors",
+                "group w-full text-left flex items-start gap-2 p-2 rounded-md transition-all duration-200",
                 clickable
-                  ? "hover:bg-secondary/40 cursor-pointer"
+                  ? "hover:bg-secondary/40 hover:-translate-y-0.5 cursor-pointer"
                   : "cursor-default",
                 !event.read_at && "bg-primary/5",
               )}

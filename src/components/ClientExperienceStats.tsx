@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarCheck, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { CountUp } from "@/components/ui/count-up";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -103,12 +104,12 @@ export default function ClientExperienceStats({ householdId }: Props) {
       <StatTile
         icon={<CalendarCheck className="w-4 h-4" />}
         label="Planned this year"
-        value={String(stats.plannedThisYear)}
+        value={<CountUp value={stats.plannedThisYear} />}
       />
       <StatTile
         icon={<CheckCircle2 className="w-4 h-4 text-emerald" />}
         label="Completed YTD"
-        value={String(stats.completedYtd)}
+        value={<CountUp value={stats.completedYtd} />}
         sub={
           stats.plannedThisYear > 0
             ? `${Math.round((stats.completedYtd / stats.plannedThisYear) * 100)}% of plan`
@@ -122,7 +123,7 @@ export default function ClientExperienceStats({ householdId }: Props) {
           />
         }
         label="Overdue"
-        value={String(stats.overdue)}
+        value={<CountUp value={stats.overdue} />}
         emphasize={stats.overdue > 0}
       />
       <StatTile
@@ -151,7 +152,7 @@ function StatTile({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: React.ReactNode;
   sub?: string;
   emphasize?: boolean;
 }) {

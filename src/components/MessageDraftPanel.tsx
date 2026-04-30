@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { supabase } from "@/integrations/supabase/client";
 import RichTextEditor from "@/components/RichTextEditor";
+import { AiSurface } from "@/components/ui/ai-surface";
 
 const SCHED_PLACEHOLDER = "[SCHEDULING_BUTTON]";
 
@@ -503,21 +504,25 @@ export default function MessageDraftPanel() {
             )}
           </div>
           {isEmail ? (
-            <RichTextEditor
-              value={body}
-              onChange={setBody}
-              disabled={generating}
-              minHeightClass="min-h-[420px]"
-              placeholder="Draft will appear here…"
-            />
+            <AiSurface tone="subtle" loading={generating}>
+              <RichTextEditor
+                value={body}
+                onChange={setBody}
+                disabled={generating}
+                minHeightClass="min-h-[420px]"
+                placeholder="Draft will appear here…"
+              />
+            </AiSurface>
           ) : (
-            <Textarea
-              id="draft-panel-body"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="min-h-[160px] text-sm"
-              placeholder={generating ? "" : "Draft will appear here…"}
-            />
+            <AiSurface tone="subtle" loading={generating}>
+              <Textarea
+                id="draft-panel-body"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                className="min-h-[160px] text-sm border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                placeholder={generating ? "" : "Draft will appear here…"}
+              />
+            </AiSurface>
           )}
           {overTextLimit && (
             <p className="text-[11px] text-destructive">

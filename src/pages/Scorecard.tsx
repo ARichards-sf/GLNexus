@@ -10,6 +10,7 @@ import { streamChat } from "@/lib/aiChat";
 import { formatCurrency } from "@/data/sampleData";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AiSurface } from "@/components/ui/ai-surface";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import TierBadge from "@/components/TierBadge";
@@ -460,10 +461,10 @@ Do not mention that you are an AI.`;
         </div>
       </section>
 
-      <Card>
+      <AiSurface loading={summaryLoading}>
         <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between">
           <div className="flex gap-4">
-            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-secondary text-foreground">
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100/70 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200/60 dark:ring-amber-800/40">
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="space-y-2">
@@ -503,7 +504,7 @@ Do not mention that you are an AI.`;
             )}
           </div>
         </CardContent>
-      </Card>
+      </AiSurface>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>

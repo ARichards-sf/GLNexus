@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import AppSidebar from "./AppSidebar";
 import ImpersonationBar from "./ImpersonationBar";
 import AiAssistant from "./AiAssistant";
+import CommandPalette from "./CommandPalette";
 import MessageDraftPanel from "./MessageDraftPanel";
 import { useDraftPanel } from "@/contexts/DraftPanelContext";
 import InSessionPanel from "./InSessionPanel";
@@ -85,6 +86,23 @@ function LayoutInner() {
 
   const [endSessionOpen, setEndSessionOpen] = useState(false);
   const sessionSnapshot = useRef<CalendarEvent | null>(null);
+
+  // ⌘K / Ctrl+K command palette. Mounted globally so it works from any
+  // page; shortcut runs at window-level so input/contenteditable focus
+  // doesn't swallow it. Modifier check uses metaKey on macOS, ctrlKey on
+  // everything else.
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (isMod && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const togglePanel = () => {
     const next = !panelCollapsed;
@@ -258,7 +276,12 @@ function LayoutInner() {
               showPanel && panelCollapsed && "2xl:mr-[48px]"
             )}
           >
-            <Outlet />
+            {/* Route-transition fade. Re-keying on pathname remounts the
+                child tree so the existing `animate-fade-in` keyframe
+                replays on every navigation. No extra deps needed. */}
+            <div key={pathname} className="animate-fade-in">
+              <Outlet />
+            </div>
           </main>
         </div>
 
@@ -371,6 +394,7 @@ function LayoutInner() {
         )}
       </div>
       <AiAssistant />
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
 
       <IdleWarningDialog
         open={showIdleWarning}

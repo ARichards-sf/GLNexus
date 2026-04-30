@@ -539,7 +539,7 @@ export default function GoodieSuggests({ households, recentNotes, embedded = fal
               );
 
               const tileClass =
-                "group w-full text-left flex items-start gap-2.5 p-2 rounded-md hover:bg-secondary/60 transition-colors";
+                "group w-full text-left flex items-start gap-2.5 p-2 rounded-md hover:bg-secondary/60 hover:-translate-y-0.5 transition-all duration-200";
 
               // AUM-drop tile → dropdown of outreach actions.
               if (isAumDrop(s) && s.action === "household") {

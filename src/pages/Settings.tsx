@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import BookingSettings from "@/components/settings/BookingSettings";
+import { StickyTabsBar } from "@/components/ui/sticky-tabs-bar";
+import { StickyPageHeader } from "@/components/ui/sticky-page-header";
 
 export default function Settings() {
   const { user, signOut } = useAuth();
@@ -71,29 +73,33 @@ export default function Settings() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8 px-6 space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your account preferences and security.</p>
+    <div className="max-w-3xl mx-auto px-6 space-y-6 pb-8">
+      <StickyPageHeader>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Settings</h1>
+            <p className="text-sm text-muted-foreground mt-1">Manage your account preferences and security.</p>
+          </div>
+          <Button variant="outline" onClick={signOut}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign out
+          </Button>
         </div>
-        <Button variant="outline" onClick={signOut}>
-          <LogOut className="w-4 h-4 mr-2" />
-          Sign out
-        </Button>
-      </div>
+      </StickyPageHeader>
 
       <Tabs defaultValue="security" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="security">
-            <Lock className="w-3.5 h-3.5 mr-1.5" />
-            Security
-          </TabsTrigger>
-          <TabsTrigger value="booking">
-            <CalendarIcon className="w-3.5 h-3.5 mr-1.5" />
-            Booking
-          </TabsTrigger>
-        </TabsList>
+        <StickyTabsBar>
+          <TabsList>
+            <TabsTrigger value="security">
+              <Lock className="w-3.5 h-3.5 mr-1.5" />
+              Security
+            </TabsTrigger>
+            <TabsTrigger value="booking">
+              <CalendarIcon className="w-3.5 h-3.5 mr-1.5" />
+              Booking
+            </TabsTrigger>
+          </TabsList>
+        </StickyTabsBar>
 
         <TabsContent value="security">
           <Card>

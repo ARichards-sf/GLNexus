@@ -23,6 +23,8 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
+import { StickyTabsBar } from "@/components/ui/sticky-tabs-bar";
+import { StickyPageHeader } from "@/components/ui/sticky-page-header";
 import { cn } from "@/lib/utils";
 import { useContact, useContactAccounts, useDeleteAccount } from "@/hooks/useContacts";
 import { useArchiveContact, useComplianceNotes } from "@/hooks/useHouseholds";
@@ -122,11 +124,11 @@ export default function ContactProfile() {
 
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
-      {/* Header */}
-      <div className="mb-8">
+      {/* Header — sticky chrome that pins to the top while content scrolls. */}
+      <StickyPageHeader>
         <Link
           to={`/household/${contact.household_id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
         >
           <ArrowLeft className="w-4 h-4" />
           {householdName || "Household"}
@@ -179,15 +181,17 @@ export default function ContactProfile() {
             </DropdownMenu>
           </div>
         </div>
-      </div>
+      </StickyPageHeader>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="financial">Financial</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-        </TabsList>
+        <StickyTabsBar>
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="financial">Financial</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
+          </TabsList>
+        </StickyTabsBar>
 
         <TabsContent value="overview" className="space-y-6 mt-6">
           {/* Three column overview */}

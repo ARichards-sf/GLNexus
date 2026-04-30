@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import MorningBriefing from "@/components/MorningBriefing";
 import GoodieSuggests from "@/components/GoodieSuggests";
+import { CountUp } from "@/components/ui/count-up";
 import TierBadge from "@/components/TierBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency, formatFullCurrency } from "@/data/sampleData";
@@ -226,7 +227,9 @@ export function WidgetRenderer({
                 <span className="text-sm text-muted-foreground font-medium">Total Book of Business</span>
                 <TrendingUp className="w-4 h-4 text-muted-foreground" />
               </div>
-              <p className="text-3xl font-semibold tracking-tight text-foreground">{formatCurrency(totalAUM)}</p>
+              <p className="text-3xl font-semibold tracking-tight text-foreground">
+                <CountUp value={totalAUM} format={formatCurrency} />
+              </p>
               <p className="text-xs text-muted-foreground mt-2">{formatFullCurrency(totalAUM)}</p>
             </CardContent>
           </Card>
@@ -237,7 +240,9 @@ export function WidgetRenderer({
                 <span className="text-sm text-muted-foreground font-medium">Households</span>
                 <Users className="w-4 h-4 text-muted-foreground" />
               </div>
-              <p className="text-3xl font-semibold tracking-tight text-foreground">{totalHouseholds}</p>
+              <p className="text-3xl font-semibold tracking-tight text-foreground">
+                <CountUp value={totalHouseholds} />
+              </p>
               <p className="text-xs text-muted-foreground mt-2">{activeHouseholds} active</p>
             </CardContent>
           </Card>
@@ -248,7 +253,9 @@ export function WidgetRenderer({
                 <span className="text-sm text-muted-foreground font-medium">Upcoming Reviews</span>
                 <CalendarCheck className="w-4 h-4 text-muted-foreground" />
               </div>
-              <p className="text-3xl font-semibold tracking-tight text-foreground">{upcomingReviews.length}</p>
+              <p className="text-3xl font-semibold tracking-tight text-foreground">
+                <CountUp value={upcomingReviews.length} />
+              </p>
               <p className="text-xs text-muted-foreground mt-2">Next 60 days</p>
             </CardContent>
           </Card>

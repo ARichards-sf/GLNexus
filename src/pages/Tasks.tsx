@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { StickyTabsBar } from "@/components/ui/sticky-tabs-bar";
+import { StickyPageHeader } from "@/components/ui/sticky-page-header";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -598,25 +600,29 @@ export default function Tasks() {
 
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
-      <div className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <CheckSquare className="w-6 h-6 text-primary" />
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tasks</h1>
-            <p className="text-muted-foreground mt-1 text-sm">Track follow-ups, reviews, and assignments.</p>
+      <StickyPageHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CheckSquare className="w-6 h-6 text-primary" />
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tasks</h1>
+              <p className="text-muted-foreground mt-1 text-sm">Track follow-ups, reviews, and assignments.</p>
+            </div>
           </div>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="w-4 h-4 mr-1.5" /> New Task
+          </Button>
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="w-4 h-4 mr-1.5" /> New Task
-        </Button>
-      </div>
+      </StickyPageHeader>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TaskFilter)} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="mine">Assigned to Me</TabsTrigger>
-          <TabsTrigger value="created">Created by Me</TabsTrigger>
-          {showFirmView && <TabsTrigger value="all">Firm View</TabsTrigger>}
-        </TabsList>
+        <StickyTabsBar>
+          <TabsList>
+            <TabsTrigger value="mine">Assigned to Me</TabsTrigger>
+            <TabsTrigger value="created">Created by Me</TabsTrigger>
+            {showFirmView && <TabsTrigger value="all">Firm View</TabsTrigger>}
+          </TabsList>
+        </StickyTabsBar>
 
         <div className="space-y-3">
           <div className="flex items-center gap-2">

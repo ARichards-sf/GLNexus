@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Bot, Send, Sparkles, RotateCcw, StopCircle, Check, X, Plus, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { AiSurface } from "@/components/ui/ai-surface";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHouseholds, useAllComplianceNotes } from "@/hooks/useHouseholds";
@@ -720,23 +721,29 @@ export default function GoodieChat() {
                 </div>
               )}
 
-              <div
-                className={cn(
-                  "max-w-[85%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed",
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card border border-border text-foreground"
-                )}
-              >
-                {msg.content ||
-                  (isLoading && idx === messages.length - 1 ? (
-                    <div className="flex gap-1 py-1">
-                      <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" />
-                      <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:0.2s]" />
-                      <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:0.4s]" />
-                    </div>
-                  ) : null)}
-              </div>
+              {msg.role === "user" ? (
+                <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed bg-primary text-primary-foreground">
+                  {msg.content}
+                </div>
+              ) : (
+                <AiSurface
+                  tone="subtle"
+                  loading={isLoading && idx === messages.length - 1 && !msg.content}
+                  className="max-w-[85%] rounded-2xl"
+                  innerClassName="rounded-[15px]"
+                >
+                  <div className="px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed text-foreground">
+                    {msg.content ||
+                      (isLoading && idx === messages.length - 1 ? (
+                        <div className="flex gap-1 py-1">
+                          <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" />
+                          <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:0.2s]" />
+                          <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:0.4s]" />
+                        </div>
+                      ) : null)}
+                  </div>
+                </AiSurface>
+              )}
 
               {msg.role === "user" && (
                 <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0 mt-0.5 text-xs font-semibold text-foreground">

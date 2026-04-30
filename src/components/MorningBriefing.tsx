@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sunrise, Sun, Sunset, ChevronDown, ChevronUp, X, Sparkles, AlertCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AiSurface } from "@/components/ui/ai-surface";
 import { streamChat } from "@/lib/aiChat";
 import { formatCurrency } from "@/data/sampleData";
 
@@ -529,10 +530,7 @@ export default function MorningBriefing({
   const PeriodIcon = periodConfig.Icon;
 
   return (
-    <Card
-      className={`mb-6 shadow-none ${periodConfig.cardBorder} ${periodConfig.cardBg}`}
-      style={{ borderColor: accentColor ? `${accentColor}60` : undefined }}
-    >
+    <AiSurface loading={isGenerating} className="mb-6">
       <CardContent className="pt-5 pb-5">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -648,6 +646,6 @@ export default function MorningBriefing({
           </div>
         )}
       </CardContent>
-    </Card>
+    </AiSurface>
   );
 }

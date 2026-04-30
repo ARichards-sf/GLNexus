@@ -186,7 +186,7 @@ export default function AiInboxSection() {
                 key={d.id}
                 type="button"
                 onClick={() => handleOpen(d)}
-                className="group w-full text-left p-2 rounded-md border border-border bg-card hover:bg-secondary/40 hover:border-primary/30 transition-colors"
+                className="group w-full text-left p-2 rounded-md border border-border bg-card hover:bg-secondary/40 hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200"
               >
                 <div className="flex items-start gap-2.5">
                   <div className={`shrink-0 w-7 h-7 rounded-md flex items-center justify-center ${meta.tone}`}>

@@ -18,6 +18,7 @@ import {
 import { useTodaysMeetings, EVENT_TYPE_COLORS, type CalendarEvent } from "@/hooks/useCalendarEvents";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat } from "@/lib/aiChat";
+import { AiSurface } from "@/components/ui/ai-surface";
 import { formatFullCurrency } from "@/data/sampleData";
 import { cn } from "@/lib/utils";
 
@@ -125,7 +126,7 @@ function MeetingRow({
     : "/calendar";
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden bg-card">
+    <div className="rounded-lg border border-border overflow-hidden bg-card hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200">
       <button
         type="button"
         onClick={onToggle}
@@ -152,7 +153,7 @@ function MeetingRow({
       </button>
 
       {expanded && (
-        <div className="border-t border-border bg-amber-50/30 dark:bg-amber-950/10 px-3 py-3 space-y-2">
+        <div className="border-t border-border px-3 py-3 space-y-2">
           <MeetingBriefBody event={event} recipientName={recipientName} />
           <div className="flex items-center justify-end gap-1 pt-1">
             {event.household_id && (
@@ -315,30 +316,31 @@ function MeetingBriefBody({ event, recipientName }: { event: CalendarEvent; reci
     return <p className="text-xs text-destructive">Couldn't generate brief: {error}</p>;
   }
 
-  if (!text && loading) {
-    return (
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
-          <Bot className="w-3 h-3" />
-          <Loader2 className="w-3 h-3 animate-spin" />
-          <span>Goodie is reviewing the file…</span>
-        </div>
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-5/6" />
-        <Skeleton className="h-3 w-3/4" />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400 font-medium">
-        <Bot className="w-3 h-3" />
-        Goodie's take
+    <AiSurface loading={loading} tone="subtle">
+      <div className="px-3 py-2.5 space-y-1.5">
+        <div className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+          <Bot className="w-3 h-3" />
+          Goodie's take
+          {loading && !text && (
+            <span className="flex items-center gap-1 text-muted-foreground font-normal">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>reviewing the file…</span>
+            </span>
+          )}
+        </div>
+        {!text && loading ? (
+          <div className="space-y-1.5">
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-5/6" />
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+        ) : (
+          <p className="text-xs leading-relaxed text-foreground/90 whitespace-pre-wrap">
+            {text || "Open the household to review the full file."}
+          </p>
+        )}
       </div>
-      <p className="text-xs leading-relaxed text-foreground/90 whitespace-pre-wrap">
-        {text || "Open the household to review the full file."}
-      </p>
-    </div>
+    </AiSurface>
   );
 }
