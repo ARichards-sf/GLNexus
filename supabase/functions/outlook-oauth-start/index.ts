@@ -13,7 +13,8 @@ const corsHeaders = {
 };
 
 const MS_AUTHORITY = "https://login.microsoftonline.com/common";
-const SCOPES = "offline_access User.Read Mail.Read Mail.Send";
+const SCOPES =
+  "offline_access User.Read Mail.ReadWrite Mail.Send Calendars.ReadWrite";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

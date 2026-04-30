@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { FirmProvider } from "@/contexts/FirmContext";
 import { DraftPanelProvider } from "@/contexts/DraftPanelContext";
+import { EmailReaderPanelProvider } from "@/contexts/EmailReaderPanelContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import ContactProfile from "./pages/ContactProfile";
@@ -65,6 +66,7 @@ const App = () => (
         <ImpersonationProvider>
         <FirmProvider>
         <DraftPanelProvider>
+        <EmailReaderPanelProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
             {/* Public booking pages — no auth required, no AppLayout chrome */}
@@ -116,6 +118,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+        </EmailReaderPanelProvider>
         </DraftPanelProvider>
         </FirmProvider>
         </ImpersonationProvider>

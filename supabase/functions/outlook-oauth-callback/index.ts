@@ -11,7 +11,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const MS_AUTHORITY = "https://login.microsoftonline.com/common";
-const SCOPES = "offline_access User.Read Mail.Read Mail.Send";
+const SCOPES =
+  "offline_access User.Read Mail.ReadWrite Mail.Send Calendars.ReadWrite";
 
 serve(async (req) => {
   try {

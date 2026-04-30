@@ -10,6 +10,8 @@ import AiAssistant from "./AiAssistant";
 import CommandPalette from "./CommandPalette";
 import MessageDraftPanel from "./MessageDraftPanel";
 import { useDraftPanel } from "@/contexts/DraftPanelContext";
+import EmailReaderPanel from "./EmailReaderPanel";
+import { useEmailReaderPanel } from "@/contexts/EmailReaderPanelContext";
 import InSessionPanel from "./InSessionPanel";
 import CopilotSidebar from "./CopilotSidebar";
 import EndSessionDialog from "./EndSessionDialog";
@@ -57,6 +59,7 @@ function LayoutInner() {
   const createTask = useCreateTask();
   const queryClient = useQueryClient();
   const { draft, closeDraftPanel } = useDraftPanel();
+  const { email: readerEmail, closeEmailReader } = useEmailReaderPanel();
 
   // Firm branding colors
   const { currentFirm, allFirms } = useFirmContext();
@@ -110,19 +113,20 @@ function LayoutInner() {
     localStorage.setItem("goodie-panel-collapsed", String(next));
   };
 
-  // When a draft opens, force-expand the right panel so the user can see
-  // it. They can still collapse afterward if they want.
+  // When a draft or email-reader opens, force-expand the right panel so the
+  // user can see it. They can still collapse afterward if they want.
   useEffect(() => {
-    if (draft && panelCollapsed) {
+    if ((draft || readerEmail) && panelCollapsed) {
       setPanelCollapsed(false);
       localStorage.setItem("goodie-panel-collapsed", "false");
     }
-  }, [draft, panelCollapsed]);
+  }, [draft, readerEmail, panelCollapsed]);
 
   const hidePanel = pathname.startsWith("/admin") || pathname === "/settings" || pathname === "/goodie";
-  // Force-show the panel whenever a draft is active so it can't get
-  // stranded behind a route that normally hides it.
-  const showPanel = (!hidePanel || !!draft) && !!user;
+  // Force-show the panel whenever a draft or email-reader is active so it
+  // can't get stranded behind a route that normally hides it.
+  const showPanel = (!hidePanel || !!draft || !!readerEmail) && !!user;
+  const expandedView = !!draft || !!readerEmail;
   const sessionName = isInSession
     ? (sessionEvent?.households?.name ||
         (sessionEvent?.prospects
@@ -271,8 +275,8 @@ function LayoutInner() {
               "flex-1 overflow-y-auto transition-all duration-300",
               // Draft panel is wider (room for the rich-text editor +
               // toolbar). Standard Goodie panel uses the smaller widths.
-              showPanel && !panelCollapsed && !draft && "2xl:mr-[360px] 3xl:mr-[480px]",
-              showPanel && !panelCollapsed && !!draft && "2xl:mr-[480px] 3xl:mr-[600px]",
+              showPanel && !panelCollapsed && !expandedView && "2xl:mr-[360px] 3xl:mr-[480px]",
+              showPanel && !panelCollapsed && expandedView && "2xl:mr-[480px] 3xl:mr-[600px]",
               showPanel && panelCollapsed && "2xl:mr-[48px]"
             )}
           >
@@ -314,7 +318,7 @@ function LayoutInner() {
               <aside
                 className={cn(
                   "hidden 2xl:flex fixed right-0 top-0 bottom-0 border-l border-border bg-card shadow-lg z-40 flex-col",
-                  draft ? "w-[480px] 3xl:w-[600px]" : "w-[360px] 3xl:w-[480px]",
+                  expandedView ? "w-[480px] 3xl:w-[600px]" : "w-[360px] 3xl:w-[480px]",
                 )}
               >
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card sticky top-0 z-10">
@@ -323,11 +327,13 @@ function LayoutInner() {
                     <h2 className="text-sm font-semibold truncate">
                       {draft
                         ? `Draft ${draft.kind === "email" ? "Email" : "Text"} · ${draft.recipientName}`
-                        : isVpmSession
-                          ? "VPM Ticket"
-                          : isInSession && sessionName
-                            ? `In Session · ${sessionName}`
-                            : "Goodie"}
+                        : readerEmail
+                          ? `Email · ${readerEmail.from_name ?? readerEmail.from_email ?? "Reader"}`
+                          : isVpmSession
+                            ? "VPM Ticket"
+                            : isInSession && sessionName
+                              ? `In Session · ${sessionName}`
+                              : "Goodie"}
                     </h2>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -341,7 +347,17 @@ function LayoutInner() {
                         Close
                       </Button>
                     )}
-                    {!draft && isInSession && !isVpmSession && (
+                    {!draft && readerEmail && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={closeEmailReader}
+                        className="text-xs text-muted-foreground"
+                      >
+                        Close
+                      </Button>
+                    )}
+                    {!draft && !readerEmail && isInSession && !isVpmSession && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -355,10 +371,10 @@ function LayoutInner() {
                         End Session
                       </Button>
                     )}
-                    {/* Collapse arrow hidden in draft mode — collapsing
-                        the panel hides the editor entirely, which is
-                        confusing during draft review. Use Close instead. */}
-                    {!draft && (
+                    {/* Collapse arrow hidden in draft / reader mode —
+                        collapsing the panel hides the content entirely,
+                        which is confusing during review. Use Close instead. */}
+                    {!expandedView && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -375,6 +391,8 @@ function LayoutInner() {
                 <div className="flex-1 overflow-hidden flex flex-col">
                   {draft ? (
                     <MessageDraftPanel />
+                  ) : readerEmail ? (
+                    <EmailReaderPanel />
                   ) : isVpmSession ? (
                     <VpmTicketPanel />
                   ) : isInSession && sessionEvent && (sessionEvent.household_id || sessionEvent.prospect_id) ? (

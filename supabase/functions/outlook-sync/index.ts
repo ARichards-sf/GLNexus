@@ -23,7 +23,8 @@ const corsHeaders = {
 
 const MS_AUTHORITY = "https://login.microsoftonline.com/common";
 const GRAPH = "https://graph.microsoft.com/v1.0";
-const SCOPES = "offline_access User.Read Mail.Read Mail.Send";
+const SCOPES =
+  "offline_access User.Read Mail.ReadWrite Mail.Send Calendars.ReadWrite";
 const INITIAL_LOOKBACK_DAYS = 30;
 const PAGE_SIZE = 50;
 const SAFETY_PAGE_LIMIT = 20;
@@ -476,10 +477,10 @@ async function loadContactsByEmail(
 }
 
 // ---------------------------------------------------------------------------
-// AI prioritization — batch unprocessed inbox messages through Claude.
-// Hard rule: emails from senders not matched to a contact CANNOT be high or
-// urgent. They top out at "normal" regardless of how time-sensitive the
-// content is. This keeps vendor/system noise out of the priority inbox.
+// AI prioritization — batch unprocessed CLIENT inbox messages through Claude.
+// Hard rule: only emails matched to a known contact (contact_id IS NOT NULL)
+// are ever prioritized. Vendor/system mail is left with ai_priority = null
+// and never reaches the advisor's Priority Inbox.
 // ---------------------------------------------------------------------------
 async function prioritizeUnprocessed(
   admin: SupabaseClient,
@@ -498,6 +499,7 @@ async function prioritizeUnprocessed(
     )
     .eq("advisor_id", advisorId)
     .eq("folder", "inbox")
+    .not("contact_id", "is", null)
     .is("ai_processed_at", null)
     .order("received_at", { ascending: false })
     .limit(AI_BATCH_SIZE);
@@ -520,11 +522,8 @@ async function prioritizeUnprocessed(
   }
 
   const summaries = pending.map((p, i) => {
-    const isClient = !!p.contact_id;
     const tier = p.household_id ? tierByHousehold.get(p.household_id) : null;
-    const tag = isClient
-      ? `[CLIENT — ${(tier ?? "untiered").toUpperCase()}]`
-      : "[UNKNOWN SENDER — vendor or non-client]";
+    const tag = `[CLIENT — ${(tier ?? "untiered").toUpperCase()}]`;
     return `--- Email ${i + 1} (id=${p.id}) ${tag} ---
 From: ${p.from_name ?? ""} <${p.from_email ?? "?"}>
 Subject: ${p.subject ?? "(no subject)"}
@@ -533,15 +532,13 @@ Preview: ${(p.body_preview ?? "").slice(0, 400)}`;
   }).join("\n\n");
 
   const system =
-    `You triage a financial advisor's inbox. For each email, return JSON with priority, sentiment, summary, intent, and a suggested action.
+    `You triage a financial advisor's inbox. Every email below is from a known client. Return JSON with priority, sentiment, summary, intent, and a suggested action.
 
-PRIORITY (hard rules):
-- urgent  — only for emails tagged [CLIENT] AND any of: explicit deadline, escalation, complaint, money movement, time-sensitive decision, expressed frustration. Platinum-tier clients get the benefit of the doubt; bump borderline cases up.
-- high    — [CLIENT] emails asking a direct question, requesting work, or expressing concern. Platinum/gold tier outranks silver — when content is otherwise similar, platinum/gold should be high while silver is normal.
-- normal  — routine [CLIENT] correspondence, FYI from a known client, or vendor/system emails that need eventual action (e.g. failed automation, billing).
-- low     — newsletters, marketing, automated notifications without action needed.
-
-CRITICAL: emails tagged [UNKNOWN SENDER] CANNOT be high or urgent. Cap them at normal regardless of how time-sensitive the content seems. The advisor cares about clients, not vendor noise.
+PRIORITY:
+- urgent  — explicit deadline, escalation, complaint, money movement, time-sensitive decision, or expressed frustration. Platinum-tier clients get the benefit of the doubt; bump borderline cases up.
+- high    — direct question, request for work, or expressed concern. Platinum/gold outranks silver — when content is otherwise similar, platinum/gold should be high while silver is normal.
+- normal  — routine correspondence, FYI from the client.
+- low     — pure pleasantries, thank-you notes, or auto-generated bounces from the client's address.
 
 SENTIMENT: one of positive, neutral, negative, frustrated. Use frustrated for explicit annoyance/anger/complaints; negative for worry, confusion, or dissatisfaction; positive for thanks/praise/excitement; neutral for everything else.
 
@@ -606,14 +603,9 @@ ${summaries}`;
     const original = pending.find((p) => p.id === r.id);
     if (!original) continue;
 
-    // Belt-and-suspenders: enforce the "unknown sender cannot be high/urgent"
-    // rule on our side too, in case the model slips.
-    let priority = ["urgent", "high", "normal", "low"].includes(r.priority)
+    const priority = ["urgent", "high", "normal", "low"].includes(r.priority)
       ? r.priority
       : "normal";
-    if (!original.contact_id && (priority === "urgent" || priority === "high")) {
-      priority = "normal";
-    }
 
     const sentiment = ["positive", "neutral", "negative", "frustrated"]
       .includes(r.sentiment ?? "")
@@ -640,12 +632,7 @@ ${summaries}`;
     }
     updated += 1;
 
-    // Activity events ONLY for known clients with priority high/urgent.
-    // Vendor/system noise stays out of the activity stream.
-    if (
-      original.contact_id &&
-      (priority === "urgent" || priority === "high")
-    ) {
+    if (priority === "urgent" || priority === "high") {
       await admin.from("activity_events").insert({
         advisor_id: advisorId,
         kind: "system",
