@@ -4,11 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Lock, LogOut, Calendar as CalendarIcon } from "lucide-react";
+import { Lock, LogOut, Calendar as CalendarIcon, Plug } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import BookingSettings from "@/components/settings/BookingSettings";
+import OutlookSettings from "@/components/settings/OutlookSettings";
 import { StickyTabsBar } from "@/components/ui/sticky-tabs-bar";
 import { StickyPageHeader } from "@/components/ui/sticky-page-header";
 
@@ -98,6 +99,10 @@ export default function Settings() {
               <CalendarIcon className="w-3.5 h-3.5 mr-1.5" />
               Booking
             </TabsTrigger>
+            <TabsTrigger value="integrations">
+              <Plug className="w-3.5 h-3.5 mr-1.5" />
+              Integrations
+            </TabsTrigger>
           </TabsList>
         </StickyTabsBar>
 
@@ -160,6 +165,10 @@ export default function Settings() {
 
         <TabsContent value="booking">
           <BookingSettings />
+        </TabsContent>
+
+        <TabsContent value="integrations">
+          <OutlookSettings />
         </TabsContent>
       </Tabs>
     </div>

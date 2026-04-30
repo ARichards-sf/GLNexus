@@ -1,1 +1,4 @@
 project_id = "enndhfonpvgnethumklq"
+
+[functions.outlook-oauth-callback]
+verify_jwt = false

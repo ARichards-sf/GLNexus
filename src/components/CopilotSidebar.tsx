@@ -10,9 +10,11 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTodaysMeetings } from "@/hooks/useCalendarEvents";
 import { usePendingDrafts } from "@/hooks/usePendingDrafts";
+import { usePriorityEmails } from "@/hooks/usePriorityEmails";
 import { useActivityEvents } from "@/hooks/useActivityEvents";
 import { useTasks } from "@/hooks/useTasks";
 import TodaysMeetingsWidget from "./dashboard/TodaysMeetingsWidget";
+import PriorityInboxSection from "./PriorityInboxSection";
 import AiInboxSection from "./AiInboxSection";
 import PendingTasksSection from "./PendingTasksSection";
 import ActivityStreamSection from "./ActivityStreamSection";
@@ -81,6 +83,7 @@ function TabPill({
 export default function CopilotSidebar() {
   const { data: todaysMeetings = [] } = useTodaysMeetings();
   const { data: pendingDrafts = [] } = usePendingDrafts();
+  const { data: priorityEmails = [] } = usePriorityEmails();
   const { data: events = [] } = useActivityEvents();
   const { data: tasks = [] } = useTasks("mine");
   const openTaskCount = tasks.filter((t) => t.status === "todo").length;
@@ -103,7 +106,11 @@ export default function CopilotSidebar() {
         <div className="border-b border-border bg-card px-2 pt-2">
           <TabsList className="w-full grid grid-cols-4 h-9 bg-secondary/40 p-0.5">
             <TabsTrigger value="inbox" className="text-[11px] px-1.5">
-              <TabPill icon={Inbox} label="AI Drafts" count={pendingDrafts.length} />
+              <TabPill
+                icon={Inbox}
+                label="AI Drafts"
+                count={priorityEmails.length + pendingDrafts.length}
+              />
             </TabsTrigger>
             <TabsTrigger value="meetings" className="text-[11px] px-1.5">
               <TabPill icon={CalendarDays} label="Meets" count={todaysMeetings.length} />
@@ -122,6 +129,7 @@ export default function CopilotSidebar() {
           className="mt-0 flex-1 overflow-y-auto data-[state=inactive]:hidden"
           forceMount
         >
+          <PriorityInboxSection />
           <AiInboxSection />
         </TabsContent>
         <TabsContent
