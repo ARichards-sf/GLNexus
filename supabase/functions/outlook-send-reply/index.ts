@@ -168,7 +168,20 @@ async function ensureAccessToken(
   });
 
   if (!res.ok) {
-    throw new Error(`Token refresh failed: ${res.status} ${await res.text()}`);
+    const errText = await res.text();
+    // Same recovery pattern as outlook-sync: flag the connection for
+    // re-auth so the UI can prompt instead of just showing a stale error.
+    if (/invalid_grant/i.test(errText)) {
+      await admin
+        .from("outlook_connections")
+        .update({
+          needs_reauth: true,
+          last_sync_error: "Outlook access expired — please reconnect.",
+        })
+        .eq("advisor_id", conn.advisor_id);
+      throw new Error("OUTLOOK_NEEDS_REAUTH");
+    }
+    throw new Error(`Token refresh failed: ${res.status} ${errText}`);
   }
 
   const tok = await res.json() as {

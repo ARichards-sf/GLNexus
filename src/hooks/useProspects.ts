@@ -5,6 +5,7 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { calculateTierScore, scoreToTier } from "@/lib/tierScoring";
 import { embedRecord } from "@/lib/embedRecord";
 import { emitActivityEvent } from "@/hooks/useActivityEvents";
+import { rescanOutlookContact } from "@/lib/rescanOutlookContact";
 
 export interface Prospect {
   id: string;
@@ -154,8 +155,17 @@ export function useCreateProspect() {
       if (error) throw error;
       return data as Prospect;
     },
-    onSuccess: () => {
+    onSuccess: (prospect) => {
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      // Fire-and-forget historical Outlook rescan so any past mail with
+      // this prospect populates the timeline. No-op if Outlook isn't
+      // connected.
+      if (prospect.email) {
+        void rescanOutlookContact({
+          email: prospect.email,
+          prospect_id: prospect.id,
+        });
+      }
     },
   });
 }

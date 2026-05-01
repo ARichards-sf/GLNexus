@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { Mail, Loader2, RefreshCw, Unlink } from "lucide-react";
+import { Mail, Loader2, RefreshCw, Unlink, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,6 +16,9 @@ type OutlookConnection = {
   last_synced_at: string | null;
   last_sync_error: string | null;
   inbox_delta_link: string | null;
+  /** Set true when MS rejected our refresh token. Sync stops retrying
+   *  and the UI shows a Reconnect prompt instead of a stale error. */
+  needs_reauth: boolean;
 };
 
 export default function OutlookSettings() {
@@ -43,7 +46,7 @@ export default function OutlookSettings() {
       if (!user) return null;
       const { data, error } = await supabase
         .from("outlook_connections")
-        .select("email, display_name, last_synced_at, last_sync_error, inbox_delta_link")
+        .select("email, display_name, last_synced_at, last_sync_error, inbox_delta_link, needs_reauth")
         .eq("advisor_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -148,13 +151,44 @@ export default function OutlookSettings() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">Connected</Badge>
+            <div className="flex items-center gap-2 flex-wrap">
+              {conn.needs_reauth ? (
+                <Badge variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-400">
+                  Reconnect required
+                </Badge>
+              ) : (
+                <Badge variant="secondary">Connected</Badge>
+              )}
               <span className="text-sm font-medium">{conn.email}</span>
               {conn.display_name && (
                 <span className="text-sm text-muted-foreground">({conn.display_name})</span>
               )}
             </div>
+
+            {/* Hard-stop banner: invalid_grant from Microsoft means the
+                refresh token won't recover via retry. The user must
+                re-authorize before sync (or send-reply) can resume. */}
+            {conn.needs_reauth && (
+              <div className="rounded-md border border-amber-300/60 bg-amber-50/60 dark:bg-amber-950/30 p-3 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-2 text-sm">
+                  <p className="text-foreground">
+                    Your Outlook authorization expired and the connection
+                    can't refresh on its own. This usually happens after
+                    a password change, a long idle period, or revoked
+                    consent.
+                  </p>
+                  <Button size="sm" onClick={handleConnect} disabled={connecting}>
+                    {connecting ? (
+                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Mail className="w-3.5 h-3.5 mr-1.5" />
+                    )}
+                    Reconnect Outlook
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <div className="text-sm text-muted-foreground space-y-1">
               <div>

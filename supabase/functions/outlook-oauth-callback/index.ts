@@ -130,6 +130,9 @@ serve(async (req) => {
         inbox_delta_link: null,
         sent_delta_link: null,
         last_sync_error: null,
+        // Clear the re-auth flag — fresh consent means the next sync
+        // can run normally again.
+        needs_reauth: false,
       }, { onConflict: "advisor_id" });
 
     if (upsertErr) {

@@ -15,6 +15,7 @@ import { useAllContacts } from "@/hooks/useContacts";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRight, Check, UserPlus, Search } from "lucide-react";
 import { embedRecord } from "@/lib/embedRecord";
+import { rescanOutlookContact } from "@/lib/rescanOutlookContact";
 
 const step1Schema = z.object({
   name: z.string().trim().min(1, "Required").max(200),
@@ -101,20 +102,48 @@ export default function CreateHouseholdDialog({ open, onOpenChange }: Props) {
         embedRecord("households", household, user.id);
       }
 
+      let primaryContactId: string | null = null;
+      let primaryEmail: string | null = null;
       if (selectedContactId) {
         await supabase
           .from("household_members")
           .update({ household_id: household.id, relationship: "Primary" })
           .eq("id", selectedContactId);
+        primaryContactId = selectedContactId;
+        // Pull the existing email so we can trigger a rescan if there's
+        // any past Outlook mail for this person.
+        const { data: existing } = await supabase
+          .from("household_members")
+          .select("email")
+          .eq("id", selectedContactId)
+          .maybeSingle();
+        primaryEmail = (existing as any)?.email ?? null;
       } else if (newMember) {
-        await supabase.from("household_members").insert({
+        const { data: created } = await supabase
+          .from("household_members")
+          .insert({
+            household_id: household.id,
+            first_name: newMember.first_name,
+            last_name: newMember.last_name,
+            email: newMember.email || null,
+            phone: newMember.phone || null,
+            relationship: "Primary",
+            advisor_id: user.id,
+          })
+          .select("id, email")
+          .single();
+        primaryContactId = (created as any)?.id ?? null;
+        primaryEmail = (created as any)?.email ?? null;
+      }
+
+      // Fire-and-forget historical Outlook backfill so the new household's
+      // primary contact gets their past mail surfaced. No-op if Outlook
+      // isn't connected.
+      if (primaryContactId && primaryEmail) {
+        void rescanOutlookContact({
+          email: primaryEmail,
+          contact_id: primaryContactId,
           household_id: household.id,
-          first_name: newMember.first_name,
-          last_name: newMember.last_name,
-          email: newMember.email || null,
-          phone: newMember.phone || null,
-          relationship: "Primary",
-          advisor_id: user.id,
         });
       }
 

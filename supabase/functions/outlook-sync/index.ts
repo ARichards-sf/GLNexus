@@ -29,6 +29,22 @@ const INITIAL_LOOKBACK_DAYS = 30;
 const PAGE_SIZE = 50;
 const SAFETY_PAGE_LIMIT = 20;
 const AI_BATCH_SIZE = 10;
+// Hard cap on stored body_html. Outlook newsletters routinely come back
+// 1–10 MB; without this we'd dump that into Postgres as TOAST and bloat
+// row writes / replication. 1 MB keeps every realistic client email
+// intact while truncating runaway HTML noise.
+const MAX_BODY_BYTES = 1_000_000;
+const TRUNCATION_MARKER =
+  "\n\n<!-- [truncated by GLNexus — view the full message in Outlook] -->";
+
+/** Clamp body HTML to MAX_BODY_BYTES; appends a truncation marker so
+ *  consumers can tell the row was capped. Null in → null out. */
+function clampBody(html: string | null | undefined): string | null {
+  if (!html) return null;
+  if (html.length <= MAX_BODY_BYTES) return html;
+  const cutoff = MAX_BODY_BYTES - TRUNCATION_MARKER.length;
+  return html.slice(0, Math.max(0, cutoff)) + TRUNCATION_MARKER;
+}
 
 type Folder = "inbox" | "sent";
 
@@ -39,6 +55,10 @@ type Connection = {
   access_token_expires_at: string | null;
   inbox_delta_link: string | null;
   sent_delta_link: string | null;
+  /** When the advisor first connected — initial sync uses this as the
+   *  since-watermark so we don't pull mail from before they enabled the
+   *  integration. */
+  created_at: string;
 };
 
 type AdvisorResult = {
@@ -60,7 +80,38 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const advisorIds = await resolveAdvisors(req, admin);
+    // Pre-parse body once so both action dispatch and resolveAdvisors can
+    // read it. JSON re-parsing isn't supported on the Request stream.
+    let body: Record<string, unknown> = {};
+    if (req.method === "POST") {
+      try {
+        body = await req.clone().json();
+      } catch {
+        // empty body OK
+      }
+    }
+
+    // ------- action: rescan_contact ----------------------------------
+    // Single-contact historical pull. Used when a new contact or
+    // prospect is added with an email, so the advisor sees mail they
+    // exchanged with that person before the CRM record existed.
+    // Stored with is_historical=true so the AI prioritizer skips them.
+    if (body.action === "rescan_contact") {
+      const advisorIds = await resolveAdvisors(req, admin, body);
+      if (!advisorIds.length) return json({ error: "Unauthorized" }, 401);
+      const advisorId = advisorIds[0];
+      try {
+        const stored = await rescanContactMail(admin, advisorId, body);
+        return json({ ok: true, stored });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        console.error(`Rescan failed for ${advisorId}:`, msg);
+        return json({ error: msg }, 500);
+      }
+    }
+
+    // ------- default action: regular sync ----------------------------
+    const advisorIds = await resolveAdvisors(req, admin, body);
     if (!advisorIds.length) return json({ error: "Unauthorized" }, 401);
 
     const results: AdvisorResult[] = [];
@@ -111,7 +162,7 @@ async function syncOneAdvisor(
   const { data: conn, error: connErr } = await admin
     .from("outlook_connections")
     .select(
-      "advisor_id, refresh_token, access_token, access_token_expires_at, inbox_delta_link, sent_delta_link",
+      "advisor_id, refresh_token, access_token, access_token_expires_at, inbox_delta_link, sent_delta_link, created_at",
     )
     .eq("advisor_id", advisorId)
     .single();
@@ -121,12 +172,13 @@ async function syncOneAdvisor(
   }
 
   const accessToken = await ensureAccessToken(conn as Connection, admin);
+  const connectedAt = (conn as Connection).created_at;
 
   const inboxResult = await syncFolder(
-    admin, advisorId, "inbox", conn.inbox_delta_link, accessToken,
+    admin, advisorId, "inbox", conn.inbox_delta_link, accessToken, connectedAt,
   );
   const sentResult = await syncFolder(
-    admin, advisorId, "sent", conn.sent_delta_link, accessToken,
+    admin, advisorId, "sent", conn.sent_delta_link, accessToken, connectedAt,
   );
 
   await admin
@@ -154,20 +206,28 @@ async function syncOneAdvisor(
 async function resolveAdvisors(
   req: Request,
   admin: SupabaseClient,
+  parsedBody?: Record<string, unknown>,
 ): Promise<string[]> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return [];
 
-  let body: { all?: boolean; advisor_id?: string } = {};
-  if (req.method === "POST") {
-    try { body = await req.json(); } catch { /* empty body is fine */ }
-  }
+  const body = (parsedBody ?? {}) as { all?: boolean; advisor_id?: string };
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const isServiceRole = authHeader === `Bearer ${serviceKey}`;
 
-  // Cron / fan-out — sync every connected advisor.
+  // Cron / fan-out — sync every connected advisor. ONLY allowed for the
+  // service-role bearer (the pg_cron job uses it). Without this gate, any
+  // signed-in user could trigger a Graph + Claude run across every
+  // connected mailbox in the project — pure cost amplifier.
   if (body.all === true) {
+    if (!isServiceRole) {
+      console.warn("Refused fan-out: caller is not service-role");
+      return [];
+    }
     const { data, error } = await admin
       .from("outlook_connections")
-      .select("advisor_id");
+      .select("advisor_id")
+      .eq("needs_reauth", false);
     if (error) {
       console.error("Failed to load connections for fan-out:", error);
       return [];
@@ -176,8 +236,7 @@ async function resolveAdvisors(
   }
 
   // Service-role with explicit advisor_id (admin / debugging).
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  if (authHeader === `Bearer ${serviceKey}` && body.advisor_id) {
+  if (isServiceRole && body.advisor_id) {
     return [body.advisor_id];
   }
 
@@ -222,6 +281,21 @@ async function ensureAccessToken(
 
   if (!res.ok) {
     const errText = await res.text();
+    // Microsoft signals "the user has to re-authorize" via invalid_grant —
+    // typically consent revoked, password change, account disabled, or
+    // 90-day idle. Retrying every 5 minutes won't help. Flip the flag so
+    // the UI can prompt to reconnect, then surface a clean message
+    // through last_sync_error.
+    if (/invalid_grant/i.test(errText)) {
+      await admin
+        .from("outlook_connections")
+        .update({
+          needs_reauth: true,
+          last_sync_error: "Outlook access expired — please reconnect.",
+        })
+        .eq("advisor_id", conn.advisor_id);
+      throw new Error("OUTLOOK_NEEDS_REAUTH");
+    }
     throw new Error(`Token refresh failed: ${res.status} ${errText}`);
   }
 
@@ -250,12 +324,34 @@ async function ensureAccessToken(
 // ---------------------------------------------------------------------------
 // Folder sync (delta query)
 // ---------------------------------------------------------------------------
+// Lightweight metadata fields fetched on every page. Body is intentionally
+// excluded — we fetch it per-message later, only for rows whose sender or
+// recipient matches a known contact/prospect on this advisor's book.
+// Saves ~95% of Graph payload bytes and Postgres storage on noisy mailboxes.
+const HEADERS_SELECT = [
+  "id",
+  "conversationId",
+  "subject",
+  "bodyPreview",
+  "from",
+  "sender",
+  "toRecipients",
+  "ccRecipients",
+  "receivedDateTime",
+  "sentDateTime",
+  "importance",
+  "hasAttachments",
+  "isRead",
+  "webLink",
+].join(",");
+
 async function syncFolder(
   admin: SupabaseClient,
   advisorId: string,
   folder: Folder,
   storedDeltaLink: string | null,
   accessToken: string,
+  connectedAt: string,
 ): Promise<{
   counts: { fetched: number; upserted: number };
   deltaLink: string | null;
@@ -265,12 +361,13 @@ async function syncFolder(
     url = storedDeltaLink;
   } else {
     const folderName = folder === "inbox" ? "inbox" : "sentitems";
-    const since = new Date(
-      Date.now() - INITIAL_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
-    ).toISOString();
+    // Anchor the initial sync to when the advisor connected — never pull
+    // mail older than that. Avoids surprise-importing years of history.
+    const since = new Date(connectedAt).toISOString();
     const params = new URLSearchParams({
       "$filter": `receivedDateTime ge ${since}`,
       "$top": String(PAGE_SIZE),
+      "$select": HEADERS_SELECT,
     });
     url = `${GRAPH}/me/mailFolders/${folderName}/messages/delta?${params}`;
   }
@@ -303,7 +400,9 @@ async function syncFolder(
     };
 
     fetched += page.value.length;
-    upserted += await upsertMessages(admin, advisorId, folder, page.value);
+    upserted += await upsertMessages(
+      admin, advisorId, folder, page.value, accessToken,
+    );
 
     if (page["@odata.deltaLink"]) {
       deltaLink = page["@odata.deltaLink"];
@@ -317,6 +416,26 @@ async function syncFolder(
   }
 
   return { counts: { fetched, upserted }, deltaLink };
+}
+
+/** Pulls the body for a single message — used after match filtering so we
+ *  only spend bandwidth + storage on messages tied to a known person. */
+async function fetchMessageBody(
+  accessToken: string,
+  graphId: string,
+): Promise<string | null> {
+  const res = await fetch(
+    `${GRAPH}/me/messages/${graphId}?$select=body`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Prefer: 'outlook.body-content-type="html"',
+      },
+    },
+  );
+  if (!res.ok) return null;
+  const j = await res.json() as { body?: { content?: string } };
+  return j.body?.content ?? null;
 }
 
 type GraphRecipient = { emailAddress?: { address?: string; name?: string } };
@@ -340,8 +459,13 @@ type GraphMessage = {
 };
 
 type ContactLink = {
-  contact_id: string;
-  household_id: string;
+  /** Set when the email matches a household_member row. */
+  contact_id: string | null;
+  /** Set when the email matches a household_member row. */
+  household_id: string | null;
+  /** Set when the email matches a prospect row instead. */
+  prospect_id: string | null;
+  /** For display + tier — household name when contact, prospect name fallback. */
   household_name: string;
   wealth_tier: string | null;
 };
@@ -351,6 +475,7 @@ async function upsertMessages(
   advisorId: string,
   folder: Folder,
   messages: GraphMessage[],
+  accessToken: string,
 ): Promise<number> {
   if (!messages.length) return 0;
 
@@ -366,6 +491,8 @@ async function upsertMessages(
   const live = messages.filter((m) => !m["@removed"]);
   if (!live.length) return 0;
 
+  // Build the address set for this batch and resolve them all at once
+  // against household_members + prospects.
   const addressesNeeded = new Set<string>();
   for (const m of live) {
     const fromAddr = m.from?.emailAddress?.address ??
@@ -385,16 +512,34 @@ async function upsertMessages(
     admin, advisorId, [...addressesNeeded],
   );
 
+  // Decide which messages get their full body fetched. Inbox: match on
+  // sender. Sent: match on first recipient. Anything that doesn't match
+  // a known contact/prospect skips the body fetch entirely.
+  const linkFor = (m: GraphMessage): { addr: string; link: ContactLink | null } => {
+    const fromAddr = (m.from?.emailAddress?.address ??
+      m.sender?.emailAddress?.address ?? "").toLowerCase();
+    const linkAddr = folder === "inbox"
+      ? fromAddr
+      : (m.toRecipients?.[0]?.emailAddress?.address ?? "").toLowerCase();
+    return { addr: linkAddr, link: linkAddr ? contactByEmail.get(linkAddr) ?? null : null };
+  };
+
+  // Fetch bodies in parallel for the matched subset only.
+  const matched = live.filter((m) => linkFor(m).link);
+  const bodyById = new Map<string, string | null>();
+  if (matched.length) {
+    const bodies = await Promise.all(
+      matched.map((m) => fetchMessageBody(accessToken, m.id)),
+    );
+    matched.forEach((m, i) => bodyById.set(m.id, bodies[i]));
+  }
+
   const rows = live.map((m) => {
     const fromAddr = (m.from?.emailAddress?.address ??
       m.sender?.emailAddress?.address ?? "").toLowerCase();
     const fromName = m.from?.emailAddress?.name ??
       m.sender?.emailAddress?.name ?? null;
-
-    const linkAddr = folder === "inbox"
-      ? fromAddr
-      : (m.toRecipients?.[0]?.emailAddress?.address ?? "").toLowerCase();
-    const link = linkAddr ? contactByEmail.get(linkAddr) : null;
+    const { link } = linkFor(m);
 
     return {
       advisor_id: advisorId,
@@ -407,7 +552,10 @@ async function upsertMessages(
       cc_recipients: (m.ccRecipients ?? []).map(toJson),
       subject: m.subject ?? null,
       body_preview: m.bodyPreview ?? null,
-      body_html: m.body?.content ?? null,
+      // Body is only stored when the sender/recipient matches a known
+      // contact or prospect — vendor mail keeps just the headers. Cap at
+      // MAX_BODY_BYTES so a runaway newsletter can't bloat the row.
+      body_html: link ? clampBody(bodyById.get(m.id) ?? null) : null,
       received_at: m.receivedDateTime ?? null,
       sent_at: m.sentDateTime ?? null,
       importance: m.importance ?? null,
@@ -416,6 +564,7 @@ async function upsertMessages(
       web_link: m.webLink ?? null,
       contact_id: link?.contact_id ?? null,
       household_id: link?.household_id ?? null,
+      prospect_id: link?.prospect_id ?? null,
       ai_processed_at: null,
     };
   });
@@ -446,20 +595,50 @@ async function loadContactsByEmail(
   const out = new Map<string, ContactLink>();
   if (!addresses.length) return out;
 
-  const { data, error } = await admin
-    .from("household_members")
-    .select(
-      "id, email, household_id, households!inner(advisor_id, name, wealth_tier)",
-    )
-    .in("email", addresses)
-    .eq("households.advisor_id", advisorId);
+  // Run member + prospect lookups in parallel. Members win when an email
+  // matches both (real client > prospect record), so we fold members in last.
+  const [membersResult, prospectsResult] = await Promise.all([
+    admin
+      .from("household_members")
+      .select(
+        "id, email, household_id, households!inner(advisor_id, name, wealth_tier)",
+      )
+      .in("email", addresses)
+      .eq("households.advisor_id", advisorId),
+    admin
+      .from("prospects")
+      .select("id, email, first_name, last_name")
+      .in("email", addresses)
+      .eq("advisor_id", advisorId),
+  ]);
 
-  if (error) {
-    console.error("loadContactsByEmail failed:", error);
+  if (prospectsResult.error) {
+    console.error("loadContactsByEmail prospects failed:", prospectsResult.error);
+  } else {
+    for (const row of (prospectsResult.data ?? []) as Array<{
+      id: string;
+      email: string | null;
+      first_name: string | null;
+      last_name: string | null;
+    }>) {
+      if (!row.email) continue;
+      out.set(row.email.toLowerCase(), {
+        contact_id: null,
+        household_id: null,
+        prospect_id: row.id,
+        household_name:
+          `${row.first_name ?? ""} ${row.last_name ?? ""}`.trim() || "Prospect",
+        wealth_tier: null,
+      });
+    }
+  }
+
+  if (membersResult.error) {
+    console.error("loadContactsByEmail members failed:", membersResult.error);
     return out;
   }
 
-  for (const row of (data ?? []) as Array<{
+  for (const row of (membersResult.data ?? []) as Array<{
     id: string;
     email: string | null;
     household_id: string;
@@ -469,6 +648,7 @@ async function loadContactsByEmail(
     out.set(row.email.toLowerCase(), {
       contact_id: row.id,
       household_id: row.household_id,
+      prospect_id: null,
       household_name: row.households?.name ?? "",
       wealth_tier: row.households?.wealth_tier ?? null,
     });
@@ -492,6 +672,11 @@ async function prioritizeUnprocessed(
     return 0;
   }
 
+  // Order ASC so the backlog drains oldest-first. With DESC, a 50-email
+  // burst leaves the older 40 permanently un-triaged because every
+  // subsequent run picks the same newest 10.
+  // is_historical filters out the rescan rows — those got stored for
+  // timeline context only, no AI scoring.
   const { data: pending, error } = await admin
     .from("email_messages")
     .select(
@@ -499,9 +684,10 @@ async function prioritizeUnprocessed(
     )
     .eq("advisor_id", advisorId)
     .eq("folder", "inbox")
+    .eq("is_historical", false)
     .not("contact_id", "is", null)
     .is("ai_processed_at", null)
-    .order("received_at", { ascending: false })
+    .order("received_at", { ascending: true })
     .limit(AI_BATCH_SIZE);
 
   if (error || !pending?.length) return 0;
@@ -668,4 +854,164 @@ function json(body: unknown, status: number) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+// ---------------------------------------------------------------------------
+// Rescan: pull historical mail for a single email address (a newly-added
+// contact or prospect). Stored with is_historical=true so the prioritizer
+// skips them — they're for timeline context, not "act on this now."
+// ---------------------------------------------------------------------------
+const DEFAULT_RESCAN_LOOKBACK_DAYS = 90;
+const MAX_RESCAN_LOOKBACK_DAYS = 365;
+const RESCAN_PAGE_LIMIT = 5;
+
+async function rescanContactMail(
+  admin: SupabaseClient,
+  advisorId: string,
+  body: Record<string, unknown>,
+): Promise<{ inbox: number; sent: number }> {
+  const email = String(body.email ?? "").trim().toLowerCase();
+  if (!email) throw new Error("Missing 'email' in rescan request");
+
+  const contactId = (body.contact_id as string | undefined) ?? null;
+  const householdId = (body.household_id as string | undefined) ?? null;
+  const prospectId = (body.prospect_id as string | undefined) ?? null;
+  if (!contactId && !prospectId) {
+    throw new Error("Rescan needs either contact_id or prospect_id");
+  }
+
+  const lookback = clamp(
+    Number(body.lookback_days ?? DEFAULT_RESCAN_LOOKBACK_DAYS),
+    1,
+    MAX_RESCAN_LOOKBACK_DAYS,
+  );
+
+  const { data: conn, error: connErr } = await admin
+    .from("outlook_connections")
+    .select(
+      "advisor_id, refresh_token, access_token, access_token_expires_at, inbox_delta_link, sent_delta_link, created_at",
+    )
+    .eq("advisor_id", advisorId)
+    .single();
+  if (connErr || !conn) {
+    throw new Error("No Outlook connection — cannot rescan");
+  }
+  const accessToken = await ensureAccessToken(conn as Connection, admin);
+
+  const since = new Date(
+    Date.now() - lookback * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const safeEmail = email.replace(/'/g, "''");
+
+  // Inbox: messages received from the contact's email.
+  const inboxStored = await rescanFolder(admin, advisorId, accessToken, {
+    folder: "inbox",
+    odataFilter: `from/emailAddress/address eq '${safeEmail}' and receivedDateTime ge ${since}`,
+    contactId, householdId, prospectId,
+  });
+
+  // Sent: messages sent TO the contact (any recipient on the to list).
+  const sentStored = await rescanFolder(admin, advisorId, accessToken, {
+    folder: "sent",
+    odataFilter: `toRecipients/any(r:r/emailAddress/address eq '${safeEmail}') and sentDateTime ge ${since}`,
+    contactId, householdId, prospectId,
+  });
+
+  return { inbox: inboxStored, sent: sentStored };
+}
+
+async function rescanFolder(
+  admin: SupabaseClient,
+  advisorId: string,
+  accessToken: string,
+  args: {
+    folder: Folder;
+    odataFilter: string;
+    contactId: string | null;
+    householdId: string | null;
+    prospectId: string | null;
+  },
+): Promise<number> {
+  const folderName = args.folder === "inbox" ? "inbox" : "sentitems";
+  const params = new URLSearchParams({
+    "$filter": args.odataFilter,
+    "$top": String(PAGE_SIZE),
+    // Full body on rescan — we know we want it (single-contact pull,
+    // small N), so headers-only would just add a second roundtrip.
+  });
+  let url = `${GRAPH}/me/mailFolders/${folderName}/messages?${params}`;
+
+  let stored = 0;
+  let pages = 0;
+
+  while (url && pages < RESCAN_PAGE_LIMIT) {
+    pages += 1;
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Prefer: 'outlook.body-content-type="html"',
+      },
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Rescan ${args.folder} failed: ${res.status} ${errText}`);
+    }
+    const page = await res.json() as {
+      value: GraphMessage[];
+      "@odata.nextLink"?: string;
+    };
+
+    if (page.value.length) {
+      const rows = page.value.map((m) => {
+        const fromAddr = (m.from?.emailAddress?.address ??
+          m.sender?.emailAddress?.address ?? "").toLowerCase();
+        const fromName = m.from?.emailAddress?.name ??
+          m.sender?.emailAddress?.name ?? null;
+        return {
+          advisor_id: advisorId,
+          graph_message_id: m.id,
+          graph_conversation_id: m.conversationId ?? null,
+          folder: args.folder,
+          from_email: fromAddr || null,
+          from_name: fromName,
+          to_recipients: (m.toRecipients ?? []).map(toJson),
+          cc_recipients: (m.ccRecipients ?? []).map(toJson),
+          subject: m.subject ?? null,
+          body_preview: m.bodyPreview ?? null,
+          body_html: clampBody(m.body?.content ?? null),
+          received_at: m.receivedDateTime ?? null,
+          sent_at: m.sentDateTime ?? null,
+          importance: m.importance ?? null,
+          has_attachments: !!m.hasAttachments,
+          is_read: !!m.isRead,
+          web_link: m.webLink ?? null,
+          contact_id: args.contactId,
+          household_id: args.householdId,
+          prospect_id: args.prospectId,
+          // Mark sentinel-processed so the prioritizer skips it cleanly,
+          // and is_historical=true so the explicit filter does too.
+          is_historical: true,
+          ai_processed_at: new Date().toISOString(),
+          ai_priority: null,
+        };
+      });
+
+      const { error } = await admin
+        .from("email_messages")
+        .upsert(rows, { onConflict: "advisor_id,graph_message_id" });
+      if (error) {
+        console.error("Rescan upsert failed:", error);
+      } else {
+        stored += rows.length;
+      }
+    }
+
+    if (page["@odata.nextLink"]) {
+      url = page["@odata.nextLink"];
+      continue;
+    }
+    break;
+  }
+
+  return stored;
 }
